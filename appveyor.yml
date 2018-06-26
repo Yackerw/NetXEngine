@@ -1,0 +1,31 @@
+version: 2.6.3.{build}
+
+pull_requests:
+  do_not_increment_build_number: true
+
+configuration: Release
+
+platform:
+- x86
+- x64
+
+build:
+  project: win32/nx.sln
+  verbosity: minimal
+
+before_deploy:
+ - ps: .\win32\win.package.ps1
+
+deploy:
+  - provider: GitHub
+    release: $(APPVEYOR_REPO_TAG_NAME)
+    tag: $(APPVEYOR_REPO_TAG_NAME)
+    description: ''
+    auth_token:
+      secure: UNAaCG+KMRMqZqVEHpSgXTXZOJlqEQ/7nySQ6U/LutHjXnuqVNpYDxoqIW1hufI+
+    artifact: /NXEngine-.*\.zip/
+    draft: true
+    force_update: true
+    prerelease: false
+    on:
+      appveyor_repo_tag: true

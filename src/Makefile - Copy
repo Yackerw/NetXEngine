@@ -1,0 +1,28 @@
+#OBJS specifies which files to compile as part of the project
+OBJS = caret.cpp console.cpp debug.cpp floattext.cpp game.cpp input.cpp inventory.cpp main.cpp map.cpp map_system.cpp NetPlayer.cpp niku.cpp nx_math.cpp object.cpp ObjManager.cpp p_arms.cpp player.cpp playerstats.cpp profile.cpp ResourceManager.cpp screeneffect.cpp settings.cpp slope.cpp stageboss.cpp stagedata.cpp statusbar.cpp trig.cpp tsc.cpp ai\ai.cpp ai\balrog_common.cpp ai\IrregularBBox.cpp ai\weed\balrog_boss_flying.cpp ai\weed\frenzied_mimiga.cpp ai\weed\weed.cpp ai\weapons\blade.cpp ai\weapons\bubbler.cpp ai\weapons\fireball.cpp ai\weapons\missile.cpp ai\weapons\nemesis.cpp ai\weapons\polar_mgun.cpp ai\weapons\snake.cpp ai\weapons\spur.cpp ai\weapons\weapons.cpp ai\weapons\whimstar.cpp ai\village\balrog_boss_running.cpp ai\village\ma_pignon.cpp ai\village\village.cpp ai\sym\smoke.cpp ai\sym\sym.cpp ai\sand\curly_boss.cpp ai\sand\puppy.cpp ai\sand\sand.cpp ai\sand\toroko_frenzied.cpp ai\plantation\plantation.cpp ai\oside\oside.cpp ai\npc\balrog.cpp ai\npc\curly.cpp ai\npc\curly_ai.cpp ai\npc\misery.cpp ai\npc\npcguest.cpp ai\npc\npcplayer.cpp ai\npc\npcregu.cpp ai\maze\balrog_boss_missiles.cpp ai\maze\critter_purple.cpp ai\maze\gaudi.cpp ai\maze\labyrinth_m.cpp ai\maze\maze.cpp ai\maze\pooh_black.cpp ai\last_cave\last_cave.cpp ai\hell\ballos_misc.cpp ai\hell\ballos_priest.cpp ai\hell\hell.cpp ai\first_cave\first_cave.cpp
+
+#CC specifies which compiler we're using
+CC = gcc
+
+#INCLUDE_PATHS specifies the additional include paths we'll need
+INCLUDE_PATHS = -IC:\Users\Yack\Desktop\sdl2mingw\include\SDL2
+
+#LIBRARY_PATHS specifies the additional library paths we'll need
+LIBRARY_PATHS = -LC:\Users\Yack\Desktop\sdl2mingw\lib
+
+#COMPILER_FLAGS specifies the additional compilation options we're using
+# -w suppresses all warnings
+# -Wl,-subsystem,windows gets rid of the console window
+# -g, compile for gdb
+COMPILER_FLAGS = -w
+#-Wl,-subsystem,windows
+
+#LINKER_FLAGS specifies the libraries we're linking against
+LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+
+#OBJ_NAME specifies the name of our exectuable
+OBJ_NAME = engine
+
+#This is the target that compiles our executable
+all : $(OBJS)
+	$(CC) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
