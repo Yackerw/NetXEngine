@@ -28,6 +28,8 @@ Player *players = (Player*)calloc(32, sizeof(Player));
 bool netpinputs[32][INPUT_COUNT];
 bool netlastpinputs[32][INPUT_COUNT];
 
+char plskins[MAXCLIENTS];
+
 Player netInitPlayer() {
 	Player p;
 	memset(&p, 0, sizeof(Player));
@@ -65,7 +67,7 @@ Player netInitPlayer() {
 	p.DamageText = NULL;
 	p.XPText = NULL;
 
-	p.sprite = netPSelectSprite();
+	//p.sprite = netPSelectSprite();
 
 	// this prevents a splash if we start underwater, and prevents us
 	// from drowning immediately since our air isn't yet set up
@@ -90,6 +92,9 @@ void netHandlePlayer(int pl) {
 	{
 		netPHandleAttributes(p);			// handle special tile attributes
 		netPHandleSolidMushyObjects(p);		// handle objects like bugs marked "solid / mushy"
+
+		// Update sprite
+		p->skin = plskins[pl];
 
 		netPDoHurtFlash(p);
 
@@ -944,6 +949,8 @@ void netDrawPlayer(Player *p)
 {
 	int scr_x, scr_y;
 
+	p->sprite = netPSelectSprite(p);
+
 	// lol hack
 	p->hide = player->hide;
 
@@ -1057,11 +1064,16 @@ void netUpdateBlockstates(Player *o) {
 }
 
 // mimiga mask support
-int netPSelectSprite()
+int netPSelectSprite(Player *p)
 {
 	//return (p->equipmask & EQUIP_MIMIGA_MASK) ? \
 	//	SPR_MYCHAR_MIMIGA : SPR_MYCHAR;
-	return SPR_MYCHAR; // TODO: actually add support for multiple sprites
+	if (p->skin == 0) {
+		return SPR_MYCHAR;
+	}
+	else {
+		return ((SPR_CURLYCHAR)-1) + p->skin;
+	}
 }
 
 // returns the point that a player's shot should be centered on when firing
@@ -1252,7 +1264,8 @@ void ConnectRecv(char *buff) {
 	player->invisible = false;
 	player->movementmode = MOVEMODE_NORMAL;
 	player->hide = false;
-	player->hp = player->maxHealth;
+	player->hp = player->maxHealth; // fade
+	fade.set_full(1);
 	game.setmode(GM_NORMAL);
 }
 
@@ -1341,10 +1354,21 @@ void DiscnnRecv(char *buff) {
 	sockets[pnum].used = false;
 }
 
+char *SkinSend() {
+	char *outbuff = (char*)malloc(sizeof(char));
+	memcpy(outbuff, &player->skin, sizeof(char));
+	return outbuff;
+}
+
+void SkinRecv(unsigned char *buff, int p) {
+	memcpy(&plskins[p], buff, sizeof(char));
+}
+
 int PlayerUpdateEvent;
 int PlayerShotEvent;
 int PlayerMissileEvent;
 int PlayerBladeEvent;
+int PlayerSkinUpdateEvent;
 
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
@@ -1361,4 +1385,6 @@ void SetupNetPlayerFuncs() {
 	Net_RegisterPlayerEventRecv(BladeSpawnRecv, sizeof(char));
 	Net_RegisterDisconnectSend(DiscnnSend, sizeof(int));
 	Net_RegisterDisconnectRecv(DiscnnRecv);
+	PlayerSkinUpdateEvent = Net_RegisterPlayerEventSend(SkinSend, sizeof(char));
+	Net_RegisterPlayerEventRecv(SkinRecv, sizeof(char));
 }

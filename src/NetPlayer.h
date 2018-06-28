@@ -11,6 +11,7 @@ extern int PlayerUpdateEvent;
 extern int PlayerShotEvent;
 extern int PlayerMissileEvent;
 extern int PlayerBladeEvent;
+extern int PlayerSkinUpdateEvent;
 
 Player netInitPlayer();
 void netHandlePlayer(int pl);
@@ -33,7 +34,7 @@ void netPDoRepel(Player *p);
 //void netPTryActivateScript();
 void netPDoHurtFlash(Player *p);
 void netPSelectFrame(Player *p);
-int netPSelectSprite();
+int netPSelectSprite(Player *p);
 //void netGetSpriteForGun(int wpn, int look, int *spr, int *frame);
 void netGetPlayerShootPoint(Player *p, int *x_out, int *y_out);
 void netDrawPlayer(Player *p);

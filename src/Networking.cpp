@@ -390,7 +390,7 @@ void packet_receiving(void *sockettt) {
 		while (recvbuffsize >= expecteddata && recvbuffsize > 0) {
 			// Copy data to our useful buffs
 			memcpy(databuffs[socknumber] + databuffsizes[socknumber], recvbuff, expecteddata);
-			databuffsizes[socknumber] += recvbuffsize;
+			databuffsizes[socknumber] += expecteddata;
 			// If we've received additional data, then let's store it
 			if (recvbuffsize > expecteddata) {
 				// If we've received enough data for the next packet size, then let's store it

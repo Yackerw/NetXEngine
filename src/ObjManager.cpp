@@ -570,9 +570,6 @@ void Objects::DestroyAll(bool delete_player)
 {
 Object *o, *next;
 
-	// This is honestly garbage
-ZERO_OBJECT.serialization = -1;
-
 	o = firstobject;
 	while(o)
 	{

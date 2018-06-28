@@ -16,6 +16,7 @@
 #include "../graphics/sprites.h"
 #include "../autogen/sprites.h"
 #include "Networking.h"
+#include "NetPlayer.h"
 using namespace Graphics;
 using namespace Sprites;
 
@@ -319,6 +320,7 @@ static void selectoption(int index)
 			_beginthread(packet_receiving, 256, (void*)sock);
 			host = 0;
 			Multiplayer = 3;
+			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
 		}
 		break;
 		case 22: {		// Bring us to IP input screen

@@ -203,7 +203,7 @@ public:
 	Object *whohit;
 
 	// Networking!
-	int serialization;
+	int serialization = -1;
 	
 	// AI variables used for specific AI functions
 	union

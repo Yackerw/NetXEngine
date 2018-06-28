@@ -142,6 +142,11 @@ int sheetdatalength, spritesdatalength;
 	}
 	
 	sif.CloseFile();
+
+	// Ayy hack
+	memcpy(&sprites[SPR_CURLYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_CURLYCHAR].spritesheet = 64;
+	sheetfiles.push_back("CurlyChar.pbm");
 	
 	create_slope_boxes();
 	offset_by_draw_points();

@@ -15,6 +15,7 @@
 #include "ai/sym/smoke.h"
 #include "autogen/sprites.h"
 #include "graphics/sprites.h"
+#include "Networking.h"
 using namespace Sprites;
 #include "settings.h"
 #include "screeneffect.h"
@@ -1577,8 +1578,19 @@ void PSelectFrame(void)
 // mimiga mask support
 void PSelectSprite(void)
 {
-	player->sprite = (player->equipmask & EQUIP_MIMIGA_MASK) ? \
-					SPR_MYCHAR_MIMIGA : SPR_MYCHAR;
+	if (host == -1) {
+		player->sprite = (player->equipmask & EQUIP_MIMIGA_MASK) ? \
+			SPR_MYCHAR_MIMIGA : SPR_MYCHAR;
+	}
+	else {
+		if (player->skin == 0) {
+			player->sprite = SPR_MYCHAR;
+		}
+		else {
+			player->sprite = ((SPR_CURLYCHAR)-1)+player->skin;
+		}
+	}
+	return;
 }
 
 /*
