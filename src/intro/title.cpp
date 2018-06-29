@@ -77,7 +77,19 @@ static void draw_title()
 
 	// TODO: change to switch statement
 	if (Multiplayer == 0) {
-		const char* mymenus[] = { "New game","Load game", "Options", "Multiplayer", "Quit" };
+		//show if its hosting
+		const char* multitx;
+		if (host != -1) {
+			multitx = "----";
+		}
+		else {
+			multitx = "Multiplayer";
+		}
+		const char* mymenus[] = { "New game","Load game", "Options", multitx, "Quit" };
+
+		if (host == 1) {
+			font_draw(cx + 10, cy - 32, "(Hosting!)");
+		}
 
 		TextBox::DrawFrame(cx - 32, cy - 16, 128, 80);
 
