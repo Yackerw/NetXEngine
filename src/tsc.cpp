@@ -31,6 +31,8 @@
 
 int TscExec;
 
+bool Teleporting = false; // We use this so that when <SLP is activated, we make note of it, then sync the next <YNJ
+
 /*
 void c------------------------------() {}
 */
@@ -642,8 +644,10 @@ int cmdip;
 	{
 		if (textbox.YesNoPrompt.ResultReady())
 		{
-			if (textbox.YesNoPrompt.GetResult() == NO)
+			if (textbox.YesNoPrompt.GetResult() == NO) {
 				JumpScript(s->ynj_jump);
+				Teleporting = false;
+			}
 			
 			textbox.YesNoPrompt.SetVisible(false);
 			s->ynj_jump = -1;
@@ -754,7 +758,11 @@ int cmdip;
 		
 		switch(cmd)
 		{
-			case OP_END: StopScript(s); return;
+			case OP_END: { 
+				StopScript(s);
+				Teleporting = false;
+				return;
+			}
 			
 			case OP_FAI: fade.Start(FADE_IN, parm[0], SPR_FADE_DIAMOND); return;
 			case OP_FAO: fade.Start(FADE_OUT, parm[0], SPR_FADE_DIAMOND); return;
@@ -845,6 +853,15 @@ int cmdip;
 						game.frozen = false;
 					}
 				}
+				// If we're the host then sync this TRA if we were teleporting.
+				if (host == 1 && Teleporting == true) {
+					char *outbuff = (char*)malloc(sizeof(int) * 5);
+					int tmp = 14;
+					memcpy(outbuff, &tmp, sizeof(int));
+					memcpy(outbuff + sizeof(int), parm, sizeof(int) * 4);
+					Net_AddToOut(outbuff, sizeof(int) * 5);
+				}
+				Teleporting = false;
 				
 				return;
 			}
@@ -1218,13 +1235,21 @@ int cmdip;
 			
 			case OP_SLP:	// bring up teleporter menu
 			{
-				textbox.StageSelect.SetVisible(true);
+				if (host != 0) {
+					textbox.StageSelect.SetVisible(true);
+				}
+				// If we're the host then make note to sync next <YNJ
+				if (host == 1) {
+					Teleporting = true;
+				}
 				return;
 			}
 			break;
 			
 			case OP_ESC:
 			{
+				// Important
+				Teleporting = false;
 				StopScript(s);
 				game.reset();
 			}

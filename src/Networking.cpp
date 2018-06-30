@@ -782,6 +782,37 @@ void Net_ParseBuffs() {
 					arraypos += (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
 				}
 				break;
+				case 14:
+				{
+					// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
+					if (host == 0) {
+						int parm[4];
+						memcpy(parm, databuffs[i] + arraypos + 4, sizeof(int) * 4);
+
+						bool waslocked = (player->inputs_locked || game.frozen);
+
+						stat("******* Executing <TRA to stage %d", parm[0]);
+						game.switchstage.mapno = parm[0];
+						game.switchstage.eventonentry = parm[1];
+						game.switchstage.playerx = parm[2];
+						game.switchstage.playery = parm[3];
+
+						if (game.switchstage.mapno != 0)
+						{
+							// KEY is maintained across TRA as if the TRA
+							// were a jump instead of a restart; but if the
+							// game is in PRI then it is downgraded to a KEY.
+							// See entrance to Yamashita Farm.
+							if (waslocked)
+							{
+								player->inputs_locked = true;
+								game.frozen = false;
+							}
+						}
+					}
+					arraypos += sizeof(int) * 5;
+				}
+					break;
 				default:
 					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
 					arraypos = databuffsizes[i];

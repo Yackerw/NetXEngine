@@ -8,6 +8,8 @@
 
 extern int TscExec;
 
+extern bool Teleporting;
+
 
 #define NUM_SCRIPT_PAGES 4
 // TSC running script instance; there is only ever one running at once
