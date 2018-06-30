@@ -4,6 +4,8 @@
 #include "ObjManager.h"
 #include "object.h"
 #include "map.h"
+#include "player.h"
+#include "NetPlayer.h"
 
 netdata *sockets;
 
@@ -570,6 +572,8 @@ int GetIntBuff(char *buff, int offs) {
 	return *retval;
 }
 
+bool ShouldMoveToHost = false;
+
 // Parse our data
 void Net_ParseBuffs() {
 	int i = 0;
@@ -596,6 +600,11 @@ void Net_ParseBuffs() {
 					}
 					else {
 						PlayerEventRecvFuncs[GetIntBuff(databuffs[i], arraypos + 4)]((unsigned char*)databuffs[i] + arraypos + 8, CliNum);
+						if (ShouldMoveToHost == true && GetIntBuff(databuffs[i], arraypos + 4) == PlayerUpdateEvent) {
+							memcpy(&(player->x), &players[CliNum].x, sizeof(int));
+							memcpy(&(player->y), &players[CliNum].y, sizeof(int));
+							ShouldMoveToHost = false;
+						}
 					}
 					// relay data
 					if (host == true) {
@@ -623,7 +632,7 @@ void Net_ParseBuffs() {
 						break;
 					}
 				}
-					break;
+				break;
 				case 4:
 					if (host != 1) {
 						// Someone has joined so we must tell everyone
@@ -642,6 +651,13 @@ void Net_ParseBuffs() {
 					// special tsc execute command
 					if (host != 1) {
 						TscExec = 1;
+						// If we're dead then respawn
+						if (host == 0 && player->hp == 0) {
+							player->x = players[CliNum].x;
+							player->y = players[CliNum].y;
+							player->hp = max(player->maxHealth / 4 , 1);
+							player->hide = false;
+						}
 						game.tsc->StartScript(GetIntBuff(databuffs[i],arraypos+4));
 					}
 					arraypos += 8;
@@ -733,6 +749,39 @@ void Net_ParseBuffs() {
 						}
 					}
 					arraypos += 16;
+					break;
+				case 13: {
+					// Host has reloaded save, adjust
+					if (host == 0) {
+						int i = 0;
+						arraypos += 4;
+						// change map
+						memcpy(&game.switchstage.mapno, databuffs[i] + arraypos, sizeof(int));
+						memcpy(&(player->inventory), databuffs[i] + arraypos + sizeof(int), sizeof(int) * MAX_INVENTORY);
+						memcpy(&(player->ninventory), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+						memcpy(&(player->weapons), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
+						memcpy(&game.flags, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
+						memcpy(&(player->maxHealth), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
+						for (i = 0; i<NUM_TELEPORTER_SLOTS; i++)
+						{
+							int slotno, scriptno;
+							memcpy(&slotno, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+							memcpy(&scriptno, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+							if (slotno != 0 && scriptno != 0) {
+								textbox.StageSelect.SetSlot(slotno, scriptno);
+							}
+						}
+						player->invisible = false;
+						player->movementmode = MOVEMODE_NORMAL;
+						player->hide = false;
+						player->hp = player->maxHealth; // fade
+						// Note that we should move to the host
+						ShouldMoveToHost = true;
+						arraypos -= 4;
+					}
+					arraypos += (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+				}
+				break;
 				default:
 					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
 					arraypos = databuffsizes[i];

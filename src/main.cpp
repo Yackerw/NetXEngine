@@ -358,6 +358,38 @@ bool freshstart;
 				fatal("savefile error");
 				goto ingame_error;
 			}
+
+			// Loaded, inform everyone to drop everything and revert to this gamestate
+			if (host == 1) {
+				int buffsize = (sizeof(int) * (5 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+				char *buff = (char*)malloc(buffsize);
+				int tmp = 13;
+				memcpy(buff, &tmp, sizeof(int));
+				// also give us the current level
+				memcpy(buff + sizeof(int), &game.curmap, sizeof(int));
+				memcpy(buff + sizeof(int) * 2, &(player->inventory), MAX_INVENTORY * sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->ninventory), sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
+
+
+				int i = 0;
+				for (i = 0; i<NUM_TELEPORTER_SLOTS; i++)
+				{
+					int slotno, scriptno;
+					if (!textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno))
+						//textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno);
+					{
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 5)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
+					}
+				}
+				memcpy(buff + (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS), &player->x, sizeof(int));
+				memcpy(buff + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS), &player->y, sizeof(int));
+				Net_AddToOut(buff, buffsize);
+				free(buff);
+			}
 			
 			if (!inhibit_loadfade) fade.Start(FADE_IN, FADE_CENTER);
 			else inhibit_loadfade = false;

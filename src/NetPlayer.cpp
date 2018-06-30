@@ -148,12 +148,12 @@ void netHandlePlayer_am(int pl)
 
 	Player *p = &players[pl];
 
-	// if player is riding some sort of platform apply it's inertia to him
-	if (p->riding)
-	{
-		p->apply_xinertia(p->riding->xinertia);
-		p->apply_yinertia(p->riding->yinertia);
-	}
+	// if player is riding some sort of platform apply it's inertia to him (don't trust this)
+	//if (p->riding)
+	//{
+	//	p->apply_xinertia(p->riding->xinertia);
+	//	p->apply_yinertia(p->riding->yinertia);
+	//}
 
 	// keep player out of blocks "SMB1 style"
 	netPDoRepel(p);
@@ -1190,7 +1190,7 @@ static void netPFireBlade(Player *p, int level)
 	SetupBullet(shot, x, y, B_BLADE_L1 + level, dir);
 }
 
-int cnnbuffsize = (sizeof(char)*MAXCLIENTS) + (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+int cnnbuffsize = (sizeof(char)*(MAXCLIENTS * 2)) + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
 
 // Generic on-connect function to let you know number of players in server and what sockets
 char *ConnectSend() {
@@ -1223,6 +1223,13 @@ char *ConnectSend() {
 			memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
 		}
 	}
+	// Copy player skins
+	i = 0;
+	while (i < MAXCLIENTS) {
+		memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, &players[i].skin, sizeof(char));
+		i++;
+	}
+	memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->skin), sizeof(char));
 	return buff;
 }
 
@@ -1261,6 +1268,13 @@ void ConnectRecv(char *buff) {
 			textbox.StageSelect.SetSlot(slotno, scriptno);
 		}
 	}
+	// Skins
+	i = 0;
+	while (i < MAXCLIENTS) {
+		memcpy(&players[i].skin, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+		i++;
+	}
+	memcpy(&players[CliNum].skin, buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 3) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
 	player->invisible = false;
 	player->movementmode = MOVEMODE_NORMAL;
 	player->hide = false;

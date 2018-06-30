@@ -88,9 +88,11 @@ void ai_balrog_boss_running(Object *o)
 			{
 				if (o->timer > 25)
 				{	// initiate jump
-					o->frame = 3;
-					o->yinertia = -0x400;
-					o->state = STATE_JUMP;
+					if (host != 0 ) {
+						o->frame = 3;
+						o->yinertia = -0x400;
+						o->state = STATE_JUMP;
+					}
 				}
 			}
 		}
@@ -123,8 +125,10 @@ void ai_balrog_boss_running(Object *o)
 		// caught player
 		case STATE_CAUGHT_PLAYER:
 		{
-			if (balrog_toss_player_away(o))
-				o->state = 0;
+			if (host != 0) {
+				if (balrog_toss_player_away(o))
+					o->state = 0;
+			}
 		}
 		break;
 	}

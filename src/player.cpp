@@ -1254,7 +1254,10 @@ void killplayer(int script)
 {
 	
 	player->hp = 0;
-	player->dead = true;
+	// If we are client then don't truely die
+	if (host != 0) {
+		player->dead = true;
+	}
 	player->hide = true;
 	player->xinertia = 0;
 	player->yinertia = 0;

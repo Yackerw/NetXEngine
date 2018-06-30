@@ -508,7 +508,7 @@ bool TSC::StartScript(int scriptno, ScriptPages pageno)
 	TscExec = false;
 	// don't re-execute the on entry event
 	// If we're the server, tell everyone to execute!
-	if (host == 1 && scriptno != game.switchstage.eventonentry) {
+	if (host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
 		char *buff = (char*)malloc(sizeof(int) * 2);
 		int tmp = 6;
 		memcpy(buff, &tmp, sizeof(int));
@@ -1070,7 +1070,10 @@ int cmdip;
 			}
 			break;
 			case OP_LDP:
-				game.switchstage.mapno = LOAD_GAME;
+				// do not do if client
+				if (host != 0) {
+					game.switchstage.mapno = LOAD_GAME;
+				}
 			break;
 			
 			case OP_HMC: player->hide = true; break;
