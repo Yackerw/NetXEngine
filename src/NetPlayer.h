@@ -4,6 +4,9 @@
 #include "player.h"
 #include "Networking.h"
 
+extern char name[15]; //player name
+extern char names[MAXCLIENTS][15]; //player names
+
 extern bool netpinputs[32][INPUT_COUNT];
 extern bool netlastpinputs[32][INPUT_COUNT];
 extern Player *players;
