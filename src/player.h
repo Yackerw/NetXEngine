@@ -99,7 +99,7 @@ public:
 	Point repel_d[8];
 	int nrepel_l, nrepel_r, nrepel_u, nrepel_d;
 
-	uint8_t skin;
+	int8_t skin;
 };
 
 extern Player *player;
