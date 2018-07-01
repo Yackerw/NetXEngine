@@ -17,6 +17,7 @@
 #include "../autogen/sprites.h"
 #include "Networking.h"
 #include "NetPlayer.h"
+#include "chat.h"
 using namespace Graphics;
 using namespace Sprites;
 
@@ -105,11 +106,11 @@ static void draw_title()
 		}
 	}
 	if (Multiplayer == 1) {
-		const char* mymenus[] = { "Host", "Connect", "IP" };
+		const char* mymenus[] = { "Host", "Connect", "IP", "Skin", "Name" };
 
 		TextBox::DrawFrame(cx - 32, cy - 16, 128, 80);
 
-		for (int i = 0; i <= 2; i++)
+		for (int i = 0; i <= 4; i++)
 		{
 			font_draw(cx + 10, cy - 8, (mymenus[i]));
 			if (i == title.cursel)
@@ -126,6 +127,29 @@ static void draw_title()
 		font_draw(cx + 10, cy - 16, mymenu);
 
 		font_draw(cx + 10, cy, IPAddress);
+	}
+	if (Multiplayer == 3) { //skin menu
+		//TextBox::DrawFrame(cx - 64, cy - 16, 160, 80);
+		TextBox::DrawFrame(cx - 32, cy - 16, 128, 80);
+		font_draw(cx, cy - 8, "Select a skin");
+		font_draw(cx, cy+16, "<");
+		font_draw(cx + 64, cy+16, ">");
+		if (player->skin == 0) { //replace this later i guess
+			//draw_sprite(cx + 24, cy + 16, title.sprite, title.selframe);
+			draw_sprite(cx + 24, cy + 16, SPR_MYCHAR, title.selframe);
+		}
+		else {
+			//draw_sprite(cx + 24, cy + 16, ((SPR_MYCHAR)) + player->skin, title.selframe);
+			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe);
+		}
+		//draw_sprite(cx+24,cy+16, title.sprite+title.cursel, title.selframe);
+	}
+	if (Multiplayer == 4) {
+		const char *mymenu = "Please input name:";
+
+		font_draw(cx - 10, cy - 16, mymenu);
+		//strcpy((char*)&names[0], "CritrSlayer69");
+		font_draw(cx + 10, cy, name);
 	}
 
 	// animate character
@@ -188,7 +212,7 @@ static void handle_input()
 		if (Multiplayer == 0 && ++title.cursel >= 5)
 			title.cursel = 0;
 
-		if (Multiplayer == 1 && ++title.cursel >= 3)
+		if (Multiplayer == 1 && ++title.cursel >= 5)
 			title.cursel = 0;
 	}
 	else if (justpushed(UPKEY))
@@ -196,8 +220,36 @@ static void handle_input()
 		sound(SND_MENU_MOVE);
 		if (Multiplayer == 0 && --title.cursel < 0)
 			title.cursel = 4;
+
 		if (Multiplayer == 1 && --title.cursel < 0)
-			title.cursel = 2;
+			title.cursel = 4;
+	}
+	else if (justpushed(LEFTKEY)) { //skin select
+		/*if (Multiplayer == 3 && player->skin == 0) {
+			sound(SND_MENU_MOVE);
+			player->skin = 1;
+		}*/
+		if (Multiplayer == 3) {
+			sound(SND_MENU_MOVE);
+			player->skin -= 1;
+			if (player->skin < 0) {
+				player->skin = 1;
+			}
+		}
+
+	}
+	else if (justpushed(RIGHTKEY)) { //skin select
+		/*if (Multiplayer == 3 && player->skin == 1) {
+			sound(SND_MENU_MOVE);
+			player->skin = 0;
+		}*/
+		if (Multiplayer == 3) {
+			sound(SND_MENU_MOVE);
+			player->skin += 1;
+			if (player->skin > 1) {
+				player->skin = 0;
+			}
+		}
 	}
 	
 	if (buttonjustpushed() || justpushed(ENTERKEY))
@@ -218,6 +270,20 @@ static void handle_input()
 		if (Multiplayer == 2) {
 			// If we're in the IP Menu, then return
 			Multiplayer = 1;
+			choice = 40;
+		}
+
+		if (Multiplayer == 3) {
+			Multiplayer = 1;
+			title.cursel = 3;
+			choice = 50;
+		}
+
+		if (Multiplayer == 4) {
+			if (justpushed(ENTERKEY)) {
+				Multiplayer = 1;
+				title.cursel = 4;
+			}
 			choice = 40;
 		}
 		
@@ -323,6 +389,7 @@ static void selectoption(int index)
 		}
 		break;
 		case 21: {		// Connect to server
+			//font_draw(160 - 32, 120, "Please wait..");
 			client = Client_Connect(IPAddress);
 			sockrecthread *sock;
 			sock = (sockrecthread*)malloc(sizeof(sockrecthread));
@@ -339,6 +406,15 @@ static void selectoption(int index)
 			Multiplayer = 2;
 		}
 		break;
+		case 23: {	//skins
+			Multiplayer = 3; //rock my forum
+		}
+		break;
+		case 24: {	//name
+			Multiplayer = 4;
+			//font_draw(0, 0, "xXCritterSlayah69Xx");
+		}
+				 break;
 	}
 }
 
