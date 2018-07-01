@@ -9,6 +9,10 @@
 #include "settings.h"
 #include "intro/title.h"
 
+#include "Networking.h" //for checking chat in the key stuff
+#include "NetPlayer.h"
+#include "chat.h"
+
 in_action mappings[INPUT_COUNT];
 
 bool inputs[INPUT_COUNT];
@@ -223,8 +227,10 @@ int ino;//, key;
 				
 				static uint8_t shiftstates = 0;
 				
-				if (console.IsVisible() && !IsNonConsoleKey(key))
+				if ((console.IsVisible() && !IsNonConsoleKey(key)) || (chatstate.typing == 1))
 				{
+
+
 					if (key == SDLK_LSHIFT)
 					{
 						if (evt.type == SDL_KEYDOWN)
@@ -251,10 +257,15 @@ int ino;//, key;
 							if (ch == '1') ch = '!';
 						}
 						
-						if (evt.type == SDL_KEYDOWN)
-							console.HandleKey(ch);
-						else
-							console.HandleKeyRelease(ch);
+						if (host == -1) {
+							if (evt.type == SDL_KEYDOWN)
+								console.HandleKey(ch);
+							else
+								console.HandleKeyRelease(ch);
+						}
+						else if (evt.type == SDL_KEYDOWN) {
+							Chat_AddChar(ch);
+						}
 					}
 				}
 				else
@@ -266,6 +277,9 @@ int ino;//, key;
 					
 					if (evt.type == SDL_KEYDOWN)
 					{
+						if (host != -1 && !chatstate.typing && key == 116) { //press t to chat
+							chatstate.typing = 1;
+						}
 						// Special case: multiplayer IP input menu
 						if (Multiplayer == 2 && ((key >= 48 && key <= 57) || key == 46) && strlen(IPAddress) < 128) {
 							char *tmp = (char*)&key;
@@ -274,6 +288,15 @@ int ino;//, key;
 						if (Multiplayer == 2 && key == 8 && strlen(IPAddress) > 0) {
 							// backspace in IP menu
 							IPAddress[strlen(IPAddress) - 1] = 0;
+						}
+						// and names
+						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
+							char *tmp = (char*)&key;
+							strcat(name, tmp);
+						}
+						if (Multiplayer == 4 && key == 8 && strlen(name) > 0) {
+							// backspace in IP menu
+							name[strlen(name)-1] = 0;
 						}
 						if (key == '`')		// bring up console
 						{

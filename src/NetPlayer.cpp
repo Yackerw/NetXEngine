@@ -24,6 +24,9 @@ using namespace Sprites;
 //#include "object.h"
 //#include "player.h"
 
+char name[15]; //player name
+char names[MAXCLIENTS][15]; //player names
+
 Player *players = (Player*)calloc(32, sizeof(Player));
 bool netpinputs[32][INPUT_COUNT];
 bool netlastpinputs[32][INPUT_COUNT];

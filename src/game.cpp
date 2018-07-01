@@ -25,6 +25,7 @@
 #include "graphics/graphics.h"
 #include "NetPlayer.h"
 #include "Networking.h"
+#include "chat.h"
 using namespace Graphics;
 #include "graphics/sprites.h"
 #include "autogen/AssignSprites.h"
@@ -68,6 +69,7 @@ bool Game::init()
 int i;
 
 Networking_Init();
+Chat_Init();
 SetupNetPlayerFuncs();
 RegisterBasic();
 host = -1;
@@ -264,6 +266,9 @@ void Game::tick(void)
 	// Important netplay stuff
 	Net_FirePlayerEvent(PlayerUpdateEvent);
 	Net_Step();
+
+	//chat
+	Chat_Display();
 }
 
 
