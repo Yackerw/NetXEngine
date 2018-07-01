@@ -830,6 +830,11 @@ int cmdip;
 			
 			case OP_TRA:
 			{
+				// Return if client
+				if (host == 0) {
+					didexecute++;
+					return;
+				}
 				bool waslocked = (player->inputs_locked || game.frozen);
 
 				didexecute++;
@@ -853,13 +858,23 @@ int cmdip;
 						game.frozen = false;
 					}
 				}
-				// If we're the host then sync this TRA if we were teleporting.
-				if (host == 1 && Teleporting == true) {
+				// If we're the host then sync this TRA
+				if (host == 1) {
 					char *outbuff = (char*)malloc(sizeof(int) * 5);
 					int tmp = 14;
 					memcpy(outbuff, &tmp, sizeof(int));
 					memcpy(outbuff + sizeof(int), parm, sizeof(int) * 4);
 					Net_AddToOut(outbuff, sizeof(int) * 5);
+					free(outbuff);
+					// PART 2
+					outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
+					tmp = 15;
+					memcpy(outbuff, &tmp, sizeof(int));
+					memcpy(outbuff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
+					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
+					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 2)), &game.flags, NUM_GAMEFLAGS);
+					Net_AddToOut(outbuff, (sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
+					free(outbuff);
 				}
 				Teleporting = false;
 				

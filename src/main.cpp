@@ -361,7 +361,7 @@ bool freshstart;
 
 			// Loaded, inform everyone to drop everything and revert to this gamestate
 			if (host == 1) {
-				int buffsize = (sizeof(int) * (5 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+				int buffsize = (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
 				char *buff = (char*)malloc(buffsize);
 				int tmp = 13;
 				memcpy(buff, &tmp, sizeof(int));
@@ -385,8 +385,6 @@ bool freshstart;
 						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 5)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
 					}
 				}
-				memcpy(buff + (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS), &player->x, sizeof(int));
-				memcpy(buff + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS), &player->y, sizeof(int));
 				Net_AddToOut(buff, buffsize);
 				free(buff);
 			}

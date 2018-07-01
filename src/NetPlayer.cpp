@@ -1229,6 +1229,7 @@ char *ConnectSend() {
 		memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, &players[i].skin, sizeof(char));
 		i++;
 	}
+	// Our skin
 	memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->skin), sizeof(char));
 	return buff;
 }

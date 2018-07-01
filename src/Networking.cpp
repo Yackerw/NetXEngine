@@ -813,6 +813,16 @@ void Net_ParseBuffs() {
 					arraypos += sizeof(int) * 5;
 				}
 					break;
+				case 15: {
+					// Sync flags and inventory, very useful for maintaining syncronization
+					if (host == 0) {
+						memcpy(&(player->inventory), databuffs[i] + arraypos + sizeof(int), MAX_INVENTORY * sizeof(int));
+						memcpy(&(player->ninventory), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+						memcpy(&game.flags, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+					}
+					arraypos += (sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS;
+				}
+				break;
 				default:
 					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
 					arraypos = databuffsizes[i];
