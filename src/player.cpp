@@ -1575,7 +1575,7 @@ void PSelectFrame(void)
 	// mimiga mask support-- it would be better to make equipmask private,
 	// and funnel all player->equipmask changes through a setter function,
 	// then I'd feel safe doing this only when equipped items are changed.
-	PSelectSprite();
+	//PSelectSprite();
 }
 
 // mimiga mask support
@@ -1662,6 +1662,7 @@ int scr_x, scr_y;
 
 	if (player->hide || player->disabled)
 		return;
+	PSelectSprite();
 	
 	// keep his floattext position linked--do NOT update this if he is hidden
 	// so that floattext doesn't follow him after he dies.
@@ -1707,6 +1708,10 @@ int scr_x, scr_y;
 	
 	if (player->equipmask & EQUIP_WHIMSTAR)
 		draw_whimstars(&player->whimstar);
+
+	if (host != -1) {
+		player->sprite = SPR_MYCHAR;
+	}
 }
 
 
