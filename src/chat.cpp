@@ -199,9 +199,9 @@ void Chat_Display() {
 		font_draw(ctx, cty - chatyoff, (char*)&chatstate.msg, 0xFFFFFF00, true);
 	}
 
-	unsigned char i2 = 0;
+	/*unsigned char i2 = 0;
 	while (i2 < 15) {
 		font_draw(0, i2 * 12, names[i2]);
 		i2++;
-	}
+	}*/
 }
