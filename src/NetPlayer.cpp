@@ -24,6 +24,8 @@ using namespace Sprites;
 //#include "object.h"
 //#include "player.h"
 
+int nameevent;
+
 char name[15]; //player name
 char names[MAXCLIENTS][15]; //player names
 
@@ -1193,7 +1195,7 @@ static void netPFireBlade(Player *p, int level)
 	SetupBullet(shot, x, y, B_BLADE_L1 + level, dir);
 }
 
-int cnnbuffsize = (sizeof(char)*(MAXCLIENTS * 2)) + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+int cnnbuffsize = (sizeof(char)*(MAXCLIENTS * 2)) + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((MAXCLIENTS + 1) * 15));
 
 // Generic on-connect function to let you know number of players in server and what sockets
 char *ConnectSend() {
@@ -1234,6 +1236,14 @@ char *ConnectSend() {
 	}
 	// Our skin
 	memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->skin), sizeof(char));
+	// Copy player names
+	i = 0;
+	while (i < MAXCLIENTS) {
+		memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), names[i], sizeof(char) * 15);
+		i++;
+	}
+	// your name
+	memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), name, sizeof(char) * 15);
 	return buff;
 }
 
@@ -1275,10 +1285,18 @@ void ConnectRecv(char *buff) {
 	// Skins
 	i = 0;
 	while (i < MAXCLIENTS) {
-		memcpy(&players[i].skin, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+		memcpy(&plskins[i], buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, sizeof(char));
 		i++;
 	}
-	memcpy(&players[CliNum].skin, buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 3) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+	memcpy(&plskins[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+	int tmp = (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS;
+	// Names
+	i = 0;
+	while (i < MAXCLIENTS) {
+		memcpy(names[i], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), sizeof(char) * 15);
+		i++;
+	}
+	memcpy(names[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
 	player->invisible = false;
 	player->movementmode = MOVEMODE_NORMAL;
 	player->hide = false;
@@ -1387,6 +1405,18 @@ int PlayerShotEvent;
 int PlayerMissileEvent;
 int PlayerBladeEvent;
 int PlayerSkinUpdateEvent;
+int PlayerNameUpdateEvent;
+
+char* Name_Send() {
+	char* sendname = (char*)malloc(15);
+	strcpy(sendname, name);
+	return sendname;
+}
+
+void Name_Receive(unsigned char* tempname, int node) {
+	tempname[14] = 0;
+	strcpy(names[node], (char*)tempname);
+}
 
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
@@ -1405,4 +1435,7 @@ void SetupNetPlayerFuncs() {
 	Net_RegisterDisconnectRecv(DiscnnRecv);
 	PlayerSkinUpdateEvent = Net_RegisterPlayerEventSend(SkinSend, sizeof(char));
 	Net_RegisterPlayerEventRecv(SkinRecv, sizeof(char));
+
+	nameevent = Net_RegisterPlayerEventSend(Name_Send, 15);
+	Net_RegisterPlayerEventRecv(Name_Receive, 15);
 }

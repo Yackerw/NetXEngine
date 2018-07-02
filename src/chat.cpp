@@ -44,7 +44,7 @@ void Chat_SetMessage(char* str, unsigned char flags) {
 }
 
 char* Chat_SendMessage() {
-	char* sendmsg = (char*)calloc(64, sizeof(char));
+	char* sendmsg = (char*)malloc(64);
 	strcpy(sendmsg, chatstate.msg);
 
 	return sendmsg;
@@ -61,14 +61,15 @@ void Chat_ReceiveMessage(unsigned char* msg, int node) {
 	if (memcmp("/me", msg, 3) == 0) { //me
 		tempmsgflags |= 2;
 		//add player name without <>
-		strcpy(formatmsg, "PlayerName");
+		//strcpy(formatmsg, "PlayerName");
+		strcpy(formatmsg, names[node]);
 		memmove(msg, &msg[3], CHATMSGSIZE - 3);
 		strcat(formatmsg, (char*)msg);
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		strcat(formatmsg, "~"); //host prefix
-		strcat(formatmsg, "PlayerName");
+		//strcat(formatmsg, "~"); //host prefix
+		strcat(formatmsg, names[node]);
 		strcat(formatmsg, ">");
 		strcat(formatmsg, (char*)msg);
 	}
@@ -92,15 +93,16 @@ void Chat_EnterMessage() {
 		//copy everything past /me to the start (add player name too but for right now just this)
 		//memcpy(chatstate.msg, &chatstate.msg[4], 61);
 		//add player name without <>
-		strcpy(formatmsg, "PlayerName");
+		//strcpy(formatmsg, "PlayerName");
+		strcpy(formatmsg, name);
 		//memcpy(chatstate.msg, &chatstate.msg[3], CHATMSGSIZE - 3);
 		memmove(chatstate.msg, &chatstate.msg[3], CHATMSGSIZE - 3);
 		strcat(formatmsg, chatstate.msg);
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		strcat(formatmsg, "~"); //host prefix
-		strcat(formatmsg, "PlayerName");
+		//strcat(formatmsg, "~"); //host prefix
+		strcat(formatmsg, name);
 		strcat(formatmsg, ">");
 		strcat(formatmsg, chatstate.msg);
 	}
@@ -196,4 +198,10 @@ void Chat_Display() {
 		DrawLine(ctx, cty + 12 - chatyoff, ctx + (5 * strlen(chatstate.msg))+5, cty + 12 - chatyoff, 0x00000000);//16777215U);
 		font_draw(ctx, cty - chatyoff, (char*)&chatstate.msg, 0xFFFFFF00, true);
 	}
+
+	/*unsigned char i2 = 0;
+	while (i2 < 15) {
+		font_draw(0, i2 * 12, names[i2]);
+		i2++;
+	}*/
 }

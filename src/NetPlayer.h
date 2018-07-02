@@ -4,6 +4,7 @@
 #include "player.h"
 #include "Networking.h"
 
+extern int nameevent;
 extern char name[15]; //player name
 extern char names[MAXCLIENTS][15]; //player names
 

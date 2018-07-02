@@ -386,6 +386,11 @@ static void selectoption(int index)
 			_beginthread(Serv_Connect, 256, (void*)&server);
 			host = 1;
 			Multiplayer = 0;
+
+			//set name to "~Host" if empty
+			if (name[0] == 0) {
+				strcpy(name, "~Host");
+			}
 		}
 		break;
 		case 21: {		// Connect to server
@@ -400,6 +405,12 @@ static void selectoption(int index)
 			host = 0;
 			Multiplayer = 3;
 			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
+
+			//set name to "Player" if empty
+			if (name[0] == 0) {
+				strcpy(name, "Player");
+			}
+			Net_FirePlayerEvent(nameevent);
 		}
 		break;
 		case 22: {		// Bring us to IP input screen
