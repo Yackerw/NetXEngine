@@ -26,6 +26,8 @@ using namespace Sprites;
 
 int nameevent;
 
+char pskin;
+
 char name[15]; //player name
 char names[MAXCLIENTS][15]; //player names
 

@@ -16,6 +16,7 @@ extern int PlayerShotEvent;
 extern int PlayerMissileEvent;
 extern int PlayerBladeEvent;
 extern int PlayerSkinUpdateEvent;
+extern char pskin;
 
 Player netInitPlayer();
 void netHandlePlayer(int pl);

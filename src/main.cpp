@@ -29,6 +29,7 @@ using namespace Graphics;
 #include "console.h"
 #include "screeneffect.h"
 #include "ResourceManager.h"
+#include "NetPlayer.h"
 
 
 int fps = 0;
@@ -399,6 +400,7 @@ bool freshstart;
 			{
 				bool show_intro = (game.switchstage.mapno == NEW_GAME_FROM_MENU);
 				InitNewGame(show_intro);
+				player->skin = pskin;
 			}
 			
 			// slide weapon bar on first intro to Start Point

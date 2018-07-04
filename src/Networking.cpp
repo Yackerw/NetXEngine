@@ -658,6 +658,9 @@ void Net_ParseBuffs() {
 							player->hp = max(player->maxHealth / 4 , 1);
 							player->hide = false;
 						}
+						if (game.mode == GM_INVENTORY || game.mode == GM_MAP_SYSTEM || game.mode == GP_PAUSED || game.mode == GP_OPTIONS) {
+							game.setmode(GM_NORMAL, 0, true);
+						}
 						game.tsc->StartScript(GetIntBuff(databuffs[i],arraypos+4));
 					}
 					arraypos += 8;
@@ -809,8 +812,10 @@ void Net_ParseBuffs() {
 								game.frozen = false;
 							}
 						}
+						// also update player.invisible
+						player->invisible = databuffs[i][arraypos + (sizeof(int) * 5)];
 					}
-					arraypos += sizeof(int) * 5;
+					arraypos += (sizeof(int) * 5) + 1;
 				}
 					break;
 				case 15: {

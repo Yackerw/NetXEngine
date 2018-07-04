@@ -340,6 +340,7 @@ static void selectoption(int index)
 			
 			game.switchstage.mapno = NEW_GAME_FROM_MENU;
 			game.setmode(GM_NORMAL);
+			pskin = player->skin;
 		}
 		break;
 		
