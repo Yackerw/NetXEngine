@@ -1,4 +1,3 @@
-
 #include "nx.h"
 #include "player.h"
 #include "playerstats.h"
@@ -21,6 +20,7 @@ using namespace Sprites;
 #include "inventory.h"
 #include "NetPlayer.h"
 #include "Networking.h"
+#include "chat.h"
 //#include "object.h"
 //#include "player.h"
 
@@ -1418,6 +1418,16 @@ char* Name_Send() {
 void Name_Receive(unsigned char* tempname, int node) {
 	tempname[14] = 0;
 	strcpy(names[node], (char*)tempname);
+
+	//say when a player joins the game!
+	char joingamemsg[38];
+	joingamemsg[0] = 0;
+	strcat((char*)&joingamemsg, names[node]);
+	strcat((char*)&joingamemsg, " joined the game.");
+	Chat_SetMessage(joingamemsg, 1);
+	Chat_WriteToLog(joingamemsg);
+	chatstate.timer = (60 * 5);
+	sound(SND_GET_MISSILE);
 }
 
 void SetupNetPlayerFuncs() {
