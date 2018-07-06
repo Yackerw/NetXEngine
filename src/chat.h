@@ -1,8 +1,12 @@
 //made by root
+#include "stdio.h"
+
 #ifndef __CHAT__
 	#define __CHAT__
 
 #define CHATMSGSIZE 64
+
+extern FILE* chatlogfile;
 
 	typedef struct {
 		char msg[CHATMSGSIZE + 17]; //message + <14 char player name> + identifier (host/admin)
@@ -22,6 +26,8 @@
 	extern chatmsg_t chatmsgs[5];
 
 	extern chatstate_t chatstate;
+
+	void Chat_WriteToLog(char* str);
 
 	void Chat_Init();
 
