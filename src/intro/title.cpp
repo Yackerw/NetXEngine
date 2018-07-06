@@ -1,4 +1,3 @@
-
 #include "../nx.h"
 #include "title.h"
 #include "../profile.h"
@@ -132,16 +131,18 @@ static void draw_title()
 		//TextBox::DrawFrame(cx - 64, cy - 16, 160, 80);
 		TextBox::DrawFrame(cx - 32, cy - 16, 128, 80);
 		font_draw(cx, cy - 8, "Select a skin");
-		font_draw(cx, cy+16, "<");
-		font_draw(cx + 64, cy+16, ">");
+		font_draw(cx-2, cy+16, "<");
+		font_draw(cx + 62, cy+16, ">");
 		if (player->skin == 0) { //replace this later i guess
 			//draw_sprite(cx + 24, cy + 16, title.sprite, title.selframe);
-			draw_sprite(cx + 24, cy + 16, SPR_MYCHAR, title.selframe);
+			draw_sprite(cx + 24, cy + 16, SPR_MYCHAR, title.selframe&1);
 		}
 		else {
 			//draw_sprite(cx + 24, cy + 16, ((SPR_MYCHAR)) + player->skin, title.selframe);
-			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe);
+			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe&1);
 		}
+		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Booster","Demon Crown","Root The Cat","Suguri","Sora" };
+		font_draw(cx + 27 - (strlen(skinnames[player->skin])*2), cy + 46, skinnames[player->skin]);
 		//draw_sprite(cx+24,cy+16, title.sprite+title.cursel, title.selframe);
 	}
 	if (Multiplayer == 4) {
@@ -233,7 +234,7 @@ static void handle_input()
 			sound(SND_MENU_MOVE);
 			player->skin -= 1;
 			if (player->skin < 0) {
-				player->skin = 1;
+				player->skin = numskins;
 			}
 		}
 
@@ -246,7 +247,7 @@ static void handle_input()
 		if (Multiplayer == 3) {
 			sound(SND_MENU_MOVE);
 			player->skin += 1;
-			if (player->skin > 1) {
+			if (player->skin > numskins) {
 				player->skin = 0;
 			}
 		}
@@ -390,7 +391,7 @@ static void selectoption(int index)
 
 			//set name to "~Host" if empty
 			if (name[0] == 0) {
-				strcpy(name, "~Host");
+				strcpy(name, "Host");
 			}
 		}
 		break;
