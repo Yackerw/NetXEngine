@@ -1,4 +1,3 @@
-
 #include "nx.h"
 #include <cstdarg>
 #if !defined(_WIN32)
@@ -30,6 +29,7 @@ using namespace Graphics;
 #include "screeneffect.h"
 #include "ResourceManager.h"
 #include "NetPlayer.h"
+#include "chat.h"
 
 
 int fps = 0;
@@ -428,6 +428,11 @@ bool freshstart;
 		game.stageboss.OnMapExit();
 		freshstart = false;
 	}
+
+	//close chat log
+	if (chatlogfile != NULL) {
+		fclose(chatlogfile);
+	}
 	
 shutdown: ;
 	game.tsc->Close();
@@ -449,6 +454,8 @@ ingame_error: ;
 	error = true;
 	goto shutdown;
 }
+
+
 
 
 
