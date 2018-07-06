@@ -10,11 +10,14 @@
 #include "Networking.h"
 #include "NetPlayer.h"
 #include "chat.h"
+#include "stdio.h"
 using namespace Graphics;
 using namespace Sprites;
 
+FILE* chatlogfile;
+
 const int ctx = 8; //chat text x
-const int cty = 228;// 236;// 176;
+const int cty = 224;// 236;// 176;
 
 const bool showchat = true;
 
@@ -25,9 +28,22 @@ chatstate_t chatstate;
 
 char formatmsg[96];
 
+void Chat_WriteToLog(char* str) {
+	if (chatlogfile != NULL && str != NULL) {
+		fwrite(str, sizeof(char), strlen(str), chatlogfile);
+		const unsigned char lineending[] = { 13,10 };
+		fwrite(&lineending, sizeof(unsigned char), 2, chatlogfile); //yeah i know..but not everyone uses the TECHNOLOGICALLY ADVANCED windows 10 version of notepad that supports proper line endings (this means me)
+	}
+}
+
 void Chat_Init() {
 	chatevent=Net_RegisterPlayerEventSend(Chat_SendMessage, 64);
 	Net_RegisterPlayerEventRecv(Chat_ReceiveMessage, 64);
+
+	//open chatlog file
+	chatlogfile = fopen("chatlog.txt", "w");
+	const char logwarning[] = "(This file gets overwritten every time you start the game. Be sure to save any chatlogs you might want to keep!)";
+	Chat_WriteToLog((char*)&logwarning);
 }
 
 void Chat_SetMessage(char* str, unsigned char flags) {
@@ -68,13 +84,17 @@ void Chat_ReceiveMessage(unsigned char* msg, int node) {
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		//strcat(formatmsg, "~"); //host prefix
+		if (node == CliNum && host != 1) {
+			strcat(formatmsg, "~"); //host prefix
+		}
 		strcat(formatmsg, names[node]);
 		strcat(formatmsg, ">");
 		strcat(formatmsg, (char*)msg);
 	}
 
 	Chat_SetMessage(formatmsg, tempmsgflags);
+
+	Chat_WriteToLog(formatmsg);
 
 	chatstate.timer = (60 * 5);
 	sound(SND_COMPUTER_BEEP);
@@ -101,7 +121,9 @@ void Chat_EnterMessage() {
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		//strcat(formatmsg, "~"); //host prefix
+		if (host == 1) {
+			strcat(formatmsg, "~"); //host prefix
+		}
 		strcat(formatmsg, name);
 		strcat(formatmsg, ">");
 		strcat(formatmsg, chatstate.msg);
@@ -109,6 +131,8 @@ void Chat_EnterMessage() {
 
 	//if (chatstate.msgamount < 4) {
 	Chat_SetMessage(formatmsg, tempmsgflags);
+
+	Chat_WriteToLog(formatmsg);
 
 	chatstate.msg[0] = 0;
 	chatstate.typing = 0;
@@ -147,19 +171,6 @@ void Chat_Step() {
 	if (chatstate.timer != 0) {
 		chatstate.timer -= 1;
 	}
-	/*unsigned char i = 0;
-	while (i < CHATMSGSIZE) {
-		chatstate.msg[i] = 0;
-		i++;
-	}
-	chatstate.msg[0] = 65 + (rand() % 27);*/
-
-	/*if (rand() % 10 < 5) {
-		strcpy(chatstate.msg, "/me test");
-	}
-	else {
-		strcpy(chatstate.msg, "memes");
-	}*/
 	//format message
 }
 
@@ -183,7 +194,10 @@ void Chat_Display() {
 		while (i < 5) {
 			msgcol = 16777215U;
 			if (chatmsgs[i].msg != NULL) {
-				if (chatmsgs[i].flags > 0) { //if theres any more flags change this to & 1 or & 2 for server/me
+				if (chatmsgs[i].flags & 1) { //server/event/player join message
+					msgcol = 0xFF00FFFF; //cyan
+				}
+				if (chatmsgs[i].flags & 2) { //me color
 					msgcol = 0xFFFFFF00; //yellow
 				}
 				//font_draw(ctx, cty + (12 * i), chatmsgs[i].msg);
