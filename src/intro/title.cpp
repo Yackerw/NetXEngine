@@ -152,6 +152,36 @@ static void draw_title()
 		//strcpy((char*)&names[0], "CritrSlayer69");
 		font_draw(cx + 10, cy, name);
 	}
+	if (Multiplayer == 6) {
+		client = Client_Connect(IPAddress);
+		if (client != INVALID_SOCKET) {
+			sockrecthread *sock;
+			sock = (sockrecthread*)malloc(sizeof(sockrecthread));
+			sock->sock = client;
+			sock->socknum = 0;
+			sockets[0].used = 1;
+			_beginthread(packet_receiving, 256, (void*)sock);
+			host = 0;
+			Multiplayer = 3;
+			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
+
+			//set name to "Player" if empty
+			if (name[0] == 0) {
+				strcpy(name, "Player");
+			}
+			Net_FirePlayerEvent(nameevent);
+		}
+		else {
+			Multiplayer = 7;
+		}
+	}
+	if (Multiplayer == 5) {
+		font_draw(160 - 32, 120, "Please wait..");
+		Multiplayer = 6;
+	}
+	if (Multiplayer == 7) {
+		font_draw(160 - 32, 120, "Failed to connect!");
+	}
 
 	// animate character
 	if (++title.seltimer > 8)
@@ -287,6 +317,11 @@ static void handle_input()
 			}
 			choice = 40;
 		}
+
+		if (Multiplayer == 7) {
+			Multiplayer = 1;
+			choice = 40;
+		}
 		
 		// handle case where user selects Load but there is no savefile,
 		// or the last_save_file is deleted.
@@ -396,23 +431,7 @@ static void selectoption(int index)
 		}
 		break;
 		case 21: {		// Connect to server
-			//font_draw(160 - 32, 120, "Please wait..");
-			client = Client_Connect(IPAddress);
-			sockrecthread *sock;
-			sock = (sockrecthread*)malloc(sizeof(sockrecthread));
-			sock->sock = client;
-			sock->socknum = 0;
-			sockets[0].used = 1;
-			_beginthread(packet_receiving, 256, (void*)sock);
-			host = 0;
-			Multiplayer = 3;
-			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
-
-			//set name to "Player" if empty
-			if (name[0] == 0) {
-				strcpy(name, "Player");
-			}
-			Net_FirePlayerEvent(nameevent);
+			Multiplayer = 5;
 		}
 		break;
 		case 22: {		// Bring us to IP input screen
