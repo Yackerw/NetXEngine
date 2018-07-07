@@ -162,7 +162,6 @@ static void draw_title()
 			sockets[0].used = 1;
 			_beginthread(packet_receiving, 256, (void*)sock);
 			host = 0;
-			Multiplayer = 3;
 			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
 
 			//set name to "Player" if empty
