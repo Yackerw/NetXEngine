@@ -165,7 +165,7 @@ Object * const &o = this;
 
 	// Boss specific hack lol
 	if (type == OBJ_BALROG_BOSS_RUNNING || type == OBJ_BALROG_BOSS_FLYING || type == OBJ_BALROG_BOSS_MISSILES || type == OBJ_BOSS_IGOR || type == OBJ_BALFROG) {
-		short pcount;
+		short pcount = 0;
 		short i = 0;
 		while (i < MAXCLIENTS) {
 			if (sockets[i].used == true) {
