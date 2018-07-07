@@ -1428,6 +1428,11 @@ void Name_Receive(unsigned char* tempname, int node) {
 	Chat_WriteToLog(joingamemsg);
 	chatstate.timer = (60 * 5);
 	sound(SND_GET_MISSILE);
+	if (host == 1) {
+		char IP[32];
+		InetNtopA(sockets[node].data.sin_family, &sockets[node].data.sin_addr, IP, 32);
+		Chat_WriteToLog(IP);
+	}
 }
 
 void SetupNetPlayerFuncs() {

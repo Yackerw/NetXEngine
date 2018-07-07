@@ -62,6 +62,10 @@ int CliNum;
 // current available serialization ID
 int serializeid;
 
+// Banlist
+char banlist[256][32];
+int bannum = 0;
+
 //WSAdata variable, stores information about winsock
 WSADATA wsadata;
 
@@ -439,6 +443,16 @@ int Server_Connect(SOCKET server) {
 		closesocket(server);
 		return 0;
 	}
+	int i = 0;
+	char IP[32];
+	InetNtopA(info.sin_family, &info.sin_addr, IP, 32);
+	while (i < bannum) {
+		if (strcmp(IP, banlist[i]) == 0) {
+			closesocket(client);
+			return 0;
+		}
+		i++;
+	}
 	char nodelaything[] = { 1 };
 	if (setsockopt(client, IPPROTO_TCP, TCP_NODELAY, nodelaything, 1)) {
 		printf("Setsockopt failed with error: %d\n", WSAGetLastError());
@@ -660,6 +674,7 @@ void Net_ParseBuffs() {
 						}
 						if (game.mode == GM_INVENTORY || game.mode == GM_MAP_SYSTEM || game.mode == GP_PAUSED || game.mode == GP_OPTIONS) {
 							game.setmode(GM_NORMAL, 0, true);
+							game.pause(0);
 						}
 						game.tsc->StartScript(GetIntBuff(databuffs[i],arraypos+4));
 					}
@@ -789,6 +804,7 @@ void Net_ParseBuffs() {
 				{
 					// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
 					if (host == 0) {
+						game.pause(0);
 						int parm[4];
 						memcpy(parm, databuffs[i] + arraypos + 4, sizeof(int) * 4);
 

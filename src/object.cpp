@@ -1148,8 +1148,17 @@ void RegisterTickSyncFuncRecv(void(*func)(char*, int), int id) {
 	ObjSyncTickFuncsRecv[id] = func;
 }
 
+char update = 0;
+
 // Update every serialized object's syncing step code
 void UpdateObjSyncs() {
+	// Only once every 2 frames
+	if (++update >= 2) {
+		update = 0;
+	}
+	else {
+		return;
+	}
 	int i = 0;
 	while (i < serializeid) {
 		if (netobjs[i].valid == true && netobjs[i].tickfunc != NULL) {
@@ -1194,6 +1203,16 @@ void BasicSyncRecv(char *buff, int objid) {
 	memcpy(&(obj->dir), buff + 28, sizeof(int));
 }
 
+// For mannan, sync nothing
+char *MannanSync(Object *obj) {
+	char *outbuff = (char*)malloc(1);
+	return outbuff;
+}
+
+void MannanRecv(char *buff, int objid) {
+	return;
+}
+
 void RegisterBasic() {
 	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_HOPPING_BLUE, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CRITTER_HOPPING_BLUE);
@@ -1231,8 +1250,8 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_JELLY);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_GIANT_JELLY, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GIANT_JELLY);
-	RegisterTickSyncFuncSend(BasicSync, OBJ_MANNAN, BASICSYNCSIZE);
-	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MANNAN);
+	RegisterTickSyncFuncSend(MannanSync, OBJ_MANNAN, 1);
+	RegisterTickSyncFuncRecv(MannanRecv, OBJ_MANNAN);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_FROG, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FROG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_MINIFROG, BASICSYNCSIZE);

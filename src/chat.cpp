@@ -29,12 +29,18 @@ chatstate_t chatstate;
 char formatmsg[96];
 
 void Chat_WriteToLog(char* str) {
+	if (chatlogfile == NULL) {
+		chatlogfile = fopen("chatlog.txt", "a");
+	}
 	if (chatlogfile != NULL && str != NULL) {
 		fwrite(str, sizeof(char), strlen(str), chatlogfile);
 		const unsigned char lineending[] = { 13,10 };
 		fwrite(&lineending, sizeof(unsigned char), 2, chatlogfile); //yeah i know..but not everyone uses the TECHNOLOGICALLY ADVANCED windows 10 version of notepad that supports proper line endings (this means me)
+		fclose(chatlogfile);
+		chatlogfile = NULL;
 	}
 }
+
 
 void Chat_Init() {
 	chatevent=Net_RegisterPlayerEventSend(Chat_SendMessage, 64);
@@ -105,6 +111,56 @@ void Chat_EnterMessage() {
 	//char formatmsg[96];
 	formatmsg[0] = 0;
 
+	if (memcmp("/ban ", chatstate.msg, 5) == 0 && host == 1) {
+		char IP[32];
+		char msg[64];
+		memcpy(msg, chatstate.msg + 5, 59);
+		int i = 0;
+		while (i < MAXCLIENTS) {
+			if (sockets[i].used) {
+				InetNtopA(sockets[i].data.sin_family, &sockets[i].data.sin_addr, IP, 32);
+				if (strcmp(msg, IP) == 0) {
+					strcpy(banlist[bannum], IP);
+					closesocket(sockets[i].sock);
+					chatstate.msg[0] = 0;
+					chatstate.typing = 0;
+					chatstate.timer = (60 * 5);
+					bannum++;
+					return;
+				}
+			}
+			i++;
+		}
+		chatstate.msg[0] = 0;
+		chatstate.typing = 0;
+		chatstate.timer = (60 * 5);
+		return;
+	}
+
+	if (memcmp("/kick ", chatstate.msg, 6) == 0 && host == 1) {
+		char IP[32];
+		char msg[64];
+		memcpy(msg, chatstate.msg + 6, 59);
+		int i = 0;
+		while (i < MAXCLIENTS) {
+			if (sockets[i].used) {
+				InetNtopA(sockets[i].data.sin_family, &sockets[i].data.sin_addr, IP, 32);
+				if (strcmp(msg, IP) == 0) {
+					closesocket(sockets[i].sock);
+					chatstate.msg[0] = 0;
+					chatstate.typing = 0;
+					chatstate.timer = (60 * 5);
+					return;
+				}
+			}
+			i++;
+		}
+		chatstate.msg[0] = 0;
+		chatstate.typing = 0;
+		chatstate.timer = (60 * 5);
+		return;
+	}
+
 	Net_FirePlayerEvent(chatevent);
 
 	//if (chatstate.msg[0] == 0x2F && chatstate.msg[1] == 0x6D && chatstate.msg[2] == 0x65) { //me check
@@ -145,7 +201,7 @@ void Chat_EnterMessage() {
 
 void Chat_AddChar(int ch) {
 	unsigned char msglen = strlen(chatstate.msg);
-	if (ch != SDLK_DOWN && ch != SDLK_UP && ch != SDLK_LEFT && ch != SDLK_RIGHT && ch != SDLK_RETURN) {
+	if (ch != SDLK_DOWN && ch != SDLK_UP && ch != SDLK_LEFT && ch != SDLK_RIGHT && ch != SDLK_RETURN && ch != SDLK_LALT && ch != SDLK_RALT && ch != SDLK_LCTRL && ch != SDLK_RCTRL) {
 		//enter text
 		if (msglen > 0 && ch == 8) {
 			chatstate.msg[msglen - 1] = 0;

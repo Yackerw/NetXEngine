@@ -79,6 +79,9 @@ extern int PlayerDisconnectSize;
 
 extern int serializeid;
 
+extern char banlist[256][32];
+extern int bannum;
+
 //WSAdata variable, stores information about winsock
 extern WSADATA wsadata;
 char Networking_Init();
