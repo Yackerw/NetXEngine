@@ -169,6 +169,7 @@ static void draw_title()
 				strcpy(name, "Player");
 			}
 			Net_FirePlayerEvent(nameevent);
+			Multiplayer = 8;
 		}
 		else {
 			Multiplayer = 7;
