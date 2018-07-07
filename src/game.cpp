@@ -288,7 +288,7 @@ void Game::reset()
 	//tsc->StopScripts();
 	
 	game.pause(false);
-	game.setmode(GM_INTRO, 0, true);
+	//game.setmode(GM_INTRO, 0, true);
 	//console.SetVisible(false);
 }
 

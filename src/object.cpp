@@ -162,6 +162,19 @@ Object * const &o = this;
 	o->hp = objprop[type].initial_hp;
 	o->damage = objprop[o->type].damage;
 	o->frame = 0;
+
+	// Boss specific hack lol
+	if (type == OBJ_BALROG_BOSS_RUNNING || type == OBJ_BALROG_BOSS_FLYING || type == OBJ_BALROG_BOSS_MISSILES || type == OBJ_BOSS_IGOR || type == OBJ_BALFROG) {
+		short pcount;
+		short i = 0;
+		while (i < MAXCLIENTS) {
+			if (sockets[i].used == true) {
+				pcount++;
+			}
+			i++;
+		}
+		o->hp += (o->hp * (1.85f * pcount));
+	}
 	
 	// apply nxflags to new object type!
 	// (did this so toroko would handle slopes properly in Gard cutscene)
