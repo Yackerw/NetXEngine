@@ -6,6 +6,7 @@
 #include "map.h"
 #include "player.h"
 #include "NetPlayer.h"
+#include "chat.h"
 
 netdata *sockets;
 
@@ -82,7 +83,7 @@ char Networking_Init() {
 	numsocks = 0;
 	// Set up our mutexes and databuffs
 	int i = 0;
-	outbuff = (char*)malloc(sizeof(char) * 524288);
+	outbuff = (char*)malloc(sizeof(char) * 1024288);
 	databuffs = (char**)malloc(sizeof(char*)*MAXCLIENTS);
 	databuffsizes = (int*)calloc(MAXCLIENTS, sizeof(int));
 	buffmutexes = (HANDLE*)malloc(sizeof(HANDLE)*MAXCLIENTS);
@@ -103,7 +104,7 @@ char Networking_Init() {
 	TscExec = 0;
 	while (i < MAXCLIENTS) {
 		buffmutexes[i] = CreateMutex(NULL, FALSE, NULL);
-		databuffs[i] = (char*)malloc(sizeof(char) * 524288);
+		databuffs[i] = (char*)malloc(sizeof(char) * 1024288);
 		i++;
 	}
 	outbuffmutex = CreateMutex(NULL, FALSE, NULL);
@@ -362,6 +363,7 @@ void packet_receiving(void *sockettt) {
 					// Handle excessive data
 					if (sizebuffsize > 4) {
 						memcpy(recvbuff, tempbuff + (4 - oldsize), bytes - (4 - oldsize));
+						recvbuffsize += bytes - (4 - oldsize);
 					}
 				}
 				sizebuffsize = 0;
@@ -446,12 +448,23 @@ int Server_Connect(SOCKET server) {
 	int i = 0;
 	char IP[32];
 	InetNtopA(info.sin_family, &info.sin_addr, IP, 32);
+	// Ensure this connection isn't banned
 	while (i < bannum) {
 		if (strcmp(IP, banlist[i]) == 0) {
 			closesocket(client);
 			return 0;
 		}
 		i++;
+	}
+	// Find free socket
+	int freesock = 0;
+	while (sockets[freesock].used == true && freesock < MAXCLIENTS) {
+		freesock++;
+	}
+	// Full server, sorry
+	if (freesock == MAXCLIENTS) {
+		closesocket(client);
+		return 0;
 	}
 	char nodelaything[] = { 1 };
 	if (setsockopt(client, IPPROTO_TCP, TCP_NODELAY, nodelaything, 1)) {
@@ -468,11 +481,6 @@ int Server_Connect(SOCKET server) {
 	memcpy(buff, &tmp, sizeof(int));
 	Packet_Send(client, buff, tmp + 4);
 	free(buff);
-	// Find free socket
-	int freesock = 0;
-	while (sockets[freesock].used == true) {
-		freesock++;
-	}
 	// Fire our event to tell everyone else that someone connected!
 	buff = PlayerJoinEventOthersSend(freesock);
 	buff = (char*)realloc(buff, PlayerJoinEventOthersSize + 8);
@@ -830,8 +838,9 @@ void Net_ParseBuffs() {
 						}
 						// also update player.invisible
 						player->invisible = databuffs[i][arraypos + (sizeof(int) * 5)];
+						player->hide = databuffs[i][arraypos + (sizeof(int) * 5) + 1];
 					}
-					arraypos += (sizeof(int) * 5) + 1;
+					arraypos += (sizeof(int) * 5) + 2;
 				}
 					break;
 				case 15: {
@@ -847,6 +856,7 @@ void Net_ParseBuffs() {
 				default:
 					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
 					arraypos = databuffsizes[i];
+					Chat_WriteToLog("CRITICAL ERROR! If you see this, please report it on #bug_reports on the Discord");
 					break;
 				}
 			}

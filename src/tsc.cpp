@@ -860,12 +860,13 @@ int cmdip;
 				}
 				// If we're the host then sync this TRA
 				if (host == 1) {
-					char *outbuff = (char*)malloc((sizeof(int) * 5) + 1);
+					char *outbuff = (char*)malloc((sizeof(int) * 5) + 2);
 					int tmp = 14;
 					memcpy(outbuff, &tmp, sizeof(int));
 					memcpy(outbuff + sizeof(int), parm, sizeof(int) * 4);
 					outbuff[sizeof(int) * 5] = player->invisible;
-					Net_AddToOut(outbuff, (sizeof(int) * 5) + 1);
+					outbuff[(sizeof(int) * 5) + 1] = player->hide;
+					Net_AddToOut(outbuff, (sizeof(int) * 5) + 2);
 					free(outbuff);
 					// PART 2
 					outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
