@@ -225,26 +225,26 @@ int ino;//, key;
 				key = evt.key.keysym.sym;
 				
 				static uint8_t shiftstates = 0;
+
+				if (key == SDLK_LSHIFT)
+				{
+					if (evt.type == SDL_KEYDOWN)
+						shiftstates |= LEFTMASK;
+					else
+						shiftstates &= ~LEFTMASK;
+				}
+				else if (key == SDLK_RSHIFT)
+				{
+					if (evt.type == SDL_KEYDOWN)
+						shiftstates |= RIGHTMASK;
+					else
+						shiftstates &= ~RIGHTMASK;
+				}
 				
 				if ((console.IsVisible() && !IsNonConsoleKey(key)) || (chatstate.typing == 1))
 				{
 
 
-					if (key == SDLK_LSHIFT)
-					{
-						if (evt.type == SDL_KEYDOWN)
-							shiftstates |= LEFTMASK;
-						else
-							shiftstates &= ~LEFTMASK;
-					}
-					else if (key == SDLK_RSHIFT)
-					{
-						if (evt.type == SDL_KEYDOWN)
-							shiftstates |= RIGHTMASK;
-						else
-							shiftstates &= ~RIGHTMASK;
-					}
-					else
 					{
 						int ch = key;
 						if (shiftstates != 0)
@@ -289,8 +289,16 @@ int ino;//, key;
 							IPAddress[strlen(IPAddress) - 1] = 0;
 						}
 						// and names
-						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
+						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && key != SDLK_LCTRL && key != SDLK_RCTRL && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
 							char *tmp = (char*)&key;
+							if (shiftstates != 0)
+							{
+								key = toupper(key);
+								if (key == '.') key = '>';
+								if (key == '-') key = '_';
+								if (key == '/') key = '?';
+								if (key == '1') key = '!';
+							}
 							strcat(name, tmp);
 						}
 						if (Multiplayer == 4 && key == 8 && strlen(name) > 0) {
