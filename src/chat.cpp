@@ -202,12 +202,7 @@ void Chat_EnterMessage() {
 void Chat_AddChar(int ch) {
 	unsigned char msglen = strlen(chatstate.msg);
 	if (ch >= 32 && ch <= 126) {
-		//enter text
-		if (msglen > 0 && ch == 8) {
-			chatstate.msg[msglen - 1] = 0;
-			msglen -= 1;
-		}
-		else if (ch != 8 && msglen < 63) {
+		if (ch != 8 && msglen < 63) {
 			strcat(chatstate.msg, (char*)&ch);
 		}
 	}
@@ -220,6 +215,11 @@ void Chat_AddChar(int ch) {
 		else {
 			Chat_EnterMessage();
 		}
+	}
+	//enter text
+	if (msglen > 0 && ch == 8) {
+		chatstate.msg[msglen - 1] = 0;
+		msglen -= 1;
 	}
 }
 
