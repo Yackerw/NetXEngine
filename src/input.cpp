@@ -244,7 +244,7 @@ int ino;//, key;
 				if ((console.IsVisible() && !IsNonConsoleKey(key)) || (chatstate.typing == 1))
 				{
 
-
+					if (key != SDLK_RSHIFT && key != SDLK_LSHIFT)
 					{
 						int ch = key;
 						if (shiftstates != 0)

@@ -201,7 +201,7 @@ void Chat_EnterMessage() {
 
 void Chat_AddChar(int ch) {
 	unsigned char msglen = strlen(chatstate.msg);
-	if (ch != SDLK_DOWN && ch != SDLK_UP && ch != SDLK_LEFT && ch != SDLK_RIGHT && ch != SDLK_RETURN && ch != SDLK_LALT && ch != SDLK_RALT && ch != SDLK_LCTRL && ch != SDLK_RCTRL) {
+	if (ch >= 32 && ch <= 126) {
 		//enter text
 		if (msglen > 0 && ch == 8) {
 			chatstate.msg[msglen - 1] = 0;
