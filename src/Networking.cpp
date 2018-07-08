@@ -273,8 +273,8 @@ void Packet_Send_Thread1(void *args) {
 	char **tmp = (char**)args;
 	char *buff = tmp[1];
 	int *tmpp = (int*)args;
-	HANDLE thread = (HANDLE)_beginthreadex(NULL, 256, Packet_Send_Thread2, args, 0, NULL);
-	DWORD result = WaitForSingleObject(thread, 20);
+	HANDLE thread = (HANDLE)_beginthreadex(NULL, 1024, Packet_Send_Thread2, args, 0, NULL);
+	DWORD result = WaitForSingleObject(thread, 220);
 	if (result == WAIT_OBJECT_0 || result == WAIT_FAILED) {
 		if (result != WAIT_FAILED) {
 			//TerminateThread(thread, 0);
@@ -301,20 +301,20 @@ void Packet_Send_Thread1(void *args) {
 		}
 	}
 	CloseHandle(thread);
-	//free(buff);
+	free(buff);
 	free(args);
 	return;
 }
 
 int Packet_Send(SOCKET *client, char *netbuffer, int length) {
 	char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
-	//char *buff = (char*)malloc(sizeof(char)*length);
-	//memcpy(buff, netbuffer, length);
+	char *buff = (char*)malloc(sizeof(char)*length);
+	memcpy(buff, netbuffer, length);
 	memcpy(argbuff, &client, sizeof(SOCKET*));
-	memcpy(argbuff + sizeof(SOCKET*), &netbuffer, sizeof(char*));
+	memcpy(argbuff + sizeof(SOCKET*), &buff, sizeof(char*));
 	memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
-	//_beginthread(Packet_Send_Thread1, 256, (void*)argbuff);
-	Packet_Send_Thread1(argbuff);
+	_beginthread(Packet_Send_Thread1, 1024, (void*)argbuff);
+	//Packet_Send_Thread1(argbuff);
 	//printf("Packet sent!\n");
 	return 1;
 }
@@ -324,12 +324,15 @@ int Packet_Send_Host(SOCKET server, char *netbuffer, int length) {
 	int i = 0;
 	while (i < MAXCLIENTS) {
 		if (sockets[i].used == 1) {
+			char *buff = (char*)malloc(sizeof(char)*length);
+			memcpy(buff, netbuffer, length);
 			char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
 			SOCKET *frick = &sockets[i].sock;
 			memcpy(argbuff, &frick, sizeof(SOCKET*));
-			memcpy(argbuff + sizeof(SOCKET*), &netbuffer, sizeof(char*));
+			memcpy(argbuff + sizeof(SOCKET*), &buff, sizeof(char*));
 			memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
-			Packet_Send_Thread1(argbuff);
+			_beginthread(Packet_Send_Thread1, 1024, (void*)argbuff);
+			//Packet_Send_Thread1(argbuff);
 			/*int success = 1;
 			success = send(sockets[i].sock, netbuffer, length, 0);
 			int totalsucc = success;
@@ -540,21 +543,11 @@ int Server_Connect(SOCKET server) {
 		printf("Setsockopt failed with error: %d\n", WSAGetLastError());
 		return INVALID_SOCKET;
 	}
-	// Fire our connect event
-	char *buff = PlayerJoinEventSvSend();
-	buff = (char*)realloc(buff, PlayerJoinEventSvSize + 8);
-	memmove(buff + 8, buff, PlayerJoinEventSvSize);
-	int tmp = 0;
-	memcpy(buff + 4, &tmp, sizeof(int));
-	tmp = PlayerJoinEventSvSize + 4;
-	memcpy(buff, &tmp, sizeof(int));
-	Packet_Send(&client, buff, tmp + 4);
-	free(buff);
 	// Fire our event to tell everyone else that someone connected!
-	buff = PlayerJoinEventOthersSend(freesock);
+	char *buff = PlayerJoinEventOthersSend(freesock);
 	buff = (char*)realloc(buff, PlayerJoinEventOthersSize + 8);
 	memmove(buff + 8, buff, PlayerJoinEventOthersSize);
-	tmp = 4;
+	int tmp = 4;
 	memcpy(buff + 4, &tmp, sizeof(int));
 	tmp = PlayerJoinEventOthersSize + 4;
 	memcpy(buff, &tmp, sizeof(int));
@@ -563,6 +556,16 @@ int Server_Connect(SOCKET server) {
 	free(buff);
 	// Set up socket stuff
 	sockets[freesock].sock = client;
+	// Fire our connect event
+	buff = PlayerJoinEventSvSend();
+	buff = (char*)realloc(buff, PlayerJoinEventSvSize + 8);
+	memmove(buff + 8, buff, PlayerJoinEventSvSize);
+	tmp = 0;
+	memcpy(buff + 4, &tmp, sizeof(int));
+	tmp = PlayerJoinEventSvSize + 4;
+	memcpy(buff, &tmp, sizeof(int));
+	Packet_Send(&sockets[freesock].sock, buff, tmp + 4);
+	free(buff);
 	sockets[freesock].data = info;
 	sockets[freesock].used = 1;
 	sockets[freesock].socknum = freesock;
