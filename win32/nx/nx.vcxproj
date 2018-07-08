@@ -121,7 +121,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\ext\lib\x64\SDL2main.lib;..\ext\lib\x64\SDL2.lib;..\ext\lib\x64\SDL2_mixer.lib;..\ext\lib\x64\libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\ext\lib\x64\SDL2main.lib;..\ext\lib\x64\SDL2.lib;..\ext\lib\x64\SDL2_mixer.lib;..\ext\lib\x64\libpng16.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
@@ -141,7 +141,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>..\ext\lib\x86\SDL2main.lib;..\ext\lib\x86\SDL2.lib;..\ext\lib\x86\SDL2_mixer.lib;..\ext\lib\x86\libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\ext\lib\x86\SDL2main.lib;..\ext\lib\x86\SDL2.lib;..\ext\lib\x86\SDL2_mixer.lib;..\ext\lib\x86\libpng16.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -235,6 +235,7 @@
     <ClCompile Include="..\..\src\ai\weed\weed.cpp" />
     <ClCompile Include="..\..\src\autogen\AssignSprites.cpp" />
     <ClCompile Include="..\..\src\caret.cpp" />
+    <ClCompile Include="..\..\src\chat.cpp" />
     <ClCompile Include="..\..\src\common\glob.cpp" />
     <ClCompile Include="..\..\src\common\InitList.cpp" />
     <ClCompile Include="..\..\src\common\misc.cpp" />
@@ -374,6 +375,7 @@
     <ClInclude Include="..\..\src\autogen\objnames.h" />
     <ClInclude Include="..\..\src\autogen\sprites.h" />
     <ClInclude Include="..\..\src\caret.h" />
+    <ClInclude Include="..\..\src\chat.h" />
     <ClInclude Include="..\..\src\common\basics.h" />
     <ClInclude Include="..\..\src\common\bufio.h" />
     <ClInclude Include="..\..\src\common\glob.h" />

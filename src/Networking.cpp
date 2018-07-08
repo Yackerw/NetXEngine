@@ -234,24 +234,87 @@ void Client_Disconnect(SOCKET client) {
 	closesocket(client);
 }
 
-int Packet_Send(SOCKET client, char *netbuffer, int length) {
+unsigned int _stdcall Packet_Send_Thread2(void *args) {
+	SOCKET sock = *(SOCKET*)*(SOCKET*)args;
+	// i give up
+	char **tmp = (char**)args;
+	char *netbuffer = tmp[1];
+	int *tmpp = (int*)args;
+	int length = tmpp[2];
 	int success = 1;
-	success = send(client, netbuffer, length, 0);
+	success = send(sock, netbuffer, length, 0);
 	int totalsucc = success;
 	// If windows has decided that there's not enough space for us to send, we need to create a loop to continue sending until it is succesful
 	while (totalsucc < length) {
 		if (success == SOCKET_ERROR) {
 			printf("Send failed: %d\n", WSAGetLastError());
-			return -1;
+			closesocket(sock);
+			SuspendThread(GetCurrentThread());
+			return 0;
 		}
-		success = send(client, netbuffer + totalsucc, length - totalsucc, 0);
+		success = send(sock, netbuffer + totalsucc, length - totalsucc, 0);
 		totalsucc += success;
 	}
 	// err check
 	if (success == SOCKET_ERROR) {
 		printf("Send failed: %d\n", WSAGetLastError());
-		return -1;
+		closesocket(sock);
+		SuspendThread(GetCurrentThread());
+		return 0;
 	}
+	SuspendThread(GetCurrentThread());
+	return 0;
+}
+
+// Ok, time for something fun. DOUBLE THREAD ACTION!
+void Packet_Send_Thread1(void *args) {
+	SOCKET *sock = (SOCKET*)*(SOCKET*)args;
+	// i give up
+	char **tmp = (char**)args;
+	char *buff = tmp[1];
+	int *tmpp = (int*)args;
+	HANDLE thread = (HANDLE)_beginthreadex(NULL, 256, Packet_Send_Thread2, args, 0, NULL);
+	DWORD result = WaitForSingleObject(thread, 20);
+	if (result == WAIT_OBJECT_0 || result == WAIT_FAILED) {
+		if (result != WAIT_FAILED) {
+			//TerminateThread(thread, 0);
+			ResumeThread(thread);
+		}
+	}
+	else {
+		if (result == WAIT_TIMEOUT) {
+			int test = SuspendThread(thread);
+			if (test <= 0) {
+				closesocket(*sock);
+				TerminateThread(thread, 0);
+			}
+			else {
+				int i = -1;
+				while (i < test) {
+					ResumeThread(thread);
+					i++;
+				}
+			}
+		}
+		else {
+			ResumeThread(thread);
+		}
+	}
+	CloseHandle(thread);
+	//free(buff);
+	free(args);
+	return;
+}
+
+int Packet_Send(SOCKET *client, char *netbuffer, int length) {
+	char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
+	//char *buff = (char*)malloc(sizeof(char)*length);
+	//memcpy(buff, netbuffer, length);
+	memcpy(argbuff, &client, sizeof(SOCKET*));
+	memcpy(argbuff + sizeof(SOCKET*), &netbuffer, sizeof(char*));
+	memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
+	//_beginthread(Packet_Send_Thread1, 256, (void*)argbuff);
+	Packet_Send_Thread1(argbuff);
 	//printf("Packet sent!\n");
 	return 1;
 }
@@ -261,7 +324,13 @@ int Packet_Send_Host(SOCKET server, char *netbuffer, int length) {
 	int i = 0;
 	while (i < MAXCLIENTS) {
 		if (sockets[i].used == 1) {
-			int success = 1;
+			char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
+			SOCKET *frick = &sockets[i].sock;
+			memcpy(argbuff, &frick, sizeof(SOCKET*));
+			memcpy(argbuff + sizeof(SOCKET*), &netbuffer, sizeof(char*));
+			memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
+			Packet_Send_Thread1(argbuff);
+			/*int success = 1;
 			success = send(sockets[i].sock, netbuffer, length, 0);
 			int totalsucc = success;
 			while (totalsucc < length && success != SOCKET_ERROR) {
@@ -271,7 +340,7 @@ int Packet_Send_Host(SOCKET server, char *netbuffer, int length) {
 			if (success == SOCKET_ERROR) {
 				printf("Send failed: %d\n", WSAGetLastError());
 				// Another thread will handle removing this!
-			}
+			}*/
 		}
 		i++;
 	}
@@ -479,7 +548,7 @@ int Server_Connect(SOCKET server) {
 	memcpy(buff + 4, &tmp, sizeof(int));
 	tmp = PlayerJoinEventSvSize + 4;
 	memcpy(buff, &tmp, sizeof(int));
-	Packet_Send(client, buff, tmp + 4);
+	Packet_Send(&client, buff, tmp + 4);
 	free(buff);
 	// Fire our event to tell everyone else that someone connected!
 	buff = PlayerJoinEventOthersSend(freesock);
@@ -875,7 +944,9 @@ void Net_SendData() {
 		Packet_Send_Host(server, outbuff, outbuffsize + 4);
 	}
 	else {
-		Packet_Send(client, outbuff, outbuffsize + 4);
+		if (host == 0) {
+			Packet_Send(&client, outbuff, outbuffsize + 4);
+		}
 	}
 	outbuffsize = 0;
 }

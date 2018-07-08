@@ -411,6 +411,9 @@
     <ClCompile Include="..\..\src\Networking.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\chat.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -846,6 +849,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Networking.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\chat.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
