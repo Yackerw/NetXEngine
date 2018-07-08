@@ -289,7 +289,7 @@ int ino;//, key;
 							IPAddress[strlen(IPAddress) - 1] = 0;
 						}
 						// and names
-						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && key != SDLK_LCTRL && key != SDLK_RCTRL && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
+						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && (key >= 32 && key <= 126) && key != SDLK_LCTRL && key != SDLK_RCTRL && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
 							char *tmp = (char*)&key;
 							if (shiftstates != 0)
 							{
