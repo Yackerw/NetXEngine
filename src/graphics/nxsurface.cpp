@@ -237,7 +237,11 @@ void NXSurface::DrawSurfaceNoScale(NXSurface *src, \
 
 void NXSurface::DrawSurface(NXSurface *src, int dstx, int dsty)
 {
-	DrawSurface(src, dstx, dsty, 0, 0, src->Width(), src->Height());
+	int res = 1;
+#ifdef TWOXRES
+	res = 2;
+#endif
+	DrawSurface(src, dstx, dsty, 0, 0, src->Width() / res, src->Height() / res);
 }
 
 // draw the given source surface in a repeating pattern across the entire width of the surface.

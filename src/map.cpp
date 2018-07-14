@@ -586,9 +586,9 @@ int x, y;
 //        mapy+=64;
     }
 
-	for(y=0;y<SCREEN_HEIGHT+map.parscroll_y; y+=h*res)
+	for(y=0;y<SCREEN_HEIGHT+map.parscroll_y; y+=h)
 	{
-		for(x=0;x<SCREEN_WIDTH+map.parscroll_x; x+=w*res)
+		for(x=0;x<SCREEN_WIDTH+map.parscroll_x; x+=w)
 		{
 		    if ( ((x - map.parscroll_x) < mapx) && ((y - map.parscroll_y) < mapy))
 			DrawSurface(backdrop[map.backdrop], x - map.parscroll_x, y - map.parscroll_y);
