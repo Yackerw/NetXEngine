@@ -169,11 +169,56 @@ void NXSurface::DrawSurface(NXSurface *src, \
 
 	SDL_Rect srcrect, dstrect;
 
-	srcrect.x = srcx * SCALE;
-	srcrect.y = srcy * SCALE;
-	srcrect.w = wd * SCALE;
-	srcrect.h = ht * SCALE;
+	int res = 1;
+
+#ifdef TWOXRES
+	res = 2;
+#endif
+
+	srcrect.x = (srcx * SCALE) * res;
+	srcrect.y = (srcy * SCALE) * res;
+	srcrect.w = (wd * SCALE) * res;
+	srcrect.h = (ht * SCALE) * res;
 	
+	dstrect.x = dstx * SCALE;
+	dstrect.y = dsty * SCALE;
+	dstrect.w = srcrect.w / res;
+	dstrect.h = srcrect.h / res;
+
+	if (need_clip) clip(srcrect, dstrect);
+	SDL_SetTextureAlphaMod(src->fTexture, src->alpha);
+	if (SDL_RenderCopy(renderer, src->fTexture, &srcrect, &dstrect))
+	{
+		staterr("NXSurface::DrawSurface: SDL_RenderCopy failed: %s", SDL_GetError());
+	}
+
+	if (this != screen)
+		SetAsTarget(false);
+}
+
+// draw some or all of another surface onto this surface.
+void NXSurface::DrawSurfaceNoScale(NXSurface *src, \
+	int dstx, int dsty, int srcx, int srcy, int wd, int ht)
+{
+	if (this != screen)
+		SetAsTarget(true);
+
+	assert(renderer);
+	assert(src->fTexture);
+
+	SDL_Rect srcrect, dstrect;
+
+	int res = 1;
+
+#ifdef TWOXRES
+	res = 2;
+#endif
+
+	srcrect.x = (srcx * SCALE) * res;
+	srcrect.y = (srcy * SCALE) * res;
+	srcrect.w = (wd * SCALE) * res;
+	srcrect.h = (ht * SCALE) * res;
+
 	dstrect.x = dstx * SCALE;
 	dstrect.y = dsty * SCALE;
 	dstrect.w = srcrect.w;
@@ -208,13 +253,19 @@ void NXSurface::BlitPatternAcross(NXSurface *src,
 
 	SDL_Rect srcrect, dstrect;
 
-	srcrect.x = 0;
-	srcrect.w = src->tex_w;
-	srcrect.y = (y_src * SCALE);
-	srcrect.h = (height * SCALE);
+	int res = 1;
 
-	dstrect.w = srcrect.w;
-	dstrect.h = srcrect.h;
+#ifdef TWOXRES
+	res = 2;
+#endif
+
+	srcrect.x = 0;
+	srcrect.w = src->tex_w * res;
+	srcrect.y = (y_src * SCALE) * res;
+	srcrect.h = (height * SCALE) * res;
+
+	dstrect.w = srcrect.w / res;
+	dstrect.h = srcrect.h / res;
 
 	int x = (x_dst * SCALE);
 	int y = (y_dst * SCALE);
@@ -391,10 +442,15 @@ void NXSurface::set_clip_rect(int x, int y, int w, int h)
 {
 	need_clip = true;
 
+	int res = 1;
+#ifdef TWOXRES
+	res = 2;
+#endif
+
 	clip_rect.x = x * SCALE;
 	clip_rect.y = y * SCALE;
-	clip_rect.w = w * SCALE;
-	clip_rect.h = h * SCALE;
+	clip_rect.w = w * SCALE * res;
+	clip_rect.h = h * SCALE * res;
 }
 
 void NXSurface::set_clip_rect(NXRect *rect)
@@ -414,7 +470,10 @@ bool NXSurface::is_set_clip() const
 
 void NXSurface::clip(SDL_Rect& srcrect, SDL_Rect& dstrect) const
 {
-	
+	int res = 1;
+#ifdef TWOXRES
+	res = 2;
+#endif
 	int w = srcrect.w;
 	int h = srcrect.h;
 	
@@ -423,28 +482,30 @@ void NXSurface::clip(SDL_Rect& srcrect, SDL_Rect& dstrect) const
     // Code is from SDL_UpperBlit().
     // This is how SDL performs clip on surface.
 
-    dx = clip_rect.x - dstrect.x;
+	dx = clip_rect.x - dstrect.x;
     if (dx > 0) {
-        w -= dx;
+        w -= dx * res;
         dstrect.x += dx;
         srcrect.x += dx;
     }
-    dx = dstrect.x + w - clip_rect.x - clip_rect.w;
+	dx = dstrect.x + w - clip_rect.x - clip_rect.w;
     if (dx > 0)
-        w -= dx;
+        w -= dx * res;
 
     dy = clip_rect.y - dstrect.y;
     if (dy > 0) {
-        h -= dy;
+        h -= dy * res;
         dstrect.y += dy;
         srcrect.y += dy;
     }
     dy = dstrect.y + h - clip_rect.y - clip_rect.h;
     if (dy > 0)
-        h -= dy;
+        h -= dy * res;
 
     dstrect.w = srcrect.w = w;
     dstrect.h = srcrect.h = h;
+	dstrect.w /= res;
+	dstrect.h /= res;
 }
 
 /*

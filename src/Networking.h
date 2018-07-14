@@ -96,7 +96,7 @@ void Server_CloseClient(SOCKET server, int client);
 
 void Client_Disconnect(SOCKET client);
 
-int Packet_Send(SOCKET client, char *netbuffer, int length);
+int Packet_Send(SOCKET *client, char *netbuffer, int length);
 
 //send packets to all the clients
 int Packet_Send_Host(SOCKET server, char *netbuffer, int length);

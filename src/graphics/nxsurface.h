@@ -72,6 +72,7 @@ public:
 	// blitting
 	void DrawSurface(NXSurface *src, int dstx, int dsty);
 	void DrawSurface(NXSurface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht);
+	void DrawSurfaceNoScale(NXSurface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht);
 	void BlitPatternAcross(NXSurface *src, int x_dst, int y_dst, int y_src, int height);
 	
 	void DrawBatchBegin(size_t max_count);

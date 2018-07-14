@@ -451,20 +451,36 @@ std::string fname;
 		{
 		    if (backdrop_no == 9)
 		    {
+#ifndef TWOXRES
 		        fname = "bkMoon480fix.pbm";
+#else
+				fname = "bkMoon480fix.bmp";
+#endif
 		    }
 		    else if (backdrop_no == 10)
 		    {
+#ifndef TWOXRES
 		        fname = "bkFog480fix.pbm";
+#else
+				fname = "bkFog480fix.bmp";
+#endif
 		    }
 		    else
 		    {
+#ifndef TWOXRES
 		        fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
+#else
+				fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
+#endif
 		    }
 		}
 		else
 		{
+#ifndef TWOXRES
 		    fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
+#else
+			fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
+#endif
 		}
 		
 		backdrop[backdrop_no] = NXSurface::FromFile(ResourceManager::getInstance()->getLocalizedPath(fname), use_chromakey);
@@ -496,6 +512,11 @@ int x, y;
 		if (!backdrop[map.backdrop])
 			return;
 	}
+
+	int res = 1;
+#ifdef TWOXRES
+	res = 2;
+#endif
 	
 	switch(map.scrolltype)
 	{
@@ -547,8 +568,8 @@ int x, y;
 			staterr("map_draw_backdrop: unhandled map scrolling type %d", map.scrolltype);
 		break;
 	}
-	int w = backdrop[map.backdrop]->Width();
-	int h = backdrop[map.backdrop]->Height();
+	int w = backdrop[map.backdrop]->Width() / res;
+	int h = backdrop[map.backdrop]->Height() / res;
 	
 	int mapx = (map.xsize * TILE_W);
 	int mapy = (map.ysize * TILE_H);
@@ -565,9 +586,9 @@ int x, y;
 //        mapy+=64;
     }
 
-	for(y=0;y<SCREEN_HEIGHT+map.parscroll_y; y+=h)
+	for(y=0;y<SCREEN_HEIGHT+map.parscroll_y; y+=h*res)
 	{
-		for(x=0;x<SCREEN_WIDTH+map.parscroll_x; x+=w)
+		for(x=0;x<SCREEN_WIDTH+map.parscroll_x; x+=w*res)
 		{
 		    if ( ((x - map.parscroll_x) < mapx) && ((y - map.parscroll_y) < mapy))
 			DrawSurface(backdrop[map.backdrop], x - map.parscroll_x, y - map.parscroll_y);

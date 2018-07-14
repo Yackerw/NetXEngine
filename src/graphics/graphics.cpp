@@ -307,10 +307,15 @@ NXRect srcrect, dstrect;
 	srcrect.w = TILE_W;
 	srcrect.h = TILE_H;
 	
-	dstrect.x = (tileno % 16) * TILE_W;
-	dstrect.y = (tileno / 16) * TILE_H;
-	dstrect.w = TILE_W;
-	dstrect.h = TILE_H;
+	int res = 1;
+#ifdef TWOXRES
+	res = 2;
+#endif
+
+	dstrect.x = (tileno % 16) * TILE_W * res;
+	dstrect.y = (tileno / 16) * TILE_H * res;
+	dstrect.w = TILE_W * res;
+	dstrect.h = TILE_H * res;
 	
 	NXSurface *tileset = Tileset::GetSurface();
 	NXSurface *spritesheet = Sprites::get_spritesheet(sprites[spr].spritesheet);
@@ -321,7 +326,7 @@ NXRect srcrect, dstrect;
 		tileset->ClearRect(&dstrect);
 		
 		// copy the sprite over
-		BlitSurface(spritesheet, &srcrect, tileset, &dstrect);
+		BlitSurfaceNoScale(spritesheet, &srcrect, tileset, &dstrect);
 	}
 }
 
@@ -344,6 +349,13 @@ NXSurface loading;
 /*
 void c------------------------------() {}
 */
+
+// blit from one surface to another, just like SDL_BlitSurface.
+void Graphics::BlitSurfaceNoScale(NXSurface *src, NXRect *srcrect, NXSurface *dst, NXRect *dstrect)
+{
+	dst->DrawSurfaceNoScale(src, dstrect->x, dstrect->y, \
+		srcrect->x, srcrect->y, srcrect->w, srcrect->h);
+}
 
 // blit from one surface to another, just like SDL_BlitSurface.
 void Graphics::BlitSurface(NXSurface *src, NXRect *srcrect, NXSurface *dst, NXRect *dstrect)

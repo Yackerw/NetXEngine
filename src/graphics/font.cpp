@@ -93,8 +93,10 @@ int font_draw(int x, int y, const std::string& text, uint32_t color, bool is_sha
 			srcrect.w = dstrect.w;
 			srcrect.h = dstrect.h;
 
+#ifndef TWOXRES
 			if (Graphics::is_set_clip())
 				Graphics::clip(srcrect, dstrect);
+#endif
 			// TODO: I'm not sure, but it looks like original text is outlined, not shadowed
 			if (is_shaded)
 			{

@@ -143,6 +143,7 @@ int sheetdatalength, spritesdatalength;
 	
 	sif.CloseFile();
 
+#ifndef TWOXRES
 	// Ayy hack
 	memcpy(&sprites[SPR_CURLYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_CURLYCHAR].spritesheet = 64;
@@ -192,6 +193,57 @@ int sheetdatalength, spritesdatalength;
 	memcpy(&sprites[SPR_SORACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_SORACHAR].spritesheet = 73;
 	sheetfiles.push_back("SoraChar.pbm");
+#else
+	// Ayy hack
+	memcpy(&sprites[SPR_CURLYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_CURLYCHAR].spritesheet = 64;
+	sheetfiles.push_back("CurlyChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_SUECHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_SUECHAR].spritesheet = 65;
+	sheetfiles.push_back("SueChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_KINGCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_KINGCHAR].spritesheet = 66;
+	sheetfiles.push_back("KingChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_JACKCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_JACKCHAR].spritesheet = 67;
+	sheetfiles.push_back("JackChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_COLONCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_COLONCHAR].spritesheet = 68;
+	sheetfiles.push_back("ColonChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_BOOSTERCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_BOOSTERCHAR].spritesheet = 69; //nice
+	sheetfiles.push_back("BoosterChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_CROWNCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_CROWNCHAR].spritesheet = 70;
+	sheetfiles.push_back("CrownChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_ROOTCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_ROOTCHAR].spritesheet = 71;
+	sheetfiles.push_back("RootChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_SUGURICHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_SUGURICHAR].spritesheet = 72;
+	sheetfiles.push_back("SuguriChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_SORACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_SORACHAR].spritesheet = 73;
+	sheetfiles.push_back("SoraChar.bmp");
+#endif
 	
 	create_slope_boxes();
 	offset_by_draw_points();
@@ -207,7 +259,11 @@ bool Sprites::Init()
 	memset(spritesheet, 0, sizeof(spritesheet));
 	
 	// load sprites info--sheet positions, bounding boxes etc
+#ifndef TWOXRES
 	if (load_sif(ResourceManager::getInstance()->getLocalizedPath("sprites.sif")))
+#else
+	if (load_sif(ResourceManager::getInstance()->getLocalizedPath("sprites2x.sif")))
+#endif
 		return 1;
 	
 	num_spritesheets = sheetfiles.size();

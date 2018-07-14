@@ -44,7 +44,11 @@ char fname[MAXPATHLEN];
 			current_tileset = -1;
 		}
 		
+#ifdef TWOXRES
+		sprintf(fname, "Stage/Prt%s.bmp", tileset_names[new_tileset]);
+#else
 		sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
+#endif
 		
 		// always use SDL_DisplayFormat on tilesets; they need to come out of 8-bit
 		// so that we can replace the destroyable star tiles without them palletizing.
@@ -67,6 +71,10 @@ void Tileset::draw_tile(int x, int y, int t)
 	int srcx = (t % 16) * TILE_W;
 	int srcy = (t / 16) * TILE_H;
 	
+	if (t == 33) {
+		printf("A");
+	}
+
 	DrawSurface(tileset, x, y, srcx, srcy, TILE_W, TILE_H);
 }
 

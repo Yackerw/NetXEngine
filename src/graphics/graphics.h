@@ -2,6 +2,8 @@
 #ifndef _GRAPHICS_H
 #define _GRAPHICS_H
 
+#define TWOXRES
+
 #include "nxsurface.h"
 
 extern NXSurface *screen;
@@ -47,6 +49,8 @@ namespace Graphics
 	void CopySpriteToTile(int spr, int tileno, int offset_x, int offset_y);
 	void ShowLoadingScreen();
 	
+	void BlitSurfaceNoScale(NXSurface *src, NXRect *srcrect, NXSurface *dst, NXRect *dstrect);
+
 	void BlitSurface(NXSurface *src, NXRect *srcrect, NXSurface *dst, NXRect *dstrect);
 	
 	// these are all just convenience wrappers around the equivalent

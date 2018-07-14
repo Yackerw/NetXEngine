@@ -443,9 +443,6 @@ int mask = GetBlockingType();
 	
 	if (updatemask & DOWNMASK)
 	{
-		if (o == &players[0]) {
-			printf("lol");
-		}
 		o->blockd = CheckAttribute(&sprite->block_d, mask);
 		if (!o->blockd) o->blockd = CheckStandOnSlope(o) ? 1 : 0;
 	}
