@@ -242,7 +242,7 @@ void NXSurface::BlitPatternAcross(NXSurface *src,
 	SDL_Rect srcrect, dstrect;
 
 	srcrect.x = 0;
-	srcrect.w = src->tex_w * RESSCALE;
+	srcrect.w = src->tex_w;
 	srcrect.y = (y_src * SCALE) * RESSCALE;
 	srcrect.h = (height * SCALE) * RESSCALE;
 
@@ -261,7 +261,7 @@ void NXSurface::BlitPatternAcross(NXSurface *src,
 		dstrect.y = y;
 		
 		SDL_RenderCopy(renderer, src->fTexture, &srcrect, &dstrect);
-		x += src->tex_w;
+		x += src->tex_w / RESSCALE;
 	}
 	while(x < destwd);
 
