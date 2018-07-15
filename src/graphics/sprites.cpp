@@ -143,7 +143,7 @@ int sheetdatalength, spritesdatalength;
 	
 	sif.CloseFile();
 
-#ifndef TWOXRES
+#if RESSCALE==1
 	// Ayy hack
 	memcpy(&sprites[SPR_CURLYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_CURLYCHAR].spritesheet = 64;
@@ -259,7 +259,7 @@ bool Sprites::Init()
 	memset(spritesheet, 0, sizeof(spritesheet));
 	
 	// load sprites info--sheet positions, bounding boxes etc
-#ifndef TWOXRES
+#if RESSCALE==1
 	if (load_sif(ResourceManager::getInstance()->getLocalizedPath("sprites.sif")))
 #else
 	if (load_sif(ResourceManager::getInstance()->getLocalizedPath("sprites2x.sif")))

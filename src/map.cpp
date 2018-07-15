@@ -451,7 +451,7 @@ std::string fname;
 		{
 		    if (backdrop_no == 9)
 		    {
-#ifndef TWOXRES
+#if RESSCALE==1
 		        fname = "bkMoon480fix.pbm";
 #else
 				fname = "bkMoon480fix.bmp";
@@ -459,7 +459,7 @@ std::string fname;
 		    }
 		    else if (backdrop_no == 10)
 		    {
-#ifndef TWOXRES
+#if RESSCALE==1
 		        fname = "bkFog480fix.pbm";
 #else
 				fname = "bkFog480fix.bmp";
@@ -467,7 +467,7 @@ std::string fname;
 		    }
 		    else
 		    {
-#ifndef TWOXRES
+#if RESSCALE==1
 		        fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
 #else
 				fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
@@ -476,7 +476,7 @@ std::string fname;
 		}
 		else
 		{
-#ifndef TWOXRES
+#if RESSCALE==1
 		    fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
 #else
 			fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
@@ -512,11 +512,6 @@ int x, y;
 		if (!backdrop[map.backdrop])
 			return;
 	}
-
-	int res = 1;
-#ifdef TWOXRES
-	res = 2;
-#endif
 	
 	switch(map.scrolltype)
 	{
@@ -568,8 +563,8 @@ int x, y;
 			staterr("map_draw_backdrop: unhandled map scrolling type %d", map.scrolltype);
 		break;
 	}
-	int w = backdrop[map.backdrop]->Width() / res;
-	int h = backdrop[map.backdrop]->Height() / res;
+	int w = backdrop[map.backdrop]->Width() / RESSCALE;
+	int h = backdrop[map.backdrop]->Height() / RESSCALE;
 	
 	int mapx = (map.xsize * TILE_W);
 	int mapy = (map.ysize * TILE_H);

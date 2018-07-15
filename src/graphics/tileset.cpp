@@ -44,10 +44,10 @@ char fname[MAXPATHLEN];
 			current_tileset = -1;
 		}
 		
-#ifdef TWOXRES
-		sprintf(fname, "Stage/Prt%s.bmp", tileset_names[new_tileset]);
-#else
+#if RESSCALE==1
 		sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
+#else
+		sprintf(fname, "Stage/Prt%s.bmp", tileset_names[new_tileset]);
 #endif
 		
 		// always use SDL_DisplayFormat on tilesets; they need to come out of 8-bit

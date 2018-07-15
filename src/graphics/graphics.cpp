@@ -306,16 +306,11 @@ NXRect srcrect, dstrect;
 	srcrect.y = (sprites[spr].frame[0].dir[0].sheet_offset.y + offset_y);
 	srcrect.w = TILE_W;
 	srcrect.h = TILE_H;
-	
-	int res = 1;
-#ifdef TWOXRES
-	res = 2;
-#endif
 
-	dstrect.x = (tileno % 16) * TILE_W * res;
-	dstrect.y = (tileno / 16) * TILE_H * res;
-	dstrect.w = TILE_W * res;
-	dstrect.h = TILE_H * res;
+	dstrect.x = (tileno % 16) * TILE_W * RESSCALE;
+	dstrect.y = (tileno / 16) * TILE_H * RESSCALE;
+	dstrect.w = TILE_W * RESSCALE;
+	dstrect.h = TILE_H * RESSCALE;
 	
 	NXSurface *tileset = Tileset::GetSurface();
 	NXSurface *spritesheet = Sprites::get_spritesheet(sprites[spr].spritesheet);

@@ -169,21 +169,15 @@ void NXSurface::DrawSurface(NXSurface *src, \
 
 	SDL_Rect srcrect, dstrect;
 
-	int res = 1;
-
-#ifdef TWOXRES
-	res = 2;
-#endif
-
-	srcrect.x = (srcx * SCALE) * res;
-	srcrect.y = (srcy * SCALE) * res;
-	srcrect.w = (wd * SCALE) * res;
-	srcrect.h = (ht * SCALE) * res;
+	srcrect.x = (srcx * SCALE) * RESSCALE;
+	srcrect.y = (srcy * SCALE) * RESSCALE;
+	srcrect.w = (wd * SCALE) * RESSCALE;
+	srcrect.h = (ht * SCALE) * RESSCALE;
 	
 	dstrect.x = dstx * SCALE;
 	dstrect.y = dsty * SCALE;
-	dstrect.w = srcrect.w / res;
-	dstrect.h = srcrect.h / res;
+	dstrect.w = srcrect.w / RESSCALE;
+	dstrect.h = srcrect.h / RESSCALE;
 
 	if (need_clip) clip(srcrect, dstrect);
 	SDL_SetTextureAlphaMod(src->fTexture, src->alpha);
@@ -208,16 +202,10 @@ void NXSurface::DrawSurfaceNoScale(NXSurface *src, \
 
 	SDL_Rect srcrect, dstrect;
 
-	int res = 1;
-
-#ifdef TWOXRES
-	res = 2;
-#endif
-
-	srcrect.x = (srcx * SCALE) * res;
-	srcrect.y = (srcy * SCALE) * res;
-	srcrect.w = (wd * SCALE) * res;
-	srcrect.h = (ht * SCALE) * res;
+	srcrect.x = (srcx * SCALE) * RESSCALE;
+	srcrect.y = (srcy * SCALE) * RESSCALE;
+	srcrect.w = (wd * SCALE) * RESSCALE;
+	srcrect.h = (ht * SCALE) * RESSCALE;
 
 	dstrect.x = dstx * SCALE;
 	dstrect.y = dsty * SCALE;
@@ -237,11 +225,7 @@ void NXSurface::DrawSurfaceNoScale(NXSurface *src, \
 
 void NXSurface::DrawSurface(NXSurface *src, int dstx, int dsty)
 {
-	int res = 1;
-#ifdef TWOXRES
-	res = 2;
-#endif
-	DrawSurface(src, dstx, dsty, 0, 0, src->Width() / res, src->Height() / res);
+	DrawSurface(src, dstx, dsty, 0, 0, src->Width() / RESSCALE, src->Height() / RESSCALE);
 }
 
 // draw the given source surface in a repeating pattern across the entire width of the surface.
@@ -257,19 +241,13 @@ void NXSurface::BlitPatternAcross(NXSurface *src,
 
 	SDL_Rect srcrect, dstrect;
 
-	int res = 1;
-
-#ifdef TWOXRES
-	res = 2;
-#endif
-
 	srcrect.x = 0;
-	srcrect.w = src->tex_w * res;
-	srcrect.y = (y_src * SCALE) * res;
-	srcrect.h = (height * SCALE) * res;
+	srcrect.w = src->tex_w * RESSCALE;
+	srcrect.y = (y_src * SCALE) * RESSCALE;
+	srcrect.h = (height * SCALE) * RESSCALE;
 
-	dstrect.w = srcrect.w / res;
-	dstrect.h = srcrect.h / res;
+	dstrect.w = srcrect.w / RESSCALE;
+	dstrect.h = srcrect.h / RESSCALE;
 
 	int x = (x_dst * SCALE);
 	int y = (y_dst * SCALE);
@@ -446,15 +424,10 @@ void NXSurface::set_clip_rect(int x, int y, int w, int h)
 {
 	need_clip = true;
 
-	int res = 1;
-#ifdef TWOXRES
-	res = 2;
-#endif
-
 	clip_rect.x = x * SCALE;
 	clip_rect.y = y * SCALE;
-	clip_rect.w = w * SCALE * res;
-	clip_rect.h = h * SCALE * res;
+	clip_rect.w = w * SCALE * RESSCALE;
+	clip_rect.h = h * SCALE * RESSCALE;
 }
 
 void NXSurface::set_clip_rect(NXRect *rect)
@@ -474,10 +447,6 @@ bool NXSurface::is_set_clip() const
 
 void NXSurface::clip(SDL_Rect& srcrect, SDL_Rect& dstrect) const
 {
-	int res = 1;
-#ifdef TWOXRES
-	res = 2;
-#endif
 	int w = srcrect.w;
 	int h = srcrect.h;
 	
@@ -488,28 +457,28 @@ void NXSurface::clip(SDL_Rect& srcrect, SDL_Rect& dstrect) const
 
 	dx = clip_rect.x - dstrect.x;
     if (dx > 0) {
-        w -= dx * res;
+        w -= dx * RESSCALE;
         dstrect.x += dx;
-        srcrect.x += dx;
+        srcrect.x += dx * RESSCALE;
     }
 	dx = dstrect.x + w - clip_rect.x - clip_rect.w;
     if (dx > 0)
-        w -= dx * res;
+        w -= dx * RESSCALE;
 
     dy = clip_rect.y - dstrect.y;
     if (dy > 0) {
-        h -= dy * res;
+        h -= dy * RESSCALE;
         dstrect.y += dy;
-        srcrect.y += dy;
+        srcrect.y += dy * RESSCALE;
     }
     dy = dstrect.y + h - clip_rect.y - clip_rect.h;
     if (dy > 0)
-        h -= dy * res;
+        h -= dy * RESSCALE;
 
     dstrect.w = srcrect.w = w;
     dstrect.h = srcrect.h = h;
-	dstrect.w /= res;
-	dstrect.h /= res;
+	dstrect.w /= RESSCALE;
+	dstrect.h /= RESSCALE;
 }
 
 /*

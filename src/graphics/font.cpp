@@ -93,7 +93,7 @@ int font_draw(int x, int y, const std::string& text, uint32_t color, bool is_sha
 			srcrect.w = dstrect.w;
 			srcrect.h = dstrect.h;
 
-#ifndef TWOXRES
+#if RESSCALE==1
 			if (Graphics::is_set_clip())
 				Graphics::clip(srcrect, dstrect);
 #endif
