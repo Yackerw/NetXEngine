@@ -269,10 +269,10 @@ int32_t rect2x1, rect2y1, rect2x2, rect2y2;
 	rect1y2 = o1->y + (s1->bbox.y2 * CSFI);
 	
 	// get the bounding rectangle of the second object
-	rect2x1 = player->x + (4 * CSFI);
-	rect2x2 = player->x + (4 * CSFI);
-	rect2y1 = player->y + (4 * CSFI);
-	rect2y2 = player->y + (4 * CSFI);
+	rect2x1 = player->CenterX() + (2 * CSFI);
+	rect2x2 = player->CenterX() + (2 * CSFI);
+	rect2y1 = player->CenterY() + (2 * CSFI);
+	rect2y2 = player->CenterY() + (2 * CSFI);
 	
 	// find out if the rectangles overlap
 	if ((rect1x1 < rect2x1) && (rect1x2 < rect2x1)) return false;

@@ -263,7 +263,10 @@ char blocked_wall;
 		if (moveme)
 		{	// moving down (actually up) the "descending" (closer to real ceil) portion
 			// of a ceiling slope tile. Reverse of floor slope thingy above.
-			newy -= (1 * CSFI);
+			if (o->yinertia < 0) {
+				newy -= (1 * CSFI);
+				o->yinertia = MIN(0, o->yinertia + CSFI);
+			}
 		}
 	}
 	
