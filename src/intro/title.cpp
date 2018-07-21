@@ -141,7 +141,7 @@ static void draw_title()
 			//draw_sprite(cx + 24, cy + 16, ((SPR_MYCHAR)) + player->skin, title.selframe);
 			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe&1);
 		}
-		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Booster","Demon Crown","Root The Cat","Suguri","Sora" };
+		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Chako","Booster","Demon Crown","Root The Cat","Suguri","Sora" };
 		font_draw(cx + 27 - (strlen(skinnames[player->skin])*2), cy + 46, skinnames[player->skin]);
 		//draw_sprite(cx+24,cy+16, title.sprite+title.cursel, title.selframe);
 	}
