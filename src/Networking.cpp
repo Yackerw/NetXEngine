@@ -344,6 +344,9 @@ void Receive_Data(void *fricc) {
 					clients[ClientNode].info = conninfo;
 					clients[ClientNode].id = packetdata->id;
 					clients[ClientNode].used = 1;
+					timeb t;
+					ftime(&t);
+					clients[ClientNode].timeout = ((1000 * t.time) + t.millitm) + 2000;
 					// Tell the server that we connected
 					char tmp = 0;
 					Packet_Send(&tmp, ClientNode, 1, 1, 0);
@@ -473,262 +476,264 @@ void Net_ParseBuffs() {
 			int arraypos = 0;
 			WaitForSingleObject(clients[i].ReceiveStackMutex, INFINITE);
 			while (arraypos < clients[i].ReceiveStackPos) {
-				// Determine the first int to determine the function to use
-				switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
-				case 0:
-					// N/A
-				case 1:
-					// On connection event
-
-					arraypos++;
-					break;
-				case 2:
-					// Player events
-					if (Host == 1) {
-						PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
-					}
-					else {
-						PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, ClientNode);
-						if (ShouldMoveToHost == true && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerUpdateEvent) {
-							memcpy(&(player->x), &players[ClientNode].x, sizeof(int));
-							memcpy(&(player->y), &players[ClientNode].y, sizeof(int));
-							ShouldMoveToHost = false;
-						}
-					}
-					// relay data
-					if (Host == true) {
-						int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
-						char *temparray = (char*)malloc(buffsize);
-						memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
-						memcpy(temparray, &i, 4);
-						Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
-						free(temparray);
-					}
-					arraypos++;
-					break;
-				case 3:
-				{
-					int pnode = GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4);
-					// Relayed data
+				if (clients[i].ReceiveStack[arraypos].Stack != NULL) {
+					// Determine the first int to determine the function to use
 					switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
-					case 2:
-						if (Host == 0 && ClientNode != pnode) {
-							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 12)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 16, pnode);
-						}
+					case 0:
+						// N/A
+					case 1:
+						// On connection event
+
+						arraypos++;
 						break;
-					}
-					arraypos++;
-				}
-				break;
-				case 4:
-					if (Host != 1) {
-						// Someone has joined so we must tell everyone
-						PlayerJoinEventOthersRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
-					}
-					arraypos++;
-					break;
-				case 5:
-					if (Host != 1) {
-						// Someone has left so we must tell everyone
-						PlayerDisconnectRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
-					}
-					arraypos++;
-					break;
-				case 6:
-					// special tsc execute command
-					if (Host != 1) {
-						TscExec = 1;
-						// If we're dead then respawn
-						if (Host == 0 && player->hp == 0) {
-							player->x = players[ClientNode].x;
-							player->y = players[ClientNode].y;
-							player->hp = max(player->maxHealth / 4 , 1);
-							player->hide = false;
-						}
-						if (game.mode == GM_INVENTORY || game.mode == GM_MAP_SYSTEM || game.mode == GP_PAUSED || game.mode == GP_OPTIONS) {
-							game.setmode(GM_NORMAL, 0, true);
-							game.pause(0);
-						}
-						game.tsc->StartScript(GetIntBuff(clients[i].ReceiveStack[arraypos].Stack,4));
-					}
-					arraypos++;;
-					break;
-				case 7:
-					// Sync serialized object spawning
-					if (Host == 0) {
-						objargs obj;
-						memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(objargs));
-						int ser;
-						memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-						// We are loading from the start of the level, so store it for when we load a level
-						if (obj.onLoad == true) {
-							nextloadobjs[nextloadid] = obj;
-							nextloadobjsser[nextloadid] = ser;
-							nextloadid++;
+					case 2:
+						// Player events
+						if (Host == 1) {
+							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
 						}
 						else {
-							netobjs[ser].obj = CreateObject(obj.x, obj.y, obj.type, obj.xinertia, obj.yinertia, obj.dir, NULL, 0, 1);
-							netobjs[ser].valid = true;
-							netobjs[ser].obj->serialization = ser;
+							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, ClientNode);
+							if (ShouldMoveToHost == true && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerUpdateEvent) {
+								memcpy(&(player->x), &players[ClientNode].x, sizeof(int));
+								memcpy(&(player->y), &players[ClientNode].y, sizeof(int));
+								ShouldMoveToHost = false;
+							}
 						}
-					}
-					arraypos++;
-
-					break;
-				case 8:
-					// Sync serialized object step
-					int id;
-					memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-					int obj;
-					memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
-					// Only if we're not host, AND a function exists there! Jumping to arbitrary memory is a very bad idea.
-					if (Host == 0 && id < OBJ_LAST && ObjSyncTickFuncsRecv[id] != NULL && netobjs[obj].valid == true) {
-						ObjSyncTickFuncsRecv[id](clients[i].ReceiveStack[arraypos].Stack + 12, obj);
-					}
-					arraypos++;
-					break;
-				case 9:
-					// Sync serialized object death
-					if (Host == 0) {
-						int id;
-						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
-							netobjs[id].obj->OnDeath(true);
+						// relay data
+						if (Host == true) {
+							int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
+							char *temparray = (char*)malloc(buffsize);
+							memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
+							memcpy(temparray, &i, 4);
+							Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
+							free(temparray);
 						}
-					}
-					arraypos++;
-					break;
-				case 10:
-					// Sync serialized object removal
-					if (Host == 0) {
-						int id;
-						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
-							netobjs[id].obj->Delete(1);
+						arraypos++;
+						break;
+					case 3:
+					{
+						int pnode = GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4);
+						// Relayed data
+						switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
+						case 2:
+							if (Host == 0 && ClientNode != pnode) {
+								PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 12)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 16, pnode);
+							}
+							break;
 						}
+						arraypos++;
 					}
-					arraypos++;
 					break;
-				case 11:
-					// Sync serialized object removal
-					if (Host == 0) {
-						int id;
-						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
-							netobjs[id].obj->Kill(true);
+					case 4:
+						if (Host != 1) {
+							// Someone has joined so we must tell everyone
+							PlayerJoinEventOthersRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 						}
-					}
-					arraypos++;
-					break;
-				case 12:
-					// An object has changed! We need to serialize it.
-					if (Host == 0) {
-						int id2 = 0;
-						memcpy(&id2, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(short));
-						Object *o = ID2Lookup[id2];
-						int newtype;
-						memcpy(&newtype, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
-						if (newtype < OBJ_LAST) {
-							o->ChangeType(newtype, true);
-							unsigned int ser;
-							memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 12, sizeof(int));
-							if (ser < MAX_OBJECTS) {
-								o->serialization = ser;
-								netobjs[ser].obj = o;
+						arraypos++;
+						break;
+					case 5:
+						if (Host != 1) {
+							// Someone has left so we must tell everyone
+							PlayerDisconnectRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
+						}
+						arraypos++;
+						break;
+					case 6:
+						// special tsc execute command
+						if (Host != 1) {
+							TscExec = 1;
+							// If we're dead then respawn
+							if (Host == 0 && player->hp == 0) {
+								player->x = players[ClientNode].x;
+								player->y = players[ClientNode].y;
+								player->hp = max(player->maxHealth / 4, 1);
+								player->hide = false;
+							}
+							if (game.mode == GM_INVENTORY || game.mode == GM_MAP_SYSTEM || game.mode == GP_PAUSED || game.mode == GP_OPTIONS) {
+								game.setmode(GM_NORMAL, 0, true);
+								game.pause(0);
+							}
+							game.tsc->StartScript(GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4));
+						}
+						arraypos++;;
+						break;
+					case 7:
+						// Sync serialized object spawning
+						if (Host == 0) {
+							objargs obj;
+							memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(objargs));
+							int ser;
+							memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+							// We are loading from the start of the level, so store it for when we load a level
+							if (obj.onLoad == true) {
+								nextloadobjs[nextloadid] = obj;
+								nextloadobjsser[nextloadid] = ser;
+								nextloadid++;
+							}
+							else {
+								netobjs[ser].obj = CreateObject(obj.x, obj.y, obj.type, obj.xinertia, obj.yinertia, obj.dir, NULL, 0, 1);
 								netobjs[ser].valid = true;
+								netobjs[ser].obj->serialization = ser;
 							}
 						}
-					}
-					arraypos++;
-					break;
-				case 13: {
-					// Host has reloaded save, adjust
-					if (Host == 0) {
-						int i = 0;
-						// change map
-						memcpy(&game.switchstage.mapno, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
-						memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int) + 4, sizeof(int) * MAX_INVENTORY);
-						memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-						memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
-						memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
-						memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
-						for (i = 0; i<NUM_TELEPORTER_SLOTS; i++)
-						{
-							int slotno, scriptno;
-							memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
-							memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
-							if (slotno != 0 && scriptno != 0) {
-								textbox.StageSelect.SetSlot(slotno, scriptno);
+						arraypos++;
+
+						break;
+					case 8:
+						// Sync serialized object step
+						int id;
+						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+						int obj;
+						memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
+						// Only if we're not host, AND a function exists there! Jumping to arbitrary memory is a very bad idea.
+						if (Host == 0 && id < OBJ_LAST && ObjSyncTickFuncsRecv[id] != NULL && netobjs[obj].valid == true) {
+							ObjSyncTickFuncsRecv[id](clients[i].ReceiveStack[arraypos].Stack + 12, obj);
+						}
+						arraypos++;
+						break;
+					case 9:
+						// Sync serialized object death
+						if (Host == 0) {
+							int id;
+							memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+							if (id < MAX_OBJECTS && netobjs[id].valid == true) {
+								netobjs[id].obj->OnDeath(true);
 							}
 						}
-						player->invisible = false;
-						player->movementmode = MOVEMODE_NORMAL;
-						player->hide = false;
-						player->hp = player->maxHealth; // fade
-						// Note that we should move to the host
-						ShouldMoveToHost = true;
-					}
-					arraypos++;
-				}
-				break;
-				case 14:
-				{
-					// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
-					if (Host == 0) {
-						game.pause(0);
-						int parm[4];
-						memcpy(parm, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int) * 4);
-
-						bool waslocked = (player->inputs_locked || game.frozen);
-
-						stat("******* Executing <TRA to stage %d", parm[0]);
-						game.switchstage.mapno = parm[0];
-						game.switchstage.eventonentry = parm[1];
-						game.switchstage.playerx = parm[2];
-						game.switchstage.playery = parm[3];
-
-						if (game.switchstage.mapno != 0)
-						{
-							// KEY is maintained across TRA as if the TRA
-							// were a jump instead of a restart; but if the
-							// game is in PRI then it is downgraded to a KEY.
-							// See entrance to Yamashita Farm.
-							if (waslocked)
+						arraypos++;
+						break;
+					case 10:
+						// Sync serialized object removal
+						if (Host == 0) {
+							int id;
+							memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+							if (id < MAX_OBJECTS && netobjs[id].valid == true) {
+								netobjs[id].obj->Delete(1);
+							}
+						}
+						arraypos++;
+						break;
+					case 11:
+						// Sync serialized object removal
+						if (Host == 0) {
+							int id;
+							memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+							if (id < MAX_OBJECTS && netobjs[id].valid == true) {
+								netobjs[id].obj->Kill(true);
+							}
+						}
+						arraypos++;
+						break;
+					case 12:
+						// An object has changed! We need to serialize it.
+						if (Host == 0) {
+							int id2 = 0;
+							memcpy(&id2, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(short));
+							Object *o = ID2Lookup[id2];
+							int newtype;
+							memcpy(&newtype, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
+							if (newtype < OBJ_LAST) {
+								o->ChangeType(newtype, true);
+								unsigned int ser;
+								memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 12, sizeof(int));
+								if (ser < MAX_OBJECTS) {
+									o->serialization = ser;
+									netobjs[ser].obj = o;
+									netobjs[ser].valid = true;
+								}
+							}
+						}
+						arraypos++;
+						break;
+					case 13: {
+						// Host has reloaded save, adjust
+						if (Host == 0) {
+							int i = 0;
+							// change map
+							memcpy(&game.switchstage.mapno, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+							memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int) + 4, sizeof(int) * MAX_INVENTORY);
+							memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+							memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
+							memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
+							memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
+							for (i = 0; i < NUM_TELEPORTER_SLOTS; i++)
 							{
-								player->inputs_locked = true;
-								game.frozen = false;
+								int slotno, scriptno;
+								memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+								memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+								if (slotno != 0 && scriptno != 0) {
+									textbox.StageSelect.SetSlot(slotno, scriptno);
+								}
 							}
+							player->invisible = false;
+							player->movementmode = MOVEMODE_NORMAL;
+							player->hide = false;
+							player->hp = player->maxHealth; // fade
+							// Note that we should move to the host
+							ShouldMoveToHost = true;
 						}
-						// also update player.invisible
-						player->invisible = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5)];
-						player->hide = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5) + 1];
+						arraypos++;
 					}
-					arraypos++;
-				}
-					break;
-				case 15: {
-					// Sync flags and inventory, very useful for maintaining syncronization
-					if (Host == 0) {
-						memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int), MAX_INVENTORY * sizeof(int));
-						memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-						memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+							 break;
+					case 14:
+					{
+						// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
+						if (Host == 0) {
+							game.pause(0);
+							int parm[4];
+							memcpy(parm, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int) * 4);
+
+							bool waslocked = (player->inputs_locked || game.frozen);
+
+							stat("******* Executing <TRA to stage %d", parm[0]);
+							game.switchstage.mapno = parm[0];
+							game.switchstage.eventonentry = parm[1];
+							game.switchstage.playerx = parm[2];
+							game.switchstage.playery = parm[3];
+
+							if (game.switchstage.mapno != 0)
+							{
+								// KEY is maintained across TRA as if the TRA
+								// were a jump instead of a restart; but if the
+								// game is in PRI then it is downgraded to a KEY.
+								// See entrance to Yamashita Farm.
+								if (waslocked)
+								{
+									player->inputs_locked = true;
+									game.frozen = false;
+								}
+							}
+							// also update player.invisible
+							player->invisible = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5)];
+							player->hide = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5) + 1];
+						}
+						arraypos++;
 					}
-					arraypos++;
-				}
-				break;
-				case 16: {
-					PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
-					arraypos++;
-				}
-				break;
-				default:
-					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
-					arraypos++;
 					break;
+					case 15: {
+						// Sync flags and inventory, very useful for maintaining syncronization
+						if (Host == 0) {
+							memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int), MAX_INVENTORY * sizeof(int));
+							memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+							memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+						}
+						arraypos++;
+					}
+							 break;
+					case 16: {
+						PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
+						arraypos++;
+					}
+							 break;
+					default:
+						// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
+						arraypos++;
+						break;
+					}
+					free(clients[i].ReceiveStack[arraypos - 1].Stack);
+					clients[i].ReceiveStack[arraypos - 1].Stack = NULL;
+					clients[i].ReceiveStack[arraypos - 1].used = 0;
 				}
-				free(clients[i].ReceiveStack[arraypos-1].Stack);
-				clients[i].ReceiveStack[arraypos-1].Stack = NULL;
-				clients[i].ReceiveStack[arraypos-1].used = 0;
 			}
 		}
 		clients[i].ReceiveStackPos = 0;
