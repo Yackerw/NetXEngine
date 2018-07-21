@@ -99,7 +99,7 @@ SocketInfo *Server_Create(int port) {
 	SocketInfo *SockInf = (SocketInfo*)malloc(sizeof(SocketInfo));
 	SockInf->info.sin_family = AF_INET;
 	SockInf->info.sin_addr.s_addr = INADDR_ANY;
-	SockInf->info.sin_port = port;
+	SockInf->info.sin_port = htons(port);
 	// Attempt to bind to port, if fails then clean up and return
 	if (bind(s, (sockaddr*)&SockInf->info, sizeof(sockaddr_in)) == SOCKET_ERROR) {
 		printf("Bind failed: %d", WSAGetLastError());
@@ -114,6 +114,7 @@ SocketInfo *Server_Create(int port) {
 	char tmp = 0;
 	char out;
 	DWORD out2;
+	// Disable killing the socket if port is deemed unreachable
 	WSAIoctl(SockInf->sock, -1744830452, &tmp, 1, &out, 1, &out2, NULL, NULL);
 	return SockInf;
 }
@@ -223,7 +224,7 @@ SocketInfo *ClientCreate(char *ip, int port) {
 	SockInf->sock = s;
 	SockInf->port = port;
 	SockInf->info.sin_family = AF_INET;
-	SockInf->info.sin_port = port;
+	SockInf->info.sin_port = htons(port);
 	inet_pton(AF_INET, ip, &SockInf->info.sin_addr.S_un.S_addr);
 	PacketData_t *authpack = (PacketData_t *)malloc(sizeof(PacketData_t) + sizeof(CONNECTAUTH));
 	authpack->node = -1;
@@ -868,8 +869,10 @@ void ResendImportant(void *notused) {
 
 // Call this function to parse all networking related activity
 void Net_Step() {
-	// Handle timeouts
-	_beginthread(ResendImportant, 1024, NULL);
-	// ALWAYS parse data every frame
-	Net_ParseBuffs();
+	if (Host != -1) {
+		// Handle timeouts
+		_beginthread(ResendImportant, 1024, NULL);
+		// ALWAYS parse data every frame
+		Net_ParseBuffs();
+	}
 }
