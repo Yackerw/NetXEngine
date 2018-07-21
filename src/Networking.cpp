@@ -7,6 +7,7 @@
 #include "player.h"
 #include "NetPlayer.h"
 #include "chat.h"
+#include <sys/timeb.h>
 
 int sockaddrsize = sizeof(sockaddr);
 
@@ -110,10 +111,29 @@ SocketInfo *Server_Create(int port) {
 	SockInf->port = port;
 	ClientID = rand();
 	ClientNode = 0;
+	char tmp = 0;
+	char out;
+	DWORD out2;
+	WSAIoctl(SockInf->sock, -1744830452, &tmp, 1, &out, 1, &out2, NULL, NULL);
 	return SockInf;
 }
 
 void CloseConn(ClientInfo_t *info) {
+	// im dumb
+	int i2 = 0;
+	int nodenum = -1;
+	while (i2 < MAXCLIENTS) {
+		if (clients[i2].info.sin_addr.S_un.S_addr == info->info.sin_addr.S_un.S_addr && clients[i2].info.sin_port == info->info.sin_port) {
+			nodenum = i2;
+		}
+		i2++;
+	}
+	if (nodenum != -1 && Host == 1) {
+		// Fire the disconnect event
+		char *discnnbuff = PlayerDisconnectSend(nodenum);
+		Packet_Send_Host(discnnbuff, PlayerDisconnectSize, 5, 1);
+		free(discnnbuff);
+	}
 	// Do disconnect message stuff here
 	int i = 0;
 	while (i < FullStackSize) {
@@ -123,6 +143,7 @@ void CloseConn(ClientInfo_t *info) {
 		i++;
 	}
 	CloseHandle(info->ReceiveStackMutex);
+	info->used = 0;
 	memset(info, 0, sizeof(ClientInfo_t));
 }
 
@@ -156,8 +177,9 @@ void Packet_Send(char *buff, int node, int datasize, short type, char important)
 		info->SendStack[info->SendStackPos].valid = 1;
 		info->SendStack[info->SendStackPos].size = datasize + sizeof(PacketData_t);
 		data->packetid = info->SendStackPos;
-		time_t t;
-		time(&t);
+		timeb ti;
+		ftime(&ti);
+		long long t = (1000 * ti.time) + ti.millitm;
 		info->SendStack[info->SendStackPos].time = t;
 		info->SendStack[info->SendStackPos].timeout = t + 300;
 		info->SendStackPos++;
@@ -206,6 +228,10 @@ SocketInfo *ClientCreate(char *ip, int port) {
 	PacketData_t *authpack = (PacketData_t *)malloc(sizeof(PacketData_t) + sizeof(CONNECTAUTH));
 	authpack->node = -1;
 	memcpy((char*)(&authpack[1]), CONNECTAUTH, sizeof(CONNECTAUTH));
+	char tmp = 0;
+	char out;
+	DWORD out2;
+	WSAIoctl(SockInf->sock, -1744830452, &tmp, 1, &out, 1, &out2, NULL, NULL);
 	sendto(SockInf->sock, (char*)authpack, sizeof(PacketData_t) + sizeof(CONNECTAUTH), 0, (sockaddr*)&SockInf->info, sockaddrsize);
 	free(authpack);
 	return SockInf;
@@ -225,17 +251,35 @@ void Receive_Data(void *fricc) {
 		if (recvamnt < sizeof(PacketData_t)) {
 			continue;
 		}
+
 		// if node is -1, then treat it as a connection packet
 		if (packetdata->node == -1 && Host == 1) {
 			if (memcmp(data + sizeof(PacketData_t), CONNECTAUTH, sizeof(CONNECTAUTH)) == 0) {
+				int i2 = 0;
+				char IP[32];
+				bool drop = false;
+				InetNtopA(conninfo.sin_family, &conninfo.sin_addr, IP, 32);
+				// Ensure this connection isn't banned
+				while (i2 < bannum) {
+					if (strcmp(IP, banlist[i2]) == 0) {
+						drop = true;
+						i2 = bannum-1;
+					}
+					i2++;
+				}
 				int i = 0;
-				while (i < MAXCLIENTS) {
+				while (i < MAXCLIENTS && !drop) {
 					if (clients[i].used == false) {
 						clients[i].ReceiveStackMutex = CreateMutex(NULL, false, NULL);
 						clients[i].info = conninfo;
 						clients[i].used = 2;
 						clients[i].SendStackPos = 0;
 						clients[i].id = rand();
+						//clients[i].time = time(&clients[i].timeout);
+						timeb t;
+						ftime(&t);
+						clients[i].time = (1000 * t.time) + t.millitm;
+						clients[i].timeout = clients[i].time + 2000;
 						memset(clients[i].SendStack, 0, sizeof(SendStack_t) * FullStackSize);
 						// Send them an authorization packet
 						//char *bff = JoinSendClient(i);
@@ -251,11 +295,16 @@ void Receive_Data(void *fricc) {
 						free(buff);
 						i = MAXCLIENTS;
 					}
+					i++;
 				}
 			}
 		} // Otherwise store this packet for later use.
 		else if (packetdata->node >= 0 && packetdata->node < MAXCLIENTS && (clients[packetdata->node].used && packetdata->id == clients[packetdata->node].id) || ClientNode == -1) {
 			// Some kind of system message, otherwise let other stuff deal with it
+			//clients[packetdata->node].timeout = time(NULL) + 2000;
+			timeb t;
+			ftime(&t);
+			clients[packetdata->node].timeout = (1000 * t.time) + t.millitm + 2000;
 			if (packetdata->important >= 2) {
 				// We've received acknowledgement for an important packet, remove it from the stack
 				if (packetdata->important == 2 && clients[packetdata->node].SendStack[packetdata->packetid].valid) {
@@ -766,11 +815,16 @@ long long oldtime;
 
 void ResendImportant(void *notused) {
 	int i = 0;
-	time_t newtime;
-	long long t = time(&newtime);
+	// Calculate time between the last time we called this and now
+	//time_t newtime;
+	timeb newtime;
+	ftime(&newtime);
+	long long t = (1000 * newtime.time) + newtime.millitm;
 	int finaltime = t - oldtime;
+	// Iterate over the clients and all the important packets we've sent
 	while (i < MAXCLIENTS) {
-		if (clients[i].used) {
+		if (clients[i].used > 0) {
+			// Determine correct starting point: currentpos - stacksize mod fullstacksize
 			int startpos = clients[i].SendStackPos;
 			if (startpos < SendStackSize) {
 				startpos = FullStackSize - (SendStackSize - startpos);
@@ -778,17 +832,26 @@ void ResendImportant(void *notused) {
 			else {
 				startpos -= SendStackSize;
 			}
-			int itsize = (clients[i].SendStackPos + 1) % FullStackSize;
+			// Iterate through all important packets
 			while (startpos != clients[i].SendStackPos) {
+				// If this is a valid packet
 				if (clients[i].SendStack[startpos].valid) {
+					// Increment our timeout timer
 					clients[i].SendStack[startpos].time += finaltime;
+					// If it's been met, re-send the packet and increment the timeout time by 300
 					if (clients[i].SendStack[startpos].time >= clients[i].SendStack[startpos].timeout) {
 						sendto(Sock->sock, clients[i].SendStack[startpos].buff, clients[i].SendStack[startpos].size, 0, (sockaddr*)&clients[i].info, sockaddrsize);
 						clients[i].SendStack[startpos].timeout += 300;
 					}
 				}
+				// Iterate through array
 				startpos++;
 				startpos %= FullStackSize;
+			}
+			clients[i].time = t;
+			// Also timeout the client themselves. If we haven't heard from them in a while, nuke em
+			if (clients[i].time >= clients[i].timeout) {
+				CloseConn(&clients[i]);
 			}
 		}
 		i++;

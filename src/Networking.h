@@ -50,6 +50,7 @@ typedef struct {
 	HANDLE ReceiveStackMutex;
 	StackData_t ImportantStack[FullStackSize];
 	int ImportantStackPos;
+	long long time;
 	time_t timeout;
 } ClientInfo_t;
 

@@ -345,6 +345,8 @@ bool freshstart;
 		{
 			StopLoopSounds();
 		}
+
+		bool synced = false;
 		
 		// enter next stage, whatever it may be
 		if (game.switchstage.mapno == LOAD_GAME || \
@@ -360,6 +362,7 @@ bool freshstart;
 				goto ingame_error;
 			}
 
+			synced = true;
 			// Loaded, inform everyone to drop everything and revert to this gamestate
 			if (Host == 1) {
 				int buffsize = (sizeof(int) * (2 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
@@ -415,9 +418,51 @@ bool freshstart;
 			player->x = (game.switchstage.playerx * TILE_W) * CSFI;
 			player->y = (game.switchstage.playery * TILE_H) * CSFI;
 		}
+
+		int *old = (int*)malloc(sizeof(int) * 4);
+		old[0] = game.switchstage.mapno;
+		old[1] = game.switchstage.eventonentry;
+		old[2] = game.switchstage.playerx;
+		old[3] = game.switchstage.playery;
 		
 		// start the level
-		if (game.initlevel()) return 1;
+		if (game.initlevel()) {
+			// If we're the host then sync this TRA
+			if (Host == 1 && !synced) {
+				char *outbuff = (char*)malloc((sizeof(int) * 4) + 2);
+				memcpy(outbuff, old, sizeof(int) * 4);
+				outbuff[sizeof(int) * 4] = player->invisible;
+				outbuff[(sizeof(int) * 4) + 1] = player->hide;
+				Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
+				free(outbuff);
+				// PART 2
+				outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
+				memcpy(outbuff, &(player->inventory), MAX_INVENTORY * sizeof(int));
+				memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY)), &(player->ninventory), sizeof(int));
+				memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &game.flags, NUM_GAMEFLAGS);
+				Packet_Send_Host(outbuff, (sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS, 15, 1);
+				free(outbuff);
+			}
+			free(old);
+			return 1;
+		}
+		// If we're the host then sync this TRA
+		if (Host == 1 && !synced) {
+			char *outbuff = (char*)malloc((sizeof(int) * 4) + 2);
+			memcpy(outbuff, old, sizeof(int) * 4);
+			outbuff[sizeof(int) * 4] = player->invisible;
+			outbuff[(sizeof(int) * 4) + 1] = player->hide;
+			Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
+			free(outbuff);
+			// PART 2
+			outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
+			memcpy(outbuff, &(player->inventory), MAX_INVENTORY * sizeof(int));
+			memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY)), &(player->ninventory), sizeof(int));
+			memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &game.flags, NUM_GAMEFLAGS);
+			Packet_Send_Host(outbuff, (sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS, 15, 1);
+			free(outbuff);
+		}
+		free(old);
 		
 		if (freshstart)
 			weapon_introslide();
