@@ -156,8 +156,16 @@ static void draw_title()
 		Sock = ClientCreate(IPAddress, 5029);
 		if (Sock != NULL) {
 			_beginthread(Receive_Data, 1024, NULL);
-			while (ClientNode == -1) {
-				Sleep(16);
+			int i = 0;
+			while (i < 100 && ClientNode == -1) {
+				Sleep(20);
+				i++;
+			}
+			if (ClientNode == -1) {
+				Multiplayer = 1;
+				Sock->sock = NULL;
+				Host = -1;
+				return;
 			}
 			Host = 0;
 			Net_FirePlayerEvent(PlayerSkinUpdateEvent);

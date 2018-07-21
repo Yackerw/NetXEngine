@@ -243,6 +243,12 @@ void Receive_Data(void *fricc) {
 	while (1) {
 		sockaddr_in conninfo;
 		int recvamnt = recvfrom(Sock->sock, data, 10024, 0, (sockaddr*)&conninfo, &sockaddrsize);
+		// Cleanup
+		if (Sock->sock == NULL || Sock->sock == SOCKET_ERROR) {
+			free(data);
+			free(packetdata);
+			return;
+		}
 		if (recvamnt == SOCKET_ERROR) {
 			printf("Recv error: %d\n", WSAGetLastError());
 			continue;
