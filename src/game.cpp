@@ -72,21 +72,7 @@ Networking_Init();
 Chat_Init();
 SetupNetPlayerFuncs();
 RegisterBasic();
-host = -1;
-if (host == 1) {
-	server = Server_Create();
-	Server_Listen(server);
-	_beginthread(Serv_Connect, 256, (void*)&server);
-}
-if (host == 0) {
-	client = Client_Connect("127.0.0.1");
-	sockrecthread *sock;
-	sock = (sockrecthread*)malloc(sizeof(sockrecthread));
-	sock->sock = client;
-	sock->socknum = 0;
-	sockets[0].used = 1;
-	_beginthread(packet_receiving, 256, (void*)sock);
-}
+Host = -1;
 
 	game = {};
 	tsc = new TSC();
@@ -324,7 +310,7 @@ void game_tick_normal(void)
 		HandlePlayer();
 		int i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
+			if (clients[i].used == 1) {
 				netHandlePlayer(i);
 			}
 			i++;
@@ -339,7 +325,7 @@ void game_tick_normal(void)
 		HandlePlayer_am();
 		i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
+			if (clients[i].used == 1) {
 				netHandlePlayer_am(i);
 			}
 			i++;
@@ -491,7 +477,7 @@ extern int flipacceltime;
 	// Draw other players
 	int i = 0;
 	while (i < MAXCLIENTS) {
-		if (sockets[i].used == true) {
+		if (clients[i].used == 1) {
 			netDrawPlayer(&players[i]);
 		}
 		i++;

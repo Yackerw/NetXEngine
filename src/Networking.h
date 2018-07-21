@@ -1,58 +1,74 @@
 #ifndef _NETWORKING
 #define _NETWORKING
 #define WIN32_LEAN_AND_MEAN
-#define defaultport "5029"
+#define defaultport 5029
 
 #include <stdio.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <malloc.h>
-#include <process.h>
-#include <stdint.h>
+#include <WinSock2.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <WS2tcpip.h>
+#include <process.h>
+#include <time.h>
 
-typedef struct {
-	SOCKET sock;
-	char *buffer;
-	int size;
-	int socknum;
-	int buffsize;
-} sockrecthread;
-
-typedef struct {
-	sockaddr_in data;
-	SOCKET sock;
-	char used;
-	char *buffer;
-	uintptr_t buffthread;
-	int socknum;
-	sockrecthread *recthread;
-} netdata;
-
-extern netdata *sockets;
-
-extern int currentsock;
-
-extern int numsocks;
-
-extern HANDLE Proc;
-
-extern SOCKET server;
-extern SOCKET client;
-
-extern char host;
-
+#define SendStackSize 1024
+#define FullStackSize 2049
 #define MAXCLIENTS 32
 
-extern char **databuffs;
-extern int *databuffsizes;
-extern HANDLE *buffmutexes;
+#define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.-b"
 
-extern int CliNum;
+typedef struct {
+	SOCKET sock;
+	int port;
+	sockaddr_in info;
+} SocketInfo;
 
-extern char *outbuff;
+typedef struct {
+	char *buff;
+	int size;
+	bool valid;
+	long long timeout;
+	long long time;
+} SendStack_t;
 
-extern int outbuffsize;
+typedef struct {
+	char *Stack;
+	int StackSize;
+	char used;
+} StackData_t;
+
+typedef struct {
+	sockaddr_in info;
+	int id;
+	SendStack_t SendStack[FullStackSize];
+	int SendStackPos;
+	char used;
+	StackData_t ReceiveStack[20000];
+	int ReceiveStackPos;
+	HANDLE ReceiveStackMutex;
+	StackData_t ImportantStack[FullStackSize];
+	int ImportantStackPos;
+	time_t timeout;
+} ClientInfo_t;
+
+typedef struct {
+	int id;
+	short node;
+	char important;
+	short packetid;
+	int type; // Expand this if necessary
+} PacketData_t;
+
+extern ClientInfo_t clients[MAXCLIENTS];
+
+extern int ClientID;
+extern int ClientNode;
+
+extern SocketInfo *Sock;
+
+extern char Host;
 
 extern void (**recvfuncs)(unsigned char*, int, int);
 extern void (**sendfuncs)(unsigned char*, int);
@@ -86,30 +102,18 @@ extern int bannum;
 extern WSADATA wsadata;
 char Networking_Init();
 
-SOCKET Server_Create();
+SocketInfo *Server_Create(int port);
 
-int Server_Listen(SOCKET Server);
+void CloseConn(ClientInfo_t *info);
 
-int Packet_Receive(SOCKET client, int length, char **netbuffer);
-
-void Server_CloseClient(SOCKET server, int client);
-
-void Client_Disconnect(SOCKET client);
-
-int Packet_Send(SOCKET *client, char *netbuffer, int length);
+void Packet_Send(char *buff, int node, int datasize, short type, char important = 0);
 
 //send packets to all the clients
-int Packet_Send_Host(SOCKET server, char *netbuffer, int length);
+int Packet_Send_Host(char *netbuffer, int length, short type, char important = 0);
 
-int Packet_Send_Host_Others(SOCKET server, char *netbuffer, int length, int socknum);
+void Receive_Data(void *fricc);
 
-void packet_receiving(void *sockettt);
-
-int Server_Connect(SOCKET server);
-
-SOCKET Client_Connect(const char* ip);
-
-void Serv_Connect(void *serv);
+SocketInfo *ClientCreate(char *ip, int port);
 
 // fun
 float GetFloatBuff(char *buff, int offs);
@@ -117,14 +121,8 @@ float GetFloatBuff(char *buff, int offs);
 // Parse our data
 void Net_ParseBuffs();
 
-// Send out data at end of frame
-void Net_SendData();
-
-// Add to out buff
-void Net_AddToOut(char *buff, int buffsize);
-
 // for player functions
-int Net_RegisterPlayerEventSend(char *(*func)(), int buffsize);
+int Net_RegisterPlayerEventSend(char *(*func)(), int buffsize, bool important = 1);
 
 // for player functions
 int Net_RegisterPlayerEventRecv(void(*func)(unsigned char*, int), int buffsize);

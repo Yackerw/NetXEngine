@@ -503,19 +503,17 @@ const uint8_t *TSC::FindScriptData(int scriptno, ScriptPages pageno, ScriptPages
 bool TSC::StartScript(int scriptno, ScriptPages pageno)
 {
 	// Don't execute if we're the host and haven't been told to by the server (or are in the entry script)
-	if (host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
+	if (Host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
 		return false;
 	}
 	// Set it back to false again
 	TscExec = false;
 	// don't re-execute the on entry event
 	// If we're the server, tell everyone to execute!
-	if (host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
-		char *buff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 6;
-		memcpy(buff, &tmp, sizeof(int));
-		memcpy(buff + 4, &scriptno, sizeof(int));
-		Net_AddToOut(buff,sizeof(int)*2);
+	if (Host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
+		char *buff = (char*)malloc(sizeof(int));
+		memcpy(buff, &scriptno, sizeof(int));
+		Packet_Send_Host(buff,sizeof(int), 6, 1);
 		free(buff);
 	}
 const uint8_t *program;
@@ -831,7 +829,7 @@ int cmdip;
 			case OP_TRA:
 			{
 				// Return if client
-				if (host == 0) {
+				if (Host == 0) {
 					didexecute++;
 					return;
 				}
@@ -859,23 +857,19 @@ int cmdip;
 					}
 				}
 				// If we're the host then sync this TRA
-				if (host == 1) {
-					char *outbuff = (char*)malloc((sizeof(int) * 5) + 2);
-					int tmp = 14;
-					memcpy(outbuff, &tmp, sizeof(int));
-					memcpy(outbuff + sizeof(int), parm, sizeof(int) * 4);
-					outbuff[sizeof(int) * 5] = player->invisible;
-					outbuff[(sizeof(int) * 5) + 1] = player->hide;
-					Net_AddToOut(outbuff, (sizeof(int) * 5) + 2);
+				if (Host == 1) {
+					char *outbuff = (char*)malloc((sizeof(int) * 4) + 2);
+					memcpy(outbuff, parm, sizeof(int) * 4);
+					outbuff[sizeof(int) * 4] = player->invisible;
+					outbuff[(sizeof(int) * 4) + 1] = player->hide;
+					Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
 					free(outbuff);
 					// PART 2
-					outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
-					tmp = 15;
-					memcpy(outbuff, &tmp, sizeof(int));
-					memcpy(outbuff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
-					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
-					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 2)), &game.flags, NUM_GAMEFLAGS);
-					Net_AddToOut(outbuff, (sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
+					outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
+					memcpy(outbuff, &(player->inventory), MAX_INVENTORY * sizeof(int));
+					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY)), &(player->ninventory), sizeof(int));
+					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &game.flags, NUM_GAMEFLAGS);
+					Packet_Send_Host(outbuff, (sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS, 15, 1);
 					free(outbuff);
 				}
 				Teleporting = false;
@@ -1105,7 +1099,7 @@ int cmdip;
 			break;
 			case OP_LDP:
 				// do not do if client
-				if (host != 0) {
+				if (Host != 0) {
 					game.switchstage.mapno = LOAD_GAME;
 				}
 			break;
@@ -1252,11 +1246,11 @@ int cmdip;
 			
 			case OP_SLP:	// bring up teleporter menu
 			{
-				if (host != 0) {
+				if (Host != 0) {
 					textbox.StageSelect.SetVisible(true);
 				}
 				// If we're the host then make note to sync next <YNJ
-				if (host == 1) {
+				if (Host == 1) {
 					Teleporting = true;
 				}
 				return;

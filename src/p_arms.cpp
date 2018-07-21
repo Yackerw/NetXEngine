@@ -107,7 +107,7 @@ void PResetWeapons()
 
 static bool can_fire_spur(void)
 {
-	if (CountObjectsOfType(OBJ_SPUR_SHOT) && host != -1)
+	if (CountObjectsOfType(OBJ_SPUR_SHOT) && Host == -1)
 		return false;
 	
 	return true;
@@ -336,7 +336,7 @@ int xoff, yoff;
 	// can only fire one missile at once on L1,
 	// two missiles on L2, and two sets of three missiles on L3.
 	static const uint8_t max_missiles_at_once[] = { 1, 2, 6 };
-	if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && host == -1)
+	if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && Host == -1)
 	{
 		// give back the previously-decremented ammo so they don't lose it (hack)
 		player->weapons[player->curWeapon].ammo++;
@@ -386,7 +386,7 @@ static uint8_t max_fireballs[] = { 2, 3, 4 };
 int count;
 
 	count = (CountObjectsOfType(OBJ_FIREBALL1) + CountObjectsOfType(OBJ_FIREBALL23));
-	if (count >= max_fireballs[level] && host == -1)
+	if (count >= max_fireballs[level] && Host == -1)
 	{
 		return;
 	}
@@ -422,7 +422,7 @@ int count;
 static void PFireBlade(int level)
 {
 	int numblades = CountObjectsOfType(OBJ_BLADE12_SHOT) + CountObjectsOfType(OBJ_BLADE3_SHOT);
-	if (numblades >= 1 && host == -1) return;
+	if (numblades >= 1 && Host == -1) return;
 	
 	int dir = (player->look) ? player->look : player->dir;
 	
@@ -464,7 +464,7 @@ static void PFireSnake(int level)
 		int count = (CountObjectsOfType(OBJ_SNAKE1_SHOT) + \
 					 CountObjectsOfType(OBJ_SNAKE23_SHOT));
 		
-		if (count >= 4 && host == -1)
+		if (count >= 4 && Host == -1)
 			return;
 	}
 	
@@ -475,7 +475,7 @@ static void PFireSnake(int level)
 
 static void PFireNemesis(int level)
 {
-	if (CountObjectsOfType(OBJ_NEMESIS_SHOT) >= 2 && host == -1)
+	if (CountObjectsOfType(OBJ_NEMESIS_SHOT) >= 2 && Host == -1)
 		return;
 	
 	FireSimpleBullet(OBJ_NEMESIS_SHOT, B_NEMESIS_L1+level);
@@ -489,7 +489,7 @@ static const int max_bubbles[] = { 4, 16, 16 };
 	int count = CountObjectsOfType(OBJ_BUBBLER12_SHOT) + \
 				CountObjectsOfType(OBJ_BUBBLER3_SHOT);
 	
-	if (count >= max_bubbles[level] && host == -1)
+	if (count >= max_bubbles[level] && Host == -1)
 		return;
 	
 	int objtype = (level != 2) ? OBJ_BUBBLER12_SHOT : OBJ_BUBBLER3_SHOT;
@@ -520,7 +520,7 @@ static void PFireSpur(void)
 static void PFirePolarStar(int level)
 {
 	// at level 3 only two shots per screen permitted
-	if (level < 2 || (CountObjectsOfType(OBJ_POLAR_SHOT) < 2 || host != -1))
+	if (level < 2 || (CountObjectsOfType(OBJ_POLAR_SHOT) < 2 || Host != -1))
 	{
 		int xoff;
 		if (level == 2) xoff = -5 * CSFI; else xoff = -4 * CSFI;

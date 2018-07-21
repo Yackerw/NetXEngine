@@ -1205,7 +1205,7 @@ char *ConnectSend() {
 	int i = 0;
 	int foundempty = false;
 	while (i < MAXCLIENTS) {
-		buff[i] = sockets[i].used;
+		buff[i] = clients[i].used;
 		if (buff[i] == false && foundempty == false) {
 			players[i] = netInitPlayer();
 			foundempty = true;
@@ -1253,18 +1253,9 @@ void ConnectRecv(char *buff) {
 	int i = 0;
 	bool foundclient = false;
 	while (i < MAXCLIENTS) {
-		sockets[i].used = buff[i];
-		if (sockets[i].used == true) {
+		clients[i].used = buff[i];
+		if (clients[i].used == true) {
 			players[i] = netInitPlayer();
-		}
-		else {
-			if (foundclient == false) {
-				// We will put the server where we should be
-				players[i] = netInitPlayer();
-				sockets[i].used = true;
-				CliNum = i;
-				foundclient = true;
-			}
 		}
 		i++;
 	}
@@ -1290,7 +1281,7 @@ void ConnectRecv(char *buff) {
 		memcpy(&plskins[i], buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, sizeof(char));
 		i++;
 	}
-	memcpy(&plskins[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+	memcpy(&plskins[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
 	int tmp = (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS;
 	// Names
 	i = 0;
@@ -1298,7 +1289,7 @@ void ConnectRecv(char *buff) {
 		memcpy(names[i], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), sizeof(char) * 15);
 		i++;
 	}
-	memcpy(names[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
+	memcpy(names[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
 	player->invisible = false;
 	player->movementmode = MOVEMODE_NORMAL;
 	player->hide = false;
@@ -1338,7 +1329,7 @@ char *ConnectOthers(int joiner) {
 void ConnectOthersRecv(char *buff) {
 	int node;
 	memcpy(&node, buff, sizeof(int));
-	sockets[node].used = true;
+	clients[node].used = true;
 	players[node] = netInitPlayer();
 }
 
@@ -1389,7 +1380,7 @@ char *DiscnnSend(int pnum) {
 void DiscnnRecv(char *buff) {
 	int pnum;
 	memcpy(&pnum, buff, sizeof(int));
-	sockets[pnum].used = false;
+	clients[pnum].used = false;
 }
 
 char *SkinSend() {
@@ -1428,9 +1419,9 @@ void Name_Receive(unsigned char* tempname, int node) {
 	Chat_WriteToLog(joingamemsg);
 	chatstate.timer = (60 * 5);
 	sound(SND_GET_MISSILE);
-	if (host == 1) {
+	if (Host == 1) {
 		char IP[32];
-		InetNtopA(sockets[node].data.sin_family, &sockets[node].data.sin_addr, IP, 32);
+		InetNtopA(clients[node].info.sin_family, &clients[node].info.sin_addr, IP, 32);
 		Chat_WriteToLog(IP);
 	}
 }
@@ -1438,7 +1429,7 @@ void Name_Receive(unsigned char* tempname, int node) {
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
 	Net_RegisterConnectEventSvRecv(ConnectRecv);
-	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, (sizeof(int) * 5) + 1 + INPUT_COUNT);
+	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, (sizeof(int) * 5) + 1 + INPUT_COUNT, 0);
 	Net_RegisterPlayerEventRecv(SyncPositionRecv, (sizeof(int) * 5) + 1 + INPUT_COUNT);
 	Net_RegisterConnectEventOthersSend(ConnectOthers, sizeof(int));
 	Net_RegisterConnectEventOthersRecv(ConnectOthersRecv);

@@ -35,7 +35,7 @@ Object *CreateObject(int x, int y, int type, int xinertia, int yinertia,
 Object *o;
 
 	// return if we're client and spawning something supposed to be serialized
-	if (host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
+	if (Host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
 		o = new Object;
 		*o = ZERO_OBJECT;
 		o->deleted = true;
@@ -84,11 +84,9 @@ Object *o;
 		o->OnSpawn();
 	// sync online
 	o->serialization = -1;
-	if (host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
+	if (Host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
 		objargs out;
-		char *outbuff = (char*)malloc(sizeof(objargs) + (sizeof(int) * 2));
-		int tmp = 7;
-		memcpy(outbuff, &tmp, sizeof(int));
+		char *outbuff = (char*)malloc(sizeof(objargs) + sizeof(int));
 		out.x = x;
 		out.y = y;
 		out.type = type;
@@ -99,9 +97,9 @@ Object *o;
 		out.linkedobject = 0;
 		out.createflags = createflags;
 		out.onLoad = onLoad;
-		memcpy(outbuff + 8, &out, sizeof(objargs));
-		memcpy(outbuff + 4, &serializeid, sizeof(int));
-		Net_AddToOut(outbuff, sizeof(objargs) + (sizeof(int)*2));
+		memcpy(outbuff + 4, &out, sizeof(objargs));
+		memcpy(outbuff, &serializeid, sizeof(int));
+		Packet_Send_Host(outbuff, sizeof(objargs) + (sizeof(int)*2), 7, 1);
 		o->serialization = serializeid;
 		netobjs[serializeid].obj = o;
 		netobjs[serializeid].valid = true;

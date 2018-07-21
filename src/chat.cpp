@@ -90,7 +90,7 @@ void Chat_ReceiveMessage(unsigned char* msg, int node) {
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		if (node == CliNum && host != 1) {
+		if (node == ClientNode && Host != 1) {
 			strcat(formatmsg, "~"); //host prefix
 		}
 		strcat(formatmsg, names[node]);
@@ -111,17 +111,17 @@ void Chat_EnterMessage() {
 	//char formatmsg[96];
 	formatmsg[0] = 0;
 
-	if (memcmp("/ban ", chatstate.msg, 5) == 0 && host == 1) {
+	if (memcmp("/ban ", chatstate.msg, 5) == 0 && Host == 1) {
 		char IP[32];
 		char msg[64];
 		memcpy(msg, chatstate.msg + 5, 59);
 		int i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used) {
-				InetNtopA(sockets[i].data.sin_family, &sockets[i].data.sin_addr, IP, 32);
+			if (clients[i].used) {
+				InetNtopA(clients[i].info.sin_family, &clients[i].info.sin_addr, IP, 32);
 				if (strcmp(msg, IP) == 0) {
 					strcpy(banlist[bannum], IP);
-					closesocket(sockets[i].sock);
+					CloseConn(&clients[i]);
 					chatstate.msg[0] = 0;
 					chatstate.typing = 0;
 					chatstate.timer = (60 * 5);
@@ -137,16 +137,16 @@ void Chat_EnterMessage() {
 		return;
 	}
 
-	if (memcmp("/kick ", chatstate.msg, 6) == 0 && host == 1) {
+	if (memcmp("/kick ", chatstate.msg, 6) == 0 && Host == 1) {
 		char IP[32];
 		char msg[64];
 		memcpy(msg, chatstate.msg + 6, 59);
 		int i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used) {
-				InetNtopA(sockets[i].data.sin_family, &sockets[i].data.sin_addr, IP, 32);
+			if (clients[i].used) {
+				InetNtopA(clients[i].info.sin_family, &clients[i].info.sin_addr, IP, 32);
 				if (strcmp(msg, IP) == 0) {
-					closesocket(sockets[i].sock);
+					CloseConn(&clients[i]);
 					chatstate.msg[0] = 0;
 					chatstate.typing = 0;
 					chatstate.timer = (60 * 5);
@@ -177,7 +177,7 @@ void Chat_EnterMessage() {
 	}
 	else { //standard message, standard formatting
 		strcpy(formatmsg, "<");
-		if (host == 1) {
+		if (Host == 1) {
 			strcat(formatmsg, "~"); //host prefix
 		}
 		strcat(formatmsg, name);

@@ -8,28 +8,22 @@
 #include "NetPlayer.h"
 #include "chat.h"
 
-netdata *sockets;
+int sockaddrsize = sizeof(sockaddr);
 
-int currentsock;
 
-int numsocks;
+ClientInfo_t clients[MAXCLIENTS];
 
-HANDLE Proc;
+WSADATA wsaData;
 
-SOCKET server;
-SOCKET client;
+char *(*JoinSendClient)(int);
+int JoinClientSize;
 
-char host;
+int ClientID = -1;
+int ClientNode = -1;
 
-char **databuffs;
-int *databuffsizes;
-HANDLE *buffmutexes;
+char Host = true;
 
-char *outbuff;
-
-HANDLE outbuffmutex;
-
-int outbuffsize;
+SocketInfo *Sock;
 
 void(**recvfuncs)(unsigned char*, int, int);
 void(**sendfuncs)(unsigned char*, int);
@@ -42,6 +36,7 @@ int *PlayerEventSendSizes;
 void(**PlayerEventRecvFuncs)(unsigned char*, int);
 int PlayerEventRecvNum;
 int *PlayerEventRecvSizes;
+int PlayerEventImportant[128];
 
 char*(*PlayerJoinEventSvSend)();
 int PlayerJoinEventSvSize;
@@ -57,8 +52,6 @@ int PlayerJoinEventOthersSize;
 char*(*PlayerDisconnectSend)(int);
 void(*PlayerDisconnectRecv)(char*);
 int PlayerDisconnectSize;
-
-int CliNum;
 
 // current available serialization ID
 int serializeid;
@@ -78,15 +71,6 @@ char Networking_Init() {
 		return 0;
 	}
 	printf("Networking started!\n");
-	sockets = (netdata*)calloc(MAXCLIENTS, sizeof(netdata)*MAXCLIENTS);
-	currentsock = 0;
-	numsocks = 0;
-	// Set up our mutexes and databuffs
-	int i = 0;
-	outbuff = (char*)malloc(sizeof(char) * 1024288);
-	databuffs = (char**)malloc(sizeof(char*)*MAXCLIENTS);
-	databuffsizes = (int*)calloc(MAXCLIENTS, sizeof(int));
-	buffmutexes = (HANDLE*)malloc(sizeof(HANDLE)*MAXCLIENTS);
 	PlayerEventSendSizes = (int*)malloc(sizeof(int)*64);
 	PlayerEventRecvSizes = (int*)malloc(sizeof(int)*64);
 	PlayerEventSendFuncs = (char*(**)())malloc(sizeof(void(*)(void))*64);
@@ -96,573 +80,329 @@ char Networking_Init() {
 	ObjSyncTickFuncs = (char*(**)(Object*))malloc(sizeof(void(*)(void)) * OBJ_LAST);
 	ObjSyncTickFuncsRecv = (void(**)(char*,int))calloc(sizeof(void(*)(void)) * OBJ_LAST,1);
 	ObjSyncTickSizes = (int*)malloc(sizeof(int)*OBJ_LAST);
-	outbuffsize = 0;
 	PlayerEventSendNum = 0;
 	PlayerEventRecvNum = 0;
 	numsend = 0;
 	numrecv = 0;
 	TscExec = 0;
-	while (i < MAXCLIENTS) {
-		buffmutexes[i] = CreateMutex(NULL, FALSE, NULL);
-		databuffs[i] = (char*)malloc(sizeof(char) * 1024288);
+	return 1;
+}
+
+SocketInfo *Server_Create(int port) {
+	SOCKET s;
+	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (s == INVALID_SOCKET) {
+		printf("Failed to create socket: %d", WSAGetLastError());
+		return NULL;
+	}
+	SocketInfo *SockInf = (SocketInfo*)malloc(sizeof(SocketInfo));
+	SockInf->info.sin_family = AF_INET;
+	SockInf->info.sin_addr.s_addr = INADDR_ANY;
+	SockInf->info.sin_port = port;
+	// Attempt to bind to port, if fails then clean up and return
+	if (bind(s, (sockaddr*)&SockInf->info, sizeof(sockaddr_in)) == SOCKET_ERROR) {
+		printf("Bind failed: %d", WSAGetLastError());
+		free(SockInf);
+		closesocket(s);
+		return NULL;
+	}
+	SockInf->sock = s;
+	SockInf->port = port;
+	ClientID = rand();
+	ClientNode = 0;
+	return SockInf;
+}
+
+void CloseConn(ClientInfo_t *info) {
+	// Do disconnect message stuff here
+	int i = 0;
+	while (i < FullStackSize) {
+		if (info->SendStack[i].valid) {
+			free(info->SendStack[i].buff);
+		}
 		i++;
 	}
-	outbuffmutex = CreateMutex(NULL, FALSE, NULL);
-	return 1;
+	CloseHandle(info->ReceiveStackMutex);
+	memset(info, 0, sizeof(ClientInfo_t));
 }
 
-SOCKET Server_Create() {
-	//address info
-	struct addrinfo *result = NULL, *ptr = NULL, hints;
-	//zero it out
-	ZeroMemory(&hints, sizeof(hints));
-	//ipv4, socket stream, tcp, passive?
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
-
-	int rresult = getaddrinfo(NULL, "5029", &hints, &result);
-	if (rresult != 0) {
-		printf("getaddrinfo failed: %d\n", rresult);
-		return INVALID_SOCKET;
-	}
-
-	//create the socket
-	SOCKET Server = INVALID_SOCKET;
-	Server = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	if (Server == INVALID_SOCKET) {
-		printf("Error at socket(): %ld\n", WSAGetLastError());
-		freeaddrinfo(result);
-		return INVALID_SOCKET;
-	}
-
-	//bind socket to IP address
-	rresult = bind(Server, result->ai_addr, (int)result->ai_addrlen);
-	if (rresult == SOCKET_ERROR) {
-		printf("bind failed with error: %d\n", WSAGetLastError());
-		freeaddrinfo(result);
-		closesocket(Server);
-		return INVALID_SOCKET;
-	}
-	//set TCP_NODELAY so we can BLAST THROUGH WITH SONIC SPEED
-	char nodelaything[] = { 1 };
-	if (setsockopt(Server, IPPROTO_TCP, TCP_NODELAY, nodelaything, 1)) {
-		printf("Setsockopt failed with error: %d\n", WSAGetLastError());
-		return INVALID_SOCKET;
-	}
-	printf("Server succesfully created!\n");
-	return Server;
-}
-
-int Server_Listen(SOCKET Server) {
-	//listen
-	if (listen(Server, SOMAXCONN) == SOCKET_ERROR) {
-		printf("Listen failed with error: %ld\n", WSAGetLastError());
-		closesocket(Server);
-		return INVALID_SOCKET;
-	}
-	printf("Listening!\n");
-}
-
-int Packet_Receive(SOCKET client, int length, char **netbuffer) {
-	//char *netbuffer;
-	netbuffer[0] = (char*)malloc(sizeof(char)*length);
-	int success = 1;
-
-	success = recv(client, (char*)netbuffer[0], length, 0);
-	if (success > 0) {
-		int i = 0;
-		//while (i < success) {
-		//	printf("Packet received: %i\n", netbuffer[i]);
-		//	i++;
-		//}
-		netbuffer[0] = (char*)realloc(netbuffer[0], (success + 1) * sizeof(char));
-		printf("AA %i\n", netbuffer[0][0]);
-	}
-	else if (success == 0) {
-		printf("No packet received\n");
-		free(netbuffer[0]);
-		//netbuffer = (char*)realloc(netbuffer, 1);
-		netbuffer[0] = 0;
-	}
-	else {
-		printf("ERROR on packet receive: %d\n", WSAGetLastError());
-		free(netbuffer[0]);
-		netbuffer[0] = 0;
-		//netbuffer = (char*)realloc(netbuffer, 1);
-	}
-	return success;
-}
-
-// BAD FUNCTION! SO BAD! Don't use it! EVER!
-void Server_CloseClient(SOCKET server, int client) {
-	if (sockets[client].used == 1) {
-		int success = shutdown(sockets[client].sock, SD_BOTH);
-		closesocket(sockets[client].sock);
-		sockets[client].used = 0;
-		int i = client;
-		int freesock = 0;
-		while (i < MAXCLIENTS) {
-			if (freesock != 0) {
-				if (sockets[i].used == 1) {
-					sockets[i - 1] = sockets[i];
-					sockets[i - 1].used = 1;
-					sockets[i - 1].socknum = sockets[i].socknum - 1;
-					sockets[i - 1].recthread = sockets[i].recthread;
-					sockets[i - 1].recthread->socknum = sockets[i - 1].socknum;
-					sockets[i].used = 0;
-					sockets[i].socknum = 0;
-				}
-			}
-			else {
-				if (sockets[i].used == 0) {
-					freesock = 1;
-				}
-			}
-			i++;
+void Packet_Send(char *buff, int node, int datasize, short type, char important) {
+	// Set up header data, then copy in the other data
+	PacketData_t *data = (PacketData_t*)malloc(sizeof(PacketData_t) + datasize);
+	data->id = ClientID;
+	data->node = ClientNode;
+	data->important = important;
+	data->type = type;
+	memcpy(&data[1], buff, datasize);
+	ClientInfo_t *info = &clients[node];
+	if (important == 1) {
+		// Close connection if we're too far into the stack
+		int oldpos = info->SendStackPos - SendStackSize;
+		if (oldpos < 0) {
+			oldpos = FullStackSize + oldpos;
 		}
-		numsocks -= 1;
-	}
-}
-
-void Client_Disconnect(SOCKET client) {
-	int success = shutdown(client, SD_BOTH);
-	if (success == SOCKET_ERROR) {
-		printf("Disconnect failed: %d\n", WSAGetLastError());
-	}
-	closesocket(client);
-}
-
-unsigned int _stdcall Packet_Send_Thread2(void *args) {
-	SOCKET sock = *(SOCKET*)*(SOCKET*)args;
-	// i give up
-	char **tmp = (char**)args;
-	char *netbuffer = tmp[1];
-	int *tmpp = (int*)args;
-	int length = tmpp[2];
-	int success = 1;
-	success = send(sock, netbuffer, length, 0);
-	int totalsucc = success;
-	// If windows has decided that there's not enough space for us to send, we need to create a loop to continue sending until it is succesful
-	while (totalsucc < length) {
-		if (success == SOCKET_ERROR) {
-			printf("Send failed: %d\n", WSAGetLastError());
-			closesocket(sock);
-			SuspendThread(GetCurrentThread());
-			return 0;
+		if (info->SendStack[info->SendStackPos].valid) {
+			CloseConn(info);
+			free(data);
+			return;
 		}
-		success = send(sock, netbuffer + totalsucc, length - totalsucc, 0);
-		totalsucc += success;
-	}
-	// err check
-	if (success == SOCKET_ERROR) {
-		printf("Send failed: %d\n", WSAGetLastError());
-		closesocket(sock);
-		SuspendThread(GetCurrentThread());
-		return 0;
-	}
-	SuspendThread(GetCurrentThread());
-	return 0;
-}
-
-// Ok, time for something fun. DOUBLE THREAD ACTION!
-void Packet_Send_Thread1(void *args) {
-	SOCKET *sock = (SOCKET*)*(SOCKET*)args;
-	// i give up
-	char **tmp = (char**)args;
-	char *buff = tmp[1];
-	int *tmpp = (int*)args;
-	HANDLE thread = (HANDLE)_beginthreadex(NULL, 1024, Packet_Send_Thread2, args, 0, NULL);
-	DWORD result = WaitForSingleObject(thread, 220);
-	if (result == WAIT_OBJECT_0 || result == WAIT_FAILED) {
-		if (result != WAIT_FAILED) {
-			//TerminateThread(thread, 0);
-			ResumeThread(thread);
+		// Playing it safe; if it does already exist then free it
+		if (info->SendStack[info->SendStackPos].buff != NULL) {
+			free(info->SendStack[info->SendStackPos].buff);
 		}
+		// Store it and mark it
+		info->SendStack[info->SendStackPos].buff = (char*)malloc(datasize + sizeof(PacketData_t));
+		memcpy(info->SendStack[info->SendStackPos].buff, buff, datasize + sizeof(PacketData_t));
+		info->SendStack[info->SendStackPos].valid = 1;
+		info->SendStack[info->SendStackPos].size = datasize + sizeof(PacketData_t);
+		data->packetid = info->SendStackPos;
+		time_t t;
+		time(&t);
+		info->SendStack[info->SendStackPos].time = t;
+		info->SendStack[info->SendStackPos].timeout = t + 300;
+		info->SendStackPos++;
+		info->SendStackPos %= FullStackSize;
 	}
-	else {
-		if (result == WAIT_TIMEOUT) {
-			int test = SuspendThread(thread);
-			if (test <= 0) {
-				closesocket(*sock);
-				TerminateThread(thread, 0);
-			}
-			else {
-				int i = -1;
-				while (i < test) {
-					ResumeThread(thread);
-					i++;
-				}
-			}
+	// And finally send
+	int succ = sendto(Sock->sock, (char*)data, datasize + sizeof(PacketData_t), 0, (sockaddr*)&info->info, sockaddrsize);
+	if (succ == SOCKET_ERROR) {
+		// Emergency: clean up socket and re-create it
+		if (Host == 1) {
+			int oldid = ClientID;
+			closesocket(Sock->sock);
+			free(Sock);
+			Sock = Server_Create(5029);
 		}
-		else {
-			ResumeThread(thread);
-		}
+		CloseConn(&clients[node]);
 	}
-	CloseHandle(thread);
-	free(buff);
-	free(args);
-	return;
-}
-
-int Packet_Send(SOCKET *client, char *netbuffer, int length) {
-	char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
-	char *buff = (char*)malloc(sizeof(char)*length);
-	memcpy(buff, netbuffer, length);
-	memcpy(argbuff, &client, sizeof(SOCKET*));
-	memcpy(argbuff + sizeof(SOCKET*), &buff, sizeof(char*));
-	memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
-	_beginthread(Packet_Send_Thread1, 1024, (void*)argbuff);
-	//Packet_Send_Thread1(argbuff);
-	//printf("Packet sent!\n");
-	return 1;
+	free(data);
 }
 
 //send packets to all the clients
-int Packet_Send_Host(SOCKET server, char *netbuffer, int length) {
+int Packet_Send_Host(char *netbuffer, int length, short type, char important) {
 	int i = 0;
 	while (i < MAXCLIENTS) {
-		if (sockets[i].used == 1) {
-			char *buff = (char*)malloc(sizeof(char)*length);
-			memcpy(buff, netbuffer, length);
-			char *argbuff = (char*)malloc(sizeof(SOCKET*) + sizeof(char*) + sizeof(int));
-			SOCKET *frick = &sockets[i].sock;
-			memcpy(argbuff, &frick, sizeof(SOCKET*));
-			memcpy(argbuff + sizeof(SOCKET*), &buff, sizeof(char*));
-			memcpy(argbuff + sizeof(SOCKET*) + sizeof(char*), &length, sizeof(int));
-			_beginthread(Packet_Send_Thread1, 1024, (void*)argbuff);
-			//Packet_Send_Thread1(argbuff);
-			/*int success = 1;
-			success = send(sockets[i].sock, netbuffer, length, 0);
-			int totalsucc = success;
-			while (totalsucc < length && success != SOCKET_ERROR) {
-				success = send(sockets[i].sock, netbuffer + totalsucc, length - totalsucc, 0);
-				totalsucc += success;
-			}
-			if (success == SOCKET_ERROR) {
-				printf("Send failed: %d\n", WSAGetLastError());
-				// Another thread will handle removing this!
-			}*/
+		if (clients[i].used == 1) {
+			Packet_Send(netbuffer, i, length, type, important);
 		}
 		i++;
 	}
 	return 1;
 }
 
-int Packet_Send_Host_Others(SOCKET server, char *netbuffer, int length, int socknum) {
-	int i = 0;
-	while (i < MAXCLIENTS) {
-		if (sockets[i].used == 1 && i != socknum) {
-			char *newbuff = (char*)malloc((sizeof(char)*length) + 8);
-			memcpy(newbuff + 8, netbuffer, length);
-			newbuff[0] = 6;
-			newbuff[1] = 0;
-			newbuff[2] = 0;
-			newbuff[3] = 0;
-			newbuff[5] = 0;
-			newbuff[6] = 0;
-			newbuff[7] = 0;
-			if (socknum < i) {
-				newbuff[4] = socknum + 2;
-			}
-			else {
-				newbuff[4] = socknum + 3;
-			}
-			int success = 1;
-			success = send(sockets[i].sock, newbuff, length + 8, 0);
-			if (success == SOCKET_ERROR) {
-				printf("Send failed: %d\n", WSAGetLastError());
-				return -1;
-			}
-		}
-		i++;
+SocketInfo *ClientCreate(char *ip, int port) {
+	SOCKET s;
+	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (s == INVALID_SOCKET) {
+		printf("Failed to create socket: %d", WSAGetLastError());
+		return NULL;
 	}
-	return 1;
+	SocketInfo *SockInf = (SocketInfo*)malloc(sizeof(SocketInfo));
+	SockInf->sock = s;
+	SockInf->port = port;
+	SockInf->info.sin_family = AF_INET;
+	SockInf->info.sin_port = port;
+	inet_pton(AF_INET, ip, &SockInf->info.sin_addr.S_un.S_addr);
+	PacketData_t *authpack = (PacketData_t *)malloc(sizeof(PacketData_t) + sizeof(CONNECTAUTH));
+	authpack->node = -1;
+	memcpy((char*)(&authpack[1]), CONNECTAUTH, sizeof(CONNECTAUTH));
+	sendto(SockInf->sock, (char*)authpack, sizeof(PacketData_t) + sizeof(CONNECTAUTH), 0, (sockaddr*)&SockInf->info, sockaddrsize);
+	free(authpack);
+	return SockInf;
 }
 
-void packet_receiving(void *sockettt) {
-	int buffpos;
-	sockrecthread *sockett = (sockrecthread*)sockettt;
-	char socknumber = 0;
-	int expecteddata = 0;
-	unsigned char *recvbuff = (unsigned char*)malloc(20480 * sizeof(float));
-	int recvbuffsize = 0;
-	unsigned char *sizebuff = (unsigned char*)malloc(4 * sizeof(char));
-	int sizebuffsize = 0;
-	if (host == 1) {
-		socknumber = sockett->socknum;
-	}
-	//sockett->buffsize = 1;
-	//sockett->buffer = (char*)malloc(sizeof(char));
-	//wait for & receive a packet. get current size of the recieving buffer to append the newly received buffer to the end of it, after allocating enough memory.
-	//THIS FUNCTION IS TO ONLY BE USED ON A SEPERATE THREAD
-	while (sockets[sockett->socknum].used) {
-		if (host == 1) {
-			socknumber = sockett->socknum;
-		}
-		unsigned char **temp = (unsigned char**)malloc(sizeof(char**));
-		int bytes = Packet_Receive(sockett->sock, sizeof(float) * 20480, (char**)temp);
-		if (bytes == SOCKET_ERROR || bytes == 0) {
-			sockets[sockett->socknum].used = false;
-			// Fire the disconnect event
-			char *discnnbuff = PlayerDisconnectSend(sockett->socknum);
-			discnnbuff = (char*)realloc(discnnbuff, PlayerDisconnectSize + 4);
-			memmove(discnnbuff + 4, discnnbuff, PlayerDisconnectSize);
-			int tmp = 5;
-			memmove(discnnbuff, &tmp, sizeof(int));
-			Net_AddToOut(discnnbuff, PlayerDisconnectSize + 4);
-			free(discnnbuff);
-			free(sockett);
-			free(recvbuff);
-			free(sizebuff);
-			return;
-		}
-		unsigned char *tempbuff = temp[0];
-		free(temp);
-		float *temptemp = (float*)(void*)(tempbuff);
-		int *tempint = (int*)(void*)(tempbuff);
-		// Anticipating identifier for size of buffer
-		if (expecteddata == 0) {
-			// If we have an incomplete buffer from earlier, F I X
-			if (sizebuffsize > 0) {
-				memcpy(sizebuff + sizebuffsize, tempbuff, min(bytes, 4 - sizebuffsize));
-				int oldsize = sizebuffsize;
-				sizebuffsize += bytes;
-				// received enough to determine packet size
-				if (sizebuffsize >= 4) {
-					expecteddata = ((int*)sizebuff)[0];
-					// Handle excessive data
-					if (sizebuffsize > 4) {
-						memcpy(recvbuff, tempbuff + (4 - oldsize), bytes - (4 - oldsize));
-						recvbuffsize += bytes - (4 - oldsize);
-					}
-				}
-				sizebuffsize = 0;
-			}
-			// Otherwise we need to create a new buffer for receiving packet size
-			else {
-				// If we've received enough to fill the whole buffer, then we're already done!
-				if (bytes >= 4) {
-					expecteddata = tempint[0];
-					// and read potential data
-					if (bytes > 4) {
-						memcpy(recvbuff, tempbuff + 4, bytes - 4);
-						recvbuffsize += bytes - 4;
-					}
-				}
-				// If we didn't receive the whole packet size (this should NEVER happen in normal circumstances, but gotta cover my bases)
-				else {
-					memcpy(sizebuff, tempbuff, bytes);
-					sizebuffsize += bytes;
-				}
-			}
-		}
-		// Otherwise receive data proper
-		else {
-			memcpy(recvbuff + recvbuffsize, tempbuff, bytes);
-			recvbuffsize += bytes;
-		}
-
-		// We need control over this!
-		WaitForSingleObject(buffmutexes[socknumber], INFINITE);
-		// So long as we have sufficient data, write it to be used!
-		while (recvbuffsize >= expecteddata && recvbuffsize > 0) {
-			// Copy data to our useful buffs
-			memcpy(databuffs[socknumber] + databuffsizes[socknumber], recvbuff, expecteddata);
-			databuffsizes[socknumber] += expecteddata;
-			// If we've received additional data, then let's store it
-			if (recvbuffsize > expecteddata) {
-				// If we've received enough data for the next packet size, then let's store it
-				if (recvbuffsize >= expecteddata + 4) {
-					int tmp = ((int*)(recvbuff + expecteddata))[0];
-					// Copy from our receiving array to our final array
-					memmove(recvbuff, recvbuff + expecteddata + 4, recvbuffsize - (expecteddata + 4));
-					recvbuffsize -= expecteddata;
-					recvbuffsize -= 4;
-					expecteddata = tmp;
-				}
-				else {
-					// Insufficient data, set up our sizebuff
-					memcpy(sizebuff, recvbuff, recvbuffsize - expecteddata);
-					sizebuffsize = recvbuffsize - expecteddata;
-					expecteddata = 0;
-					recvbuffsize = 0;
-				}
-			}
-			else {
-				expecteddata = 0;
-				recvbuffsize = 0;
-			}
-		}
-		ReleaseMutex(buffmutexes[socknumber]);
-		free(tempbuff);
-	}
-	//free(sockett->buffer);
-	free(sockett);
-	free(recvbuff);
-	free(sizebuff);
-	return;
-}
-
-int Server_Connect(SOCKET server) {
-	SOCKET client;
-	struct sockaddr_in info = { 0 };
-	int size = sizeof(info);
-
-	//accept client
-	client = accept(server, (sockaddr*)&info, &size);
-	if (client == INVALID_SOCKET) {
-		printf("accept failed: %d\n", WSAGetLastError());
-		closesocket(server);
-		return 0;
-	}
-	int i = 0;
-	char IP[32];
-	InetNtopA(info.sin_family, &info.sin_addr, IP, 32);
-	// Ensure this connection isn't banned
-	while (i < bannum) {
-		if (strcmp(IP, banlist[i]) == 0) {
-			closesocket(client);
-			return 0;
-		}
-		i++;
-	}
-	// Find free socket
-	int freesock = 0;
-	while (sockets[freesock].used == true && freesock < MAXCLIENTS) {
-		freesock++;
-	}
-	// Full server, sorry
-	if (freesock == MAXCLIENTS) {
-		closesocket(client);
-		return 0;
-	}
-	char nodelaything[] = { 1 };
-	if (setsockopt(client, IPPROTO_TCP, TCP_NODELAY, nodelaything, 1)) {
-		printf("Setsockopt failed with error: %d\n", WSAGetLastError());
-		return INVALID_SOCKET;
-	}
-	// Fire our event to tell everyone else that someone connected!
-	char *buff = PlayerJoinEventOthersSend(freesock);
-	buff = (char*)realloc(buff, PlayerJoinEventOthersSize + 8);
-	memmove(buff + 8, buff, PlayerJoinEventOthersSize);
-	int tmp = 4;
-	memcpy(buff + 4, &tmp, sizeof(int));
-	tmp = PlayerJoinEventOthersSize + 4;
-	memcpy(buff, &tmp, sizeof(int));
-	printf("%i\n",tmp);
-	Packet_Send_Host(server, buff, tmp + 4);
-	free(buff);
-	// Set up socket stuff
-	sockets[freesock].sock = client;
-	// Fire our connect event
-	buff = PlayerJoinEventSvSend();
-	buff = (char*)realloc(buff, PlayerJoinEventSvSize + 8);
-	memmove(buff + 8, buff, PlayerJoinEventSvSize);
-	tmp = 0;
-	memcpy(buff + 4, &tmp, sizeof(int));
-	tmp = PlayerJoinEventSvSize + 4;
-	memcpy(buff, &tmp, sizeof(int));
-	Packet_Send(&sockets[freesock].sock, buff, tmp + 4);
-	free(buff);
-	sockets[freesock].data = info;
-	sockets[freesock].used = 1;
-	sockets[freesock].socknum = freesock;
-	sockrecthread *tempval = (sockrecthread *)malloc(sizeof(sockrecthread));
-	sockets[freesock].recthread = tempval;
-	tempval->sock = sockets[freesock].sock;
-	tempval->size = 33 * sizeof(char);
-	tempval->socknum = freesock;
-	sockets[freesock].buffthread = _beginthread(packet_receiving, 128, tempval);
-	numsocks++;
-	char *temp;
-	temp = (char*)malloc(sizeof(char) * 16);
-	inet_ntop(AF_INET, &info.sin_addr, temp, sizeof(info.sin_addr));
-	printf("Connection succesful from %s\n", temp);
-	return 1;
-}
-
-SOCKET Client_Connect(const char* ip) {
-	//address info
-	struct addrinfo *result = NULL,
-		*ptr = NULL,
-		hints;
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	//get info from address
-	int serverinf = getaddrinfo(ip, "5029", &hints, &result);
-	if (serverinf != 0) {
-		printf("getaddrinfo failed: error %d\n", serverinf);
-		return INVALID_SOCKET;
-	}
-	SOCKET clientsock = INVALID_SOCKET;
-	ptr = result;
-	// Attempt to connect to an address until one succeeds
-	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
-
-		// Create a SOCKET for connecting to server
-		clientsock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-		if (clientsock == INVALID_SOCKET) {
-			printf("socket failed with error: %ld\n", WSAGetLastError());
-			return INVALID_SOCKET;
-		}
-
-		// Connect to server.
-		serverinf = connect(clientsock, ptr->ai_addr, (int)ptr->ai_addrlen);
-		if (serverinf == SOCKET_ERROR) {
-			closesocket(clientsock);
-			clientsock = INVALID_SOCKET;
+void Receive_Data(void *fricc) {
+	char *data = (char*)malloc(10024);
+	PacketData_t *packetdata = (PacketData_t*)data;
+	while (1) {
+		sockaddr_in conninfo;
+		int recvamnt = recvfrom(Sock->sock, data, 10024, 0, (sockaddr*)&conninfo, &sockaddrsize);
+		if (recvamnt == SOCKET_ERROR) {
+			printf("Recv error: %d\n", WSAGetLastError());
 			continue;
 		}
-		else {
-			char nodelaything[] = { 1 };
-			if (setsockopt(clientsock, IPPROTO_TCP, TCP_NODELAY, nodelaything, 1)) {
-				printf("Setsockopt failed with error: %d\n", WSAGetLastError());
-				return INVALID_SOCKET;
-			}
-			printf("Connected!\n");
+		// if recvamnt is less than the size of expected packetdata, then drop it
+		if (recvamnt < sizeof(PacketData_t)) {
+			continue;
 		}
-		break;
-	}
-	/*
-	SOCKET clientsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (clientsock == INVALID_SOCKET) {
-	printf("socket function failed with error: %ld\n", WSAGetLastError());
-	return INVALID_SOCKET;
-	}
-	sockaddr_in clientService;
-	clientService.sin_family = AF_INET;
-	clientService.sin_addr.s_addr = inet_addr("127.0.0.1");
-	clientService.sin_port = htons(5029);
-	int serverinf;
-	serverinf = connect(clientsock, (SOCKADDR*) & clientService, sizeof(clientService));
-	if (serverinf == SOCKET_ERROR) {
-	printf("Connect failed: %ld\n", WSAGetLastError());
-	closesocket(clientsock);
-	clientsock = INVALID_SOCKET;
-	return INVALID_SOCKET;
-	}*/
-	return clientsock;
-}
+		// if node is -1, then treat it as a connection packet
+		if (packetdata->node == -1 && Host == 1) {
+			if (memcmp(data + sizeof(PacketData_t), CONNECTAUTH, sizeof(CONNECTAUTH)) == 0) {
+				int i = 0;
+				while (i < MAXCLIENTS) {
+					if (clients[i].used == false) {
+						clients[i].ReceiveStackMutex = CreateMutex(NULL, false, NULL);
+						clients[i].info = conninfo;
+						clients[i].used = 2;
+						clients[i].SendStackPos = 0;
+						clients[i].id = rand();
+						memset(clients[i].SendStack, 0, sizeof(SendStack_t) * FullStackSize);
+						// Send them an authorization packet
+						//char *bff = JoinSendClient(i);
+						PacketData_t *buff = (PacketData_t *)malloc(sizeof(PacketData_t) + 8);
+						int *intbuff = (int*)&buff[1];
+						intbuff[0] = clients[i].id;
+						intbuff[1] = i;
+						buff->id = ClientID;
+						buff->important = 0;
+						buff->node = 0;
+						buff->type = 0;
+						sendto(Sock->sock, (char*)buff, sizeof(PacketData_t) + 8, 0, (sockaddr*)&clients[i].info, sockaddrsize);
+						free(buff);
+						i = MAXCLIENTS;
+					}
+				}
+			}
+		} // Otherwise store this packet for later use.
+		else if (packetdata->node >= 0 && packetdata->node < MAXCLIENTS && (clients[packetdata->node].used && packetdata->id == clients[packetdata->node].id) || ClientNode == -1) {
+			// Some kind of system message, otherwise let other stuff deal with it
+			if (packetdata->important >= 2) {
+				// We've received acknowledgement for an important packet, remove it from the stack
+				if (packetdata->important == 2 && clients[packetdata->node].SendStack[packetdata->packetid].valid) {
+					clients[packetdata->node].SendStack[packetdata->packetid].valid = 0;
+					free(clients[packetdata->node].SendStack[packetdata->packetid].buff);
+					clients[packetdata->node].SendStack[packetdata->packetid].buff = NULL;
+					clients[packetdata->node].SendStack[packetdata->packetid].size = 0;
+				}
+				// They've connected and sent an ack, so give them necessary information
+				/*if (packetdata->important == 3) {
+				PacketData_t ack;
+				ack.id = ClientID;
+				ack.important = 2;
+				ack.node = ClientNode;
+				ack.packetid = packetdata->packetid;
+				sendto(Sock->sock, (char*)&ack, sizeof(PacketData_t), 0, (sockaddr*)&clients[packetdata->node].info, sockaddrsize);
+				char *outbuff = JoinSendClient(packetdata->node);
+				SendPacket(outbuff, packetdata->node, JoinClientSize, 1, true);
+				free(outbuff);
+				}*/
+			}
+			else
+			{
+				// Unless it's a 0, then it's a handshake and we should register it
+				if (packetdata->type == 0 && ClientNode == -1) {
+					int *intbuff = (int*)&packetdata[1];
+					ClientID = intbuff[0];
+					ClientNode = intbuff[1];
+					memset(&clients[ClientNode], 0, sizeof(ClientInfo_t));
+					clients[ClientNode].info = conninfo;
+					clients[ClientNode].id = packetdata->id;
+					clients[ClientNode].used = 1;
+					// Tell the server that we connected
+					char tmp = 0;
+					Packet_Send(&tmp, ClientNode, 1, 1, 0);
 
-void Serv_Connect(void *serv) {
-	SOCKET server = *(SOCKET*)serv;
-	while (1) {
-		Server_Connect(server);
+				}
+				else if (packetdata->type == 1 && clients[packetdata->node].used == 2) {
+					// Connection has been established with clients
+					clients[packetdata->node].used = 1;
+					// Run connection code here
+					// Fire our event to tell everyone else that someone connected!
+					char *buff = PlayerJoinEventOthersSend(packetdata->node);
+					Packet_Send_Host(buff, PlayerJoinEventOthersSize, 4, 1);
+					free(buff);
+					// Fire our connect event
+					buff = PlayerJoinEventSvSend();
+					Packet_Send(buff, packetdata->node, PlayerJoinEventSvSize, 16, 1);
+					free(buff);
+				}
+				else if (packetdata->type >= 1) {
+					int packid = packetdata->packetid;
+					int node = packetdata->node;
+					// If this is out of order, then store it for later
+					if (packetdata->important == 1) {
+						// If it's not used, otherwise can it
+						if (clients[node].ImportantStack[packid].used == 0) {
+							clients[node].ImportantStack[packid].Stack = (char*)malloc(recvamnt - (sizeof(PacketData_t) - 4));
+							char *test = data + (sizeof(PacketData_t) - 4);
+							memcpy(clients[node].ImportantStack[packid].Stack, test, recvamnt - (sizeof(PacketData_t) - 4));
+							clients[node].ImportantStack[packid].StackSize = recvamnt - (sizeof(PacketData_t) - 4);
+							clients[node].ImportantStack[packid].used = 2;
+							PacketData_t ack;
+							ack.id = ClientID;
+							ack.important = 2;
+							ack.node = ClientNode;
+							ack.packetid = packetdata->packetid;
+							sendto(Sock->sock, (char*)&ack, sizeof(PacketData_t), 0, (sockaddr*)&clients[packetdata->node].info, sockaddrsize);
+						}
+						else if (clients[node].ImportantStack[packid].used == 1) {
+							CloseConn(&clients[packetdata->node]);
+						}
+						else if (clients[node].ImportantStack[packid].used == 2) {
+							PacketData_t ack;
+							ack.id = ClientID;
+							ack.important = 2;
+							ack.node = ClientNode;
+							ack.packetid = packetdata->packetid;
+							sendto(Sock->sock, (char*)&ack, sizeof(PacketData_t), 0, (sockaddr*)&clients[packetdata->node].info, sockaddrsize);
+						}
+					}
+					else {
+						// Claim the mutex
+						WaitForSingleObject(clients[packetdata->node].ReceiveStackMutex, INFINITE);
+						ClientInfo_t *cl = &clients[packetdata->node];
+						// Allocate memory to the stack's buffer
+						clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].Stack = (char*)malloc(recvamnt - (sizeof(PacketData_t) - 4));
+						// Copy data to our receiving buffer
+						char *test = data + (sizeof(PacketData_t) - 4);
+						memcpy(clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].Stack, test, recvamnt - (sizeof(PacketData_t) - 4));
+						// Store size and mark as used
+						clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].StackSize = recvamnt - (sizeof(PacketData_t) - 4);
+						clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].used = true;
+						cl->ReceiveStackPos++;
+						// Release mutex
+						ReleaseMutex(clients[packetdata->node].ReceiveStackMutex);
+					}
+				}
+				ClientInfo_t *cl = &clients[packetdata->node];
+				// it was an important packet, so let's tell the server that we received it and copy the data to be read
+				while (cl->ImportantStack[(cl->ImportantStackPos + 1) % FullStackSize].used) {
+					// Claim the mutex
+					WaitForSingleObject(clients[packetdata->node].ReceiveStackMutex, INFINITE);
+					cl->ImportantStackPos++;
+					cl->ImportantStackPos %= FullStackSize;
+					cl->ReceiveStack[cl->ReceiveStackPos].Stack = cl->ImportantStack[cl->ImportantStackPos].Stack;
+					cl->ReceiveStack[cl->ReceiveStackPos].StackSize = cl->ImportantStack[cl->ImportantStackPos].StackSize;
+					cl->ReceiveStack[cl->ReceiveStackPos].used = 1;
+					cl->ImportantStack[cl->ImportantStackPos].Stack = NULL;
+					cl->ImportantStack[cl->ImportantStackPos].used = 0;
+
+					// Register previous position to be re-used
+					int newpos = cl->ImportantStackPos;
+					if (newpos < SendStackSize) {
+						newpos = FullStackSize - SendStackSize;
+					}
+					else {
+						newpos -= SendStackSize;
+					}
+					cl->ImportantStack[newpos].used = 0;
+					cl->ReceiveStackPos++;
+					// Release mutex
+					ReleaseMutex(clients[packetdata->node].ReceiveStackMutex);
+				}
+			}
+		}
+		//printf(data);
+		//char *str = (char*)malloc(32); //this code will get ip, just leaving it just in case
+		//inet_ntop(AF_INET, &frikk.sin_addr.S_un.S_addr, str, 32);
+		//printf(str);
 	}
+	free(data);
 }
 
 // fun
 float GetFloatBuff(char *buff, int offs) {
-	float *retval = (float*)(buff + offs);
+	float *retval = (float*)(&buff[offs]);
 	return *retval;
 }
 
 int GetIntBuff(char *buff, int offs) {
-	int *retval = (int*)(buff + offs);
+	int *retval = (int*)(&buff[offs]);
+	return *retval;
+}
+
+short GetShortBuff(char *buff, int offs) {
+	short *retval = (short*)(&buff[offs]);
 	return *retval;
 }
 
@@ -672,83 +412,80 @@ bool ShouldMoveToHost = false;
 void Net_ParseBuffs() {
 	int i = 0;
 	while (i < MAXCLIENTS) {
-		if (sockets[i].used == 1) {
+		if (clients[i].used == 1) {
 			// Need to parse everything
 			int arraypos = 0;
-			WaitForSingleObject(buffmutexes[i], INFINITE);
-			while (arraypos < databuffsizes[i]) {
+			WaitForSingleObject(clients[i].ReceiveStackMutex, INFINITE);
+			while (arraypos < clients[i].ReceiveStackPos) {
 				// Determine the first int to determine the function to use
-				switch (GetIntBuff(databuffs[i], arraypos)) {
+				switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
 				case 0:
-					// RESERVED
-					PlayerJoinEventSvRecv(databuffs[i] + arraypos + 4);
-					arraypos += PlayerJoinEventSvSize + 4;
-					break;
+					// N/A
 				case 1:
-					// RESERVED
+					// On connection event
+
+					arraypos++;
 					break;
 				case 2:
 					// Player events
-					if (host == true) {
-						PlayerEventRecvFuncs[GetIntBuff(databuffs[i], arraypos + 4)]((unsigned char*)databuffs[i] + arraypos + 8, i);
+					if (Host == 1) {
+						PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
 					}
 					else {
-						PlayerEventRecvFuncs[GetIntBuff(databuffs[i], arraypos + 4)]((unsigned char*)databuffs[i] + arraypos + 8, CliNum);
-						if (ShouldMoveToHost == true && GetIntBuff(databuffs[i], arraypos + 4) == PlayerUpdateEvent) {
-							memcpy(&(player->x), &players[CliNum].x, sizeof(int));
-							memcpy(&(player->y), &players[CliNum].y, sizeof(int));
+						PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, ClientNode);
+						if (ShouldMoveToHost == true && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerUpdateEvent) {
+							memcpy(&(player->x), &players[ClientNode].x, sizeof(int));
+							memcpy(&(player->y), &players[ClientNode].y, sizeof(int));
 							ShouldMoveToHost = false;
 						}
 					}
 					// relay data
-					if (host == true) {
-						int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(databuffs[i], arraypos + 4)] + 16;
+					if (Host == true) {
+						int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
 						char *temparray = (char*)malloc(buffsize);
-						memcpy(temparray + 8, databuffs[i] + arraypos, buffsize - 8);
-						int temp = 3;
-						memcpy(temparray, &temp, 4);
-						memcpy(temparray + 4, &i, 4);
-						Net_AddToOut(temparray, buffsize);
+						memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
+						memcpy(temparray, &i, 4);
+						Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
+						free(temparray);
 					}
-					arraypos += sizeof(char)*PlayerEventRecvSizes[GetIntBuff(databuffs[i], arraypos + 4)] + 8;
+					arraypos++;
 					break;
 				case 3:
 				{
-					int pnode = GetIntBuff(databuffs[i], arraypos + 4);
+					int pnode = GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4);
 					// Relayed data
-					arraypos += 8;
-					switch (GetIntBuff(databuffs[i], arraypos)) {
+					switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
 					case 2:
-						if (host == false && CliNum != pnode) {
-							PlayerEventRecvFuncs[GetIntBuff(databuffs[i], arraypos + 4)]((unsigned char*)databuffs[i] + arraypos + 8, pnode);
+						if (Host == 0 && ClientNode != pnode) {
+							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 12)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 16, pnode);
 						}
-						arraypos += sizeof(char)*PlayerEventRecvSizes[GetIntBuff(databuffs[i], arraypos + 4)] + 8;
 						break;
 					}
+					arraypos++;
 				}
 				break;
 				case 4:
-					if (host != 1) {
+					if (Host != 1) {
 						// Someone has joined so we must tell everyone
-						PlayerJoinEventOthersRecv(databuffs[i] + arraypos + 4);
+						PlayerJoinEventOthersRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 					}
-					arraypos += PlayerJoinEventOthersSize + 4;
+					arraypos++;
 					break;
 				case 5:
-					if (host != 1) {
+					if (Host != 1) {
 						// Someone has left so we must tell everyone
-						PlayerDisconnectRecv(databuffs[i] + arraypos + 4);
+						PlayerDisconnectRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 					}
-					arraypos += PlayerDisconnectSize + 4;
+					arraypos++;
 					break;
 				case 6:
 					// special tsc execute command
-					if (host != 1) {
+					if (Host != 1) {
 						TscExec = 1;
 						// If we're dead then respawn
-						if (host == 0 && player->hp == 0) {
-							player->x = players[CliNum].x;
-							player->y = players[CliNum].y;
+						if (Host == 0 && player->hp == 0) {
+							player->x = players[ClientNode].x;
+							player->y = players[ClientNode].y;
 							player->hp = max(player->maxHealth / 4 , 1);
 							player->hide = false;
 						}
@@ -756,17 +493,17 @@ void Net_ParseBuffs() {
 							game.setmode(GM_NORMAL, 0, true);
 							game.pause(0);
 						}
-						game.tsc->StartScript(GetIntBuff(databuffs[i],arraypos+4));
+						game.tsc->StartScript(GetIntBuff(clients[i].ReceiveStack[arraypos].Stack,4));
 					}
-					arraypos += 8;
+					arraypos++;;
 					break;
 				case 7:
 					// Sync serialized object spawning
-					if (host == 0) {
+					if (Host == 0) {
 						objargs obj;
-						memcpy(&obj, databuffs[i] + arraypos + 8, sizeof(objargs));
+						memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(objargs));
 						int ser;
-						memcpy(&ser, databuffs[i] + arraypos + 4, sizeof(int));
+						memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 						// We are loading from the start of the level, so store it for when we load a level
 						if (obj.onLoad == true) {
 							nextloadobjs[nextloadid] = obj;
@@ -779,66 +516,66 @@ void Net_ParseBuffs() {
 							netobjs[ser].obj->serialization = ser;
 						}
 					}
-					arraypos += sizeof(objargs) + (sizeof(int) * 2);
+					arraypos++;
 
 					break;
 				case 8:
 					// Sync serialized object step
 					int id;
-					memcpy(&id, databuffs[i] + arraypos + 4, sizeof(int));
+					memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 					int obj;
-					memcpy(&obj, databuffs[i] + arraypos + 8, sizeof(int));
+					memcpy(&obj, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
 					// Only if we're not host, AND a function exists there! Jumping to arbitrary memory is a very bad idea.
-					if (host == 0 && id < OBJ_LAST && ObjSyncTickFuncsRecv[id] != NULL && netobjs[obj].valid == true) {
-						ObjSyncTickFuncsRecv[id](databuffs[i] + arraypos + 12, obj);
+					if (Host == 0 && id < OBJ_LAST && ObjSyncTickFuncsRecv[id] != NULL && netobjs[obj].valid == true) {
+						ObjSyncTickFuncsRecv[id](clients[i].ReceiveStack[arraypos].Stack + 12, obj);
 					}
-					arraypos += ObjSyncTickSizes[id] + 12;
+					arraypos++;
 					break;
 				case 9:
 					// Sync serialized object death
-					if (host == 0) {
+					if (Host == 0) {
 						int id;
-						memcpy(&id, databuffs[i] + arraypos + 4, sizeof(int));
+						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
 							netobjs[id].obj->OnDeath(true);
 						}
 					}
-					arraypos += 8;
+					arraypos++;
 					break;
 				case 10:
 					// Sync serialized object removal
-					if (host == 0) {
+					if (Host == 0) {
 						int id;
-						memcpy(&id, databuffs[i] + arraypos + 4, sizeof(int));
+						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
 							netobjs[id].obj->Delete(1);
 						}
 					}
-					arraypos += 8;
+					arraypos++;
 					break;
 				case 11:
 					// Sync serialized object removal
-					if (host == 0) {
+					if (Host == 0) {
 						int id;
-						memcpy(&id, databuffs[i] + arraypos + 4, sizeof(int));
+						memcpy(&id, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 						if (id < MAX_OBJECTS && netobjs[id].valid == true) {
 							netobjs[id].obj->Kill(true);
 						}
 					}
-					arraypos += 8;
+					arraypos++;
 					break;
 				case 12:
 					// An object has changed! We need to serialize it.
-					if (host == 0) {
+					if (Host == 0) {
 						int id2 = 0;
-						memcpy(&id2, databuffs[i] + arraypos + 4, sizeof(short));
+						memcpy(&id2, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(short));
 						Object *o = ID2Lookup[id2];
 						int newtype;
-						memcpy(&newtype, databuffs[i] + arraypos + 8, sizeof(int));
+						memcpy(&newtype, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
 						if (newtype < OBJ_LAST) {
 							o->ChangeType(newtype, true);
 							unsigned int ser;
-							memcpy(&ser, databuffs[i] + arraypos + 12, sizeof(int));
+							memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 12, sizeof(int));
 							if (ser < MAX_OBJECTS) {
 								o->serialization = ser;
 								netobjs[ser].obj = o;
@@ -846,25 +583,24 @@ void Net_ParseBuffs() {
 							}
 						}
 					}
-					arraypos += 16;
+					arraypos++;
 					break;
 				case 13: {
 					// Host has reloaded save, adjust
-					if (host == 0) {
+					if (Host == 0) {
 						int i = 0;
-						arraypos += 4;
 						// change map
-						memcpy(&game.switchstage.mapno, databuffs[i] + arraypos, sizeof(int));
-						memcpy(&(player->inventory), databuffs[i] + arraypos + sizeof(int), sizeof(int) * MAX_INVENTORY);
-						memcpy(&(player->ninventory), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-						memcpy(&(player->weapons), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
-						memcpy(&game.flags, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
-						memcpy(&(player->maxHealth), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
+						memcpy(&game.switchstage.mapno, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
+						memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int) + 4, sizeof(int) * MAX_INVENTORY);
+						memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+						memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
+						memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
+						memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
 						for (i = 0; i<NUM_TELEPORTER_SLOTS; i++)
 						{
 							int slotno, scriptno;
-							memcpy(&slotno, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
-							memcpy(&scriptno, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+							memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+							memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
 							if (slotno != 0 && scriptno != 0) {
 								textbox.StageSelect.SetSlot(slotno, scriptno);
 							}
@@ -875,18 +611,17 @@ void Net_ParseBuffs() {
 						player->hp = player->maxHealth; // fade
 						// Note that we should move to the host
 						ShouldMoveToHost = true;
-						arraypos -= 4;
 					}
-					arraypos += (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+					arraypos++;
 				}
 				break;
 				case 14:
 				{
 					// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
-					if (host == 0) {
+					if (Host == 0) {
 						game.pause(0);
 						int parm[4];
-						memcpy(parm, databuffs[i] + arraypos + 4, sizeof(int) * 4);
+						memcpy(parm, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int) * 4);
 
 						bool waslocked = (player->inputs_locked || game.frozen);
 
@@ -909,66 +644,50 @@ void Net_ParseBuffs() {
 							}
 						}
 						// also update player.invisible
-						player->invisible = databuffs[i][arraypos + (sizeof(int) * 5)];
-						player->hide = databuffs[i][arraypos + (sizeof(int) * 5) + 1];
+						player->invisible = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5)];
+						player->hide = clients[i].ReceiveStack[arraypos].Stack[(sizeof(int) * 5) + 1];
 					}
-					arraypos += (sizeof(int) * 5) + 2;
+					arraypos++;
 				}
 					break;
 				case 15: {
 					// Sync flags and inventory, very useful for maintaining syncronization
-					if (host == 0) {
-						memcpy(&(player->inventory), databuffs[i] + arraypos + sizeof(int), MAX_INVENTORY * sizeof(int));
-						memcpy(&(player->ninventory), databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-						memcpy(&game.flags, databuffs[i] + arraypos + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+					if (Host == 0) {
+						memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int), MAX_INVENTORY * sizeof(int));
+						memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
+						memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
 					}
-					arraypos += (sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS;
+					arraypos++;
+				}
+				break;
+				case 16: {
+					PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
+					arraypos++;
 				}
 				break;
 				default:
 					// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
-					arraypos = databuffsizes[i];
-					Chat_WriteToLog("CRITICAL ERROR! If you see this, please report it on #bug_reports on the Discord");
+					arraypos++;
 					break;
 				}
+				free(clients[i].ReceiveStack[arraypos-1].Stack);
+				clients[i].ReceiveStack[arraypos-1].Stack = NULL;
+				clients[i].ReceiveStack[arraypos-1].used = 0;
 			}
 		}
-		databuffsizes[i] = 0;
-		ReleaseMutex(buffmutexes[i]);
+		clients[i].ReceiveStackPos = 0;
+		ReleaseMutex(clients[i].ReceiveStackMutex);
 		i++;
 	}
 }
 
-// Send out data at end of frame
-void Net_SendData() {
-	memmove(outbuff + 4, outbuff, outbuffsize);
-	memcpy(outbuff, &outbuffsize, sizeof(int));
-	if (host == true) {
-		Packet_Send_Host(server, outbuff, outbuffsize + 4);
-	}
-	else {
-		if (host == 0) {
-			Packet_Send(&client, outbuff, outbuffsize + 4);
-		}
-	}
-	outbuffsize = 0;
-}
-
-// Add to out buff
-void Net_AddToOut(char *buff, int buffsize) {
-	// We need control over this!
-	WaitForSingleObject(outbuffmutex, INFINITE);
-	memcpy(outbuff + outbuffsize, buff, buffsize);
-	outbuffsize += buffsize;
-	ReleaseMutex(outbuffmutex);
-}
-
 // for player functions
-int Net_RegisterPlayerEventSend(char *(*func)(), int buffsize) {
+int Net_RegisterPlayerEventSend(char *(*func)(), int buffsize, bool important) {
 	//PlayerEventSendFuncs = (char *(**)())realloc(PlayerEventSendFuncs, sizeof(void(*)(void))*PlayerEventSendNum + 1);
 	//PlayerEventSendSizes = (int*)realloc(PlayerEventSendSizes, sizeof(int)*PlayerEventSendNum + 1);
 	PlayerEventSendFuncs[PlayerEventSendNum] = func;
 	PlayerEventSendSizes[PlayerEventSendNum] = buffsize;
+	PlayerEventImportant[PlayerEventSendNum] = important;
 	PlayerEventSendNum++;
 	return PlayerEventSendNum - 1;
 }
@@ -985,16 +704,18 @@ int Net_RegisterPlayerEventRecv(void(*func)(unsigned char*, int), int buffsize) 
 
 void Net_FirePlayerEvent(int ev) {
 	int evs = PlayerEventSendSizes[ev];
-	char *evbuff = (char*)malloc(sizeof(char)*(8 + evs));
+	char *evbuff = (char*)malloc(sizeof(char)*(4 + evs));
 	char *retarry = PlayerEventSendFuncs[ev]();
+	if (ev != 1) {
+		printf("lol");
+	}
 	if (evs != 0) {
-		memcpy(evbuff + 8, retarry, evs);
+		memcpy(evbuff + 4, retarry, evs);
 		free(retarry);
 	}
-	int tmp = 2;
-	memcpy(evbuff, &tmp, sizeof(int));
-	memcpy(evbuff + 4, &ev, sizeof(int));
-	Net_AddToOut(evbuff, evs + 8);
+	memcpy(evbuff, &ev, sizeof(int));
+	Packet_Send_Host(evbuff, evs + 8, 2, PlayerEventImportant[ev]);
+	free(evbuff);
 }
 
 
@@ -1041,10 +762,45 @@ void Net_RegisterDisconnectRecv(void(*func)(char*)) {
 	PlayerDisconnectRecv = func;
 }
 
+long long oldtime;
+
+void ResendImportant(void *notused) {
+	int i = 0;
+	time_t newtime;
+	long long t = time(&newtime);
+	int finaltime = t - oldtime;
+	while (i < MAXCLIENTS) {
+		if (clients[i].used) {
+			int startpos = clients[i].SendStackPos;
+			if (startpos < SendStackSize) {
+				startpos = FullStackSize - (SendStackSize - startpos);
+			}
+			else {
+				startpos -= SendStackSize;
+			}
+			int itsize = (clients[i].SendStackPos + 1) % FullStackSize;
+			while (startpos != clients[i].SendStackPos) {
+				if (clients[i].SendStack[startpos].valid) {
+					clients[i].SendStack[startpos].time += finaltime;
+					if (clients[i].SendStack[startpos].time >= clients[i].SendStack[startpos].timeout) {
+						sendto(Sock->sock, clients[i].SendStack[startpos].buff, clients[i].SendStack[startpos].size, 0, (sockaddr*)&clients[i].info, sockaddrsize);
+						clients[i].SendStack[startpos].timeout += 300;
+					}
+				}
+				startpos++;
+				startpos %= FullStackSize;
+			}
+		}
+		i++;
+	}
+	oldtime = t;
+	return;
+}
+
 // Call this function to parse all networking related activity
 void Net_Step() {
+	// Handle timeouts
+	_beginthread(ResendImportant, 1024, NULL);
 	// ALWAYS parse data every frame
 	Net_ParseBuffs();
-	// TODO: proper timing
-	Net_SendData();
 }

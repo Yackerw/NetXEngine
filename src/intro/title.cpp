@@ -79,7 +79,7 @@ static void draw_title()
 	if (Multiplayer == 0) {
 		//show if its hosting
 		const char* multitx;
-		if (host != -1) {
+		if (Host != -1) {
 			multitx = "----";
 		}
 		else {
@@ -87,7 +87,7 @@ static void draw_title()
 		}
 		const char* mymenus[] = { "New game","Load game", "Options", multitx, "Quit" };
 
-		if (host == 1) {
+		if (Host == 1) {
 			font_draw(cx + 10, cy - 32, "(Hosting!)");
 		}
 
@@ -153,15 +153,13 @@ static void draw_title()
 		font_draw(cx + 10, cy, name);
 	}
 	if (Multiplayer == 6) {
-		client = Client_Connect(IPAddress);
-		if (client != INVALID_SOCKET) {
-			sockrecthread *sock;
-			sock = (sockrecthread*)malloc(sizeof(sockrecthread));
-			sock->sock = client;
-			sock->socknum = 0;
-			sockets[0].used = 1;
-			_beginthread(packet_receiving, 256, (void*)sock);
-			host = 0;
+		Sock = ClientCreate(IPAddress, 5029);
+		if (Sock != NULL) {
+			_beginthread(Receive_Data, 1024, NULL);
+			while (ClientNode == -1) {
+				Sleep(16);
+			}
+			Host = 0;
 			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
 
 			//set name to "Player" if empty
@@ -397,7 +395,7 @@ static void selectoption(int index)
 		break;
 		case 3:		// Multiplayer
 		{
-			if (host == -1) {
+			if (Host == -1) {
 				Multiplayer = 1;
 				title.cursel = 0;
 			}
@@ -418,10 +416,9 @@ static void selectoption(int index)
 		}
 		break;
 		case 20: {		// Start hosting
-			server = Server_Create();
-			Server_Listen(server);
-			_beginthread(Serv_Connect, 256, (void*)&server);
-			host = 1;
+			Sock = Server_Create(5029);
+			_beginthread(Receive_Data, 1024, NULL);
+			Host = 1;
 			Multiplayer = 0;
 
 			//set name to "~Host" if empty

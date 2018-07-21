@@ -361,18 +361,16 @@ bool freshstart;
 			}
 
 			// Loaded, inform everyone to drop everything and revert to this gamestate
-			if (host == 1) {
-				int buffsize = (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+			if (Host == 1) {
+				int buffsize = (sizeof(int) * (2 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
 				char *buff = (char*)malloc(buffsize);
-				int tmp = 13;
-				memcpy(buff, &tmp, sizeof(int));
 				// also give us the current level
-				memcpy(buff + sizeof(int), &game.curmap, sizeof(int));
-				memcpy(buff + sizeof(int) * 2, &(player->inventory), MAX_INVENTORY * sizeof(int));
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->ninventory), sizeof(int));
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
+				memcpy(buff, &game.curmap, sizeof(int));
+				memcpy(buff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
 
 
 				int i = 0;
@@ -382,11 +380,11 @@ bool freshstart;
 					if (!textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno))
 						//textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno);
 					{
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 5)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
 					}
 				}
-				Net_AddToOut(buff, buffsize);
+				Packet_Send_Host(buff, buffsize, 13, 1);
 				free(buff);
 			}
 			

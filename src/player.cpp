@@ -1267,7 +1267,7 @@ void killplayer(int script)
 	
 	player->hp = 0;
 	// If we are client then don't truely die
-	if (host != 0) {
+	if (Host != 0) {
 		player->dead = true;
 	}
 	player->hide = true;
@@ -1593,7 +1593,7 @@ void PSelectFrame(void)
 // mimiga mask support
 void PSelectSprite(void)
 {
-	if (host == -1) {
+	if (Host == -1) {
 		player->sprite = (player->equipmask & EQUIP_MIMIGA_MASK) ? \
 			SPR_MYCHAR_MIMIGA : SPR_MYCHAR;
 	}
@@ -1721,7 +1721,7 @@ int scr_x, scr_y;
 	if (player->equipmask & EQUIP_WHIMSTAR)
 		draw_whimstars(&player->whimstar);
 
-	if (host != -1) {
+	if (Host != -1) {
 		player->sprite = SPR_MYCHAR;
 	}
 }

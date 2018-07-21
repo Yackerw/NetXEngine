@@ -64,15 +64,13 @@ void Object::Delete(int synced)
 Object * const &o = this;
 
 	// If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == 0 && this->serialization != -1) {
+	if (Host == 0 && synced == 0 && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1 && synced != 2) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 10;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1 && synced != 2) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 4, 10, 1);
 		free(outbuff);
 	}
 	if (o->deleted)
@@ -168,12 +166,12 @@ Object * const &o = this;
 		short pcount = 0;
 		short i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
+			if (clients[i].used == true) {
 				pcount++;
 			}
 			i++;
 		}
-		o->hp += (o->hp * (1.85f * pcount));
+		o->hp += (o->hp * (0.9f * pcount));
 	}
 	
 	// apply nxflags to new object type!
@@ -200,10 +198,10 @@ Object * const &o = this;
 void Object::ChangeType(int type, bool synced)
 {
 Object * const &o = this;
-	if (ObjSyncTickFuncsRecv[type] != NULL && host == 0 && synced == false) {
+	if (ObjSyncTickFuncsRecv[type] != NULL && Host == 0 && synced == false) {
 		return;
 	}
-	if (host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
+	if (Host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
 		if (this->serialization == -1) {
 			this->serialization = serializeid;
 			serializeid++;
@@ -213,14 +211,12 @@ Object * const &o = this;
 		netobjs[this->serialization].tickfunc = ObjSyncTickFuncs[type];
 		// This is generally only called by ID2 so determine the ID2 and use that
 		char *outbuff = (char*)malloc(sizeof(int) * 4);
-		int tmp = 12;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->id2), sizeof(short));
-		outbuff[6] = 0;
-		outbuff[7] = 0;
-		memcpy(outbuff + 8, &type, sizeof(int));
-		memcpy(outbuff + 12, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, sizeof(int) * 4);
+		memcpy(outbuff, &(this->id2), sizeof(short));
+		outbuff[2] = 0;
+		outbuff[3] = 0;
+		memcpy(outbuff + 4, &type, sizeof(int));
+		memcpy(outbuff + 8, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, sizeof(int) * 3, 12, 1);
 		free(outbuff);
 	}
 	// un-serialize
@@ -806,15 +802,13 @@ void Object::Kill(bool synced)
 Object * const &o = this;
 	
 // If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == false && this->serialization != -1) {
+	if (Host == 0 && synced == false && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 11;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 8, 11, 1);
 		free(outbuff);
 	}
 	o->hp = 0;
@@ -1132,15 +1126,13 @@ void Object::OnSpawn()
 void Object::OnDeath(bool synced)
 {
 	// If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == false && this->serialization != -1) {
+	if (Host == 0 && synced == false && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 9;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 4, 9, 1);
 		free(outbuff);
 	}
 	if (objprop[this->type].ai_routines.ondeath)
@@ -1173,14 +1165,12 @@ void UpdateObjSyncs() {
 	while (i < serializeid) {
 		if (netobjs[i].valid == true && netobjs[i].tickfunc != NULL) {
 			char *buff = netobjs[i].tickfunc(netobjs[i].obj);
-			int size = ObjSyncTickSizes[netobjs[i].obj->type] + 12;
+			int size = ObjSyncTickSizes[netobjs[i].obj->type] + 8;
 			buff = (char*)realloc(buff, size);
-			memmove(buff + 12, buff, size - 12);
-			int tmp = 8;
-			memcpy(buff, &tmp, sizeof(int));
-			memcpy(buff + 4, &(netobjs[i].obj->type), sizeof(int));
-			memcpy(buff + 8, &i, sizeof(int));
-			Net_AddToOut(buff, size);
+			memmove(buff + 8, buff, size - 8);
+			memcpy(buff, &(netobjs[i].obj->type), sizeof(int));
+			memcpy(buff + 4, &i, sizeof(int));
+			Packet_Send_Host(buff, size, 8, 0);
 			free(buff);
 		}
 		i++;

@@ -256,7 +256,7 @@ int ino;//, key;
 							if (ch == '1') ch = '!';
 						}
 						
-						if (host == -1) {
+						if (Host == -1) {
 							if (evt.type == SDL_KEYDOWN)
 								console.HandleKey(ch);
 							else
@@ -276,7 +276,7 @@ int ino;//, key;
 					
 					if (evt.type == SDL_KEYDOWN)
 					{
-						if (host != -1 && !chatstate.typing && key == 116) { //press t to chat
+						if (Host != -1 && !chatstate.typing && key == 116) { //press t to chat
 							chatstate.typing = 1;
 						}
 						// Special case: multiplayer IP input menu
