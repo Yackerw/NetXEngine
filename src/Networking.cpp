@@ -734,6 +734,9 @@ void Net_ParseBuffs() {
 					clients[i].ReceiveStack[arraypos - 1].Stack = NULL;
 					clients[i].ReceiveStack[arraypos - 1].used = 0;
 				}
+				 else {
+					 arraypos++;
+				}
 			}
 		}
 		clients[i].ReceiveStackPos = 0;
