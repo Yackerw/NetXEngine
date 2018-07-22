@@ -1329,7 +1329,7 @@ char *ConnectOthers(int joiner) {
 void ConnectOthersRecv(char *buff) {
 	int node;
 	memcpy(&node, buff, sizeof(int));
-	clients[node].used = true;
+	clients[node].used = 1;
 	players[node] = netInitPlayer();
 }
 
@@ -1390,7 +1390,9 @@ char *SkinSend() {
 }
 
 void SkinRecv(unsigned char *buff, int p) {
-	memcpy(&plskins[p], buff, sizeof(char));
+	if (buff[0] >= 0 && buff[0] < truenumskins) {
+		memcpy(&plskins[p], buff, sizeof(char));
+	}
 }
 
 int PlayerUpdateEvent;

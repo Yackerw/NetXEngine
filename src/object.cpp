@@ -201,7 +201,7 @@ Object * const &o = this;
 	if (ObjSyncTickFuncsRecv[type] != NULL && Host == 0 && synced == false) {
 		return;
 	}
-	if (Host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
+	if (Host == 1 && (ObjSyncTickFuncsRecv[type] != NULL || this->serialization != -1)) {
 		if (this->serialization == -1) {
 			this->serialization = serializeid;
 			serializeid++;

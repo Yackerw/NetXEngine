@@ -129,6 +129,7 @@ void CloseConn(ClientInfo_t *info) {
 		}
 		i2++;
 	}
+	info->used = 0;
 	if (nodenum != -1 && Host == 1) {
 		// Fire the disconnect event
 		char *discnnbuff = PlayerDisconnectSend(nodenum);
@@ -144,15 +145,17 @@ void CloseConn(ClientInfo_t *info) {
 		i++;
 	}
 	CloseHandle(info->ReceiveStackMutex);
-	info->used = 0;
 	memset(info, 0, sizeof(ClientInfo_t));
 }
 
 void Packet_Send(char *buff, int node, int datasize, short type, char important) {
+	if (Host == 0 && node != ClientNode) {
+		return;
+	}
 	// Set up header data, then copy in the other data
 	PacketData_t *data = (PacketData_t*)malloc(sizeof(PacketData_t) + datasize);
 	data->id = ClientID;
-	data->node = ClientNode;
+	data->node = node;
 	data->important = important;
 	data->type = type;
 	memcpy(&data[1], buff, datasize);
@@ -163,7 +166,7 @@ void Packet_Send(char *buff, int node, int datasize, short type, char important)
 		if (oldpos < 0) {
 			oldpos = FullStackSize + oldpos;
 		}
-		if (info->SendStack[info->SendStackPos].valid) {
+		if (info->SendStack[oldpos].valid) {
 			CloseConn(info);
 			free(data);
 			return;
@@ -173,11 +176,11 @@ void Packet_Send(char *buff, int node, int datasize, short type, char important)
 			free(info->SendStack[info->SendStackPos].buff);
 		}
 		// Store it and mark it
+		data->packetid = info->SendStackPos;
 		info->SendStack[info->SendStackPos].buff = (char*)malloc(datasize + sizeof(PacketData_t));
-		memcpy(info->SendStack[info->SendStackPos].buff, buff, datasize + sizeof(PacketData_t));
+		memcpy(info->SendStack[info->SendStackPos].buff, data, datasize + sizeof(PacketData_t));
 		info->SendStack[info->SendStackPos].valid = 1;
 		info->SendStack[info->SendStackPos].size = datasize + sizeof(PacketData_t);
-		data->packetid = info->SendStackPos;
 		timeb ti;
 		ftime(&ti);
 		long long t = (1000 * ti.time) + ti.millitm;
@@ -247,7 +250,6 @@ void Receive_Data(void *fricc) {
 		// Cleanup
 		if (Sock->sock == NULL || Sock->sock == SOCKET_ERROR) {
 			free(data);
-			free(packetdata);
 			return;
 		}
 		if (recvamnt == SOCKET_ERROR) {
@@ -287,11 +289,12 @@ void Receive_Data(void *fricc) {
 						ftime(&t);
 						clients[i].time = (1000 * t.time) + t.millitm;
 						clients[i].timeout = clients[i].time + 2000;
+						clients[i].ImportantStackPos = -1;
 						memset(clients[i].SendStack, 0, sizeof(SendStack_t) * FullStackSize);
 						// Send them an authorization packet
 						//char *bff = JoinSendClient(i);
 						PacketData_t *buff = (PacketData_t *)malloc(sizeof(PacketData_t) + 8);
-						int *intbuff = (int*)&buff[1];
+						int *intbuff = (int*)(&buff[1]);
 						intbuff[0] = clients[i].id;
 						intbuff[1] = i;
 						buff->id = ClientID;
@@ -337,13 +340,14 @@ void Receive_Data(void *fricc) {
 			{
 				// Unless it's a 0, then it's a handshake and we should register it
 				if (packetdata->type == 0 && ClientNode == -1) {
-					int *intbuff = (int*)&packetdata[1];
+					int *intbuff = (int*)(&packetdata[1]);
 					ClientID = intbuff[0];
 					ClientNode = intbuff[1];
 					memset(&clients[ClientNode], 0, sizeof(ClientInfo_t));
 					clients[ClientNode].info = conninfo;
 					clients[ClientNode].id = packetdata->id;
 					clients[ClientNode].used = 1;
+					clients[ClientNode].ImportantStackPos = -1;
 					timeb t;
 					ftime(&t);
 					clients[ClientNode].timeout = ((1000 * t.time) + t.millitm) + 2000;
@@ -354,12 +358,12 @@ void Receive_Data(void *fricc) {
 				}
 				else if (packetdata->type == 1 && clients[packetdata->node].used == 2) {
 					// Connection has been established with clients
-					clients[packetdata->node].used = 1;
 					// Run connection code here
 					// Fire our event to tell everyone else that someone connected!
 					char *buff = PlayerJoinEventOthersSend(packetdata->node);
 					Packet_Send_Host(buff, PlayerJoinEventOthersSize, 4, 1);
 					free(buff);
+					clients[packetdata->node].used = 1;
 					// Fire our connect event
 					buff = PlayerJoinEventSvSend();
 					Packet_Send(buff, packetdata->node, PlayerJoinEventSvSize, 16, 1);
@@ -424,12 +428,12 @@ void Receive_Data(void *fricc) {
 					cl->ReceiveStack[cl->ReceiveStackPos].StackSize = cl->ImportantStack[cl->ImportantStackPos].StackSize;
 					cl->ReceiveStack[cl->ReceiveStackPos].used = 1;
 					cl->ImportantStack[cl->ImportantStackPos].Stack = NULL;
-					cl->ImportantStack[cl->ImportantStackPos].used = 0;
+					cl->ImportantStack[cl->ImportantStackPos].used = 2;
 
 					// Register previous position to be re-used
 					int newpos = cl->ImportantStackPos;
 					if (newpos < SendStackSize) {
-						newpos = FullStackSize - SendStackSize;
+						newpos = FullStackSize - (SendStackSize - cl->ImportantStackPos);
 					}
 					else {
 						newpos -= SendStackSize;
@@ -489,6 +493,9 @@ void Net_ParseBuffs() {
 					case 2:
 						// Player events
 						if (Host == 1) {
+							if (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerSkinUpdateEvent) {
+								printf("A");
+							}
 							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
 						}
 						else {
@@ -514,7 +521,7 @@ void Net_ParseBuffs() {
 					{
 						int pnode = GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4);
 						// Relayed data
-						switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)) {
+						switch (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 8)) {
 						case 2:
 							if (Host == 0 && ClientNode != pnode) {
 								PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 12)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 16, pnode);
@@ -719,12 +726,12 @@ void Net_ParseBuffs() {
 						}
 						arraypos++;
 					}
-							 break;
+					break;
 					case 16: {
 						PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 						arraypos++;
 					}
-							 break;
+					break;
 					default:
 						// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
 						arraypos++;
@@ -770,15 +777,15 @@ void Net_FirePlayerEvent(int ev) {
 	int evs = PlayerEventSendSizes[ev];
 	char *evbuff = (char*)malloc(sizeof(char)*(4 + evs));
 	char *retarry = PlayerEventSendFuncs[ev]();
-	if (ev != 1) {
-		printf("lol");
+	if (ev == PlayerSkinUpdateEvent) {
+		printf("A");
 	}
 	if (evs != 0) {
 		memcpy(evbuff + 4, retarry, evs);
 		free(retarry);
 	}
 	memcpy(evbuff, &ev, sizeof(int));
-	Packet_Send_Host(evbuff, evs + 8, 2, PlayerEventImportant[ev]);
+	Packet_Send_Host(evbuff, evs + 4, 2, PlayerEventImportant[ev]);
 	free(evbuff);
 }
 
@@ -865,8 +872,8 @@ void ResendImportant(void *notused) {
 			}
 			clients[i].time = t;
 			// Also timeout the client themselves. If we haven't heard from them in a while, nuke em
-			if (clients[i].time >= clients[i].timeout) {
-				CloseConn(&clients[i]);
+			if (clients[i].time >= clients[i].timeout && (Host == 1 || i == ClientNode)) {
+				//CloseConn(&clients[i]);
 			}
 		}
 		i++;

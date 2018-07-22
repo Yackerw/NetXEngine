@@ -18,7 +18,9 @@ extern int PlayerBladeEvent;
 extern int PlayerSkinUpdateEvent;
 extern char pskin;
 
-#define numskins 10
+#define numskins 13
+
+#define truenumskins 13 // Includes dev skins
 
 Player netInitPlayer();
 void netHandlePlayer(int pl);

@@ -429,18 +429,18 @@ bool freshstart;
 		if (game.initlevel()) {
 			// If we're the host then sync this TRA
 			if (Host == 1 && !synced) {
-				char *outbuff = (char*)malloc((sizeof(int) * 4) + 2);
-				memcpy(outbuff, old, sizeof(int) * 4);
-				outbuff[sizeof(int) * 4] = player->invisible;
-				outbuff[(sizeof(int) * 4) + 1] = player->hide;
-				Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
-				free(outbuff);
-				// PART 2
-				outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
+				char *outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
 				memcpy(outbuff, &(player->inventory), MAX_INVENTORY * sizeof(int));
 				memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY)), &(player->ninventory), sizeof(int));
 				memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &game.flags, NUM_GAMEFLAGS);
 				Packet_Send_Host(outbuff, (sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS, 15, 1);
+				free(outbuff);
+				// PART 2
+				outbuff = (char*)malloc((sizeof(int) * 4) + 2);
+				memcpy(outbuff, old, sizeof(int) * 4);
+				outbuff[sizeof(int) * 4] = player->invisible;
+				outbuff[(sizeof(int) * 4) + 1] = player->hide;
+				Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
 				free(outbuff);
 			}
 			free(old);

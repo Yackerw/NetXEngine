@@ -10,7 +10,7 @@
 #include "Networking.h"
 #include "NetPlayer.h"
 #include "chat.h"
-#include "stdio.h"
+#include <stdio.h>
 using namespace Graphics;
 using namespace Sprites;
 
@@ -43,7 +43,7 @@ void Chat_WriteToLog(char* str) {
 
 
 void Chat_Init() {
-	chatevent=Net_RegisterPlayerEventSend(Chat_SendMessage, 64);
+	chatevent = Net_RegisterPlayerEventSend(Chat_SendMessage, 64);
 	Net_RegisterPlayerEventRecv(Chat_ReceiveMessage, 64);
 
 	//open chatlog file
@@ -259,19 +259,51 @@ void Chat_Display() {
 				//font_draw(ctx, cty + (12 * i), chatmsgs[i].msg);
 				//font_draw(ctx, (cty-14*chatstate.typing) - (12 * chatstate.msgamount) + (12 * i), chatmsgs[i].msg, msgcol,true);
 				//font_draw(ctx, (cty - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
-				font_draw(ctx, (cty - (64*textbox.IsVisible()) - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
+				font_draw(ctx, (cty - (64 * textbox.IsVisible()) - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
 			}
 			i++;
 		}
 	}
 	if (chatstate.typing) {
-		DrawLine(ctx, cty + 12 - chatyoff, ctx + (5 * strlen(chatstate.msg))+5, cty + 12 - chatyoff, 0x00000000);//16777215U);
+		DrawLine(ctx, cty + 12 - chatyoff, ctx + (5 * strlen(chatstate.msg)) + 5, cty + 12 - chatyoff, 0x00000000);//16777215U);
 		font_draw(ctx, cty - chatyoff, (char*)&chatstate.msg, 0xFFFFFF00, true);
 	}
 
 	/*unsigned char i2 = 0;
 	while (i2 < 15) {
-		font_draw(0, i2 * 12, names[i2]);
-		i2++;
+	font_draw(0, i2 * 12, names[i2]);
+	i2++;
 	}*/
+}
+
+//config file functions
+void SavePlayerConfig() {
+	FILE* mcfgfile = fopen("playerconfig.dat", "w");
+	if (mcfgfile == NULL) {
+
+	}
+	fwrite(&player->skin, 1, 1, mcfgfile);
+	fwrite((char*)name, 1, 15, mcfgfile);
+	fclose(mcfgfile);
+	/*Yacker: reserve the first 16 bytes for name and 4 bytes after for skin
+	root: 4 bytes why
+	Yacker: because that's the size of an int
+	root: ah yes
+	root: waste hd space
+	Yacker: oh no. 4 bytes.
+	Yacker: anything but putting an extra 3 bytes on my disk
+	Yacker: do 4 bytes so it doesn't die with endianness
+	Yacker: oh wait, they're actually stored as a char. lol
+	root: 11/10
+	*/
+}
+
+void LoadPlayerConfig() {
+	FILE* mcfgfile = fopen("playerconfig.dat", "r");
+	if (mcfgfile == NULL) {
+		return;
+	}
+	fread(&player->skin, 1, 1, mcfgfile);
+	fread((char*)name, 1, 15, mcfgfile);
+	fclose(mcfgfile);
 }
