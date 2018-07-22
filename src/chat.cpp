@@ -10,7 +10,7 @@
 #include "Networking.h"
 #include "NetPlayer.h"
 #include "chat.h"
-#include "stdio.h"
+#include <stdio.h>
 using namespace Graphics;
 using namespace Sprites;
 
@@ -274,4 +274,36 @@ void Chat_Display() {
 		font_draw(0, i2 * 12, names[i2]);
 		i2++;
 	}*/
+}
+
+//config file functions
+void SavePlayerConfig() {
+	FILE* mcfgfile = fopen("playerconfig.dat", "w");
+	if (mcfgfile == NULL) {
+		
+	}
+	fwrite(&player->skin, 1, 1, mcfgfile);
+	fwrite((char*)name, 1, 15, mcfgfile);
+	fclose(mcfgfile);
+	/*Yacker: reserve the first 16 bytes for name and 4 bytes after for skin
+	root: 4 bytes why
+	Yacker: because that's the size of an int
+	root: ah yes
+	root: waste hd space
+	Yacker: oh no. 4 bytes.
+	Yacker: anything but putting an extra 3 bytes on my disk
+	Yacker: do 4 bytes so it doesn't die with endianness
+	Yacker: oh wait, they're actually stored as a char. lol
+	root: 11/10
+	*/
+}
+
+void LoadPlayerConfig() {
+	FILE* mcfgfile = fopen("playerconfig.dat", "r");
+	if (mcfgfile == NULL) {
+		return;
+	}
+	fread(&player->skin, 1, 1, mcfgfile);
+	fread((char*)name, 1, 15, mcfgfile);
+	fclose(mcfgfile);
 }

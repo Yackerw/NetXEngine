@@ -301,6 +301,18 @@ void PDoPhysics(void)
 	if (player->xinertia > player->decelspeed || player->xinertia < -player->decelspeed)
 	{
 		player->apply_xinertia(player->xinertia);
+		if (player->blockl == 1 && player->xinertia < -384) {
+			player->xinertia = -384;
+			if (pinputs[LEFTKEY] == false) {
+				player->xinertia = 0;
+			}
+		}
+		if (player->blockr == 1 && player->xinertia > 384) {
+			player->xinertia = 384;
+			if (pinputs[RIGHTKEY] == false) {
+				player->xinertia = 0;
+			}
+		}
 	}
 }
 
@@ -543,8 +555,8 @@ int limit;
 			{
 				player->xinertia -= walk_accel;
 				
-				if (player->xinertia < -player->walkspeed)
-					player->xinertia = -player->walkspeed;
+				//if (player->xinertia < -player->walkspeed)
+				//	player->xinertia = -player->walkspeed;
 			}
 		}
 		
@@ -557,8 +569,8 @@ int limit;
 			{
 				player->xinertia += walk_accel;
 				
-				if (player->xinertia > player->walkspeed)
-					player->xinertia = player->walkspeed;
+				//if (player->xinertia > player->walkspeed)
+				//	player->xinertia = player->walkspeed;
 			}
 		}
 		
@@ -651,7 +663,7 @@ void PDoFalling(void)
 		player->yinertia = 0;
 		return;
 	}
-	
+
 	// use jump gravity as long as Jump Key is down and we're moving up,
 	// regardless of whether a jump was ever actually initiated.
 	// this is for the fans that blow up--you can push JUMP to climb higher.
@@ -660,7 +672,6 @@ void PDoFalling(void)
 		if (player->yinertia < player->fallspeed)
 		{
 			player->yinertia += player->jumpfallaccel;
-			if (player->yinertia > player->fallspeed) player->yinertia = player->fallspeed;
 		}
 	}
 	else
@@ -668,12 +679,12 @@ void PDoFalling(void)
 		if (player->yinertia < player->fallspeed)
 		{
 			player->yinertia += player->fallaccel;
-			if (player->yinertia > player->fallspeed) player->yinertia = player->fallspeed;
 		}
 		
 		// if we no longer qualify for jump gravity then the jump is over
 		player->jumping = 0;
 	}
+	if (player->yinertia > player->fallspeed) player->yinertia = player->fallspeed;
 }
 
 
@@ -722,8 +733,9 @@ int i, key;
 				if (!inputs[DEBUG_MOVE_KEY] || !settings->enable_debug_keys)
 				{
 					player->lookaway = true;
-					player->xinertia = 0;
-					PTryActivateScript();
+					if (PTryActivateScript()) {
+						player->xinertia = 0;
+					}
 				}
 			}
 		}
@@ -1468,9 +1480,8 @@ static bool RunScriptAtLocation(int x, int y)
 
 static bool RunScriptAtX(int x)
 {
-	if (RunScriptAtLocation(x, player->y + (8 * CSFI)) || \
-		RunScriptAtLocation(x, player->y + (14 * CSFI)) || \
-		RunScriptAtLocation(x, player->y + (2 * CSFI)))
+	if (RunScriptAtLocation(x, player->CenterY() + (2 * CSFI)) || \
+		RunScriptAtLocation(x, player->CenterY() + (-2 * CSFI)))
 	{
 		return true;
 	}
@@ -1483,30 +1494,31 @@ static bool RunScriptAtX(int x)
 // called when you press down.
 // Tries to find an SCRIPTONACTIVATE object you are standing near and activate it.
 // if it can't find anything to activate, spawns the "question mark" effect.
-void PTryActivateScript()
+bool PTryActivateScript()
 {
 	if (RunScriptAtX(player->CenterX()))
-		return;
+		return 1;
 	
 	if (player->dir == RIGHT)
 	{
-		if (RunScriptAtX(player->Right()) || RunScriptAtX(player->Left()))
-			return;
+		if (RunScriptAtX(player->CenterX() + (CSFI * 2)) || RunScriptAtX(player->CenterX() - (CSFI * 2)))
+			return 1;
 	}
 	else
 	{
-		if (RunScriptAtX(player->Left()) || RunScriptAtX(player->Right()))
-			return;
+		if (RunScriptAtX(player->CenterX() - (CSFI * 2)) || RunScriptAtX(player->CenterX() + (CSFI * 2)))
+			return 1;
 	}
 	
 	// e.g. Plantation Rocket
 	if (player->riding && (player->riding->flags & FLAG_SCRIPTONACTIVATE))
 	{
 		game.tsc->StartScript(player->riding->id2);
-		return;
+		return 1;
 	}
 	
 	effect(player->CenterX(), player->CenterY(), EFFECT_QMARK);
+	return false;
 }
 
 

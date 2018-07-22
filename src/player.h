@@ -163,7 +163,7 @@ void killplayer(int script);
 void PHandleZeroG(void);
 void PInitRepel(void);
 void PDoRepel(void);
-void PTryActivateScript();
+bool PTryActivateScript();
 void PDoHurtFlash(void);
 void PSelectFrame(void);
 void PSelectSprite(void);

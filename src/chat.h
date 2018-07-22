@@ -1,5 +1,5 @@
 //made by root
-#include "stdio.h"
+#include <stdio.h>
 
 #ifndef __CHAT__
 	#define __CHAT__
@@ -44,4 +44,8 @@ extern FILE* chatlogfile;
 		void Chat_Step();
 
 	void Chat_Display();
+
+	void SavePlayerConfig();
+
+	void LoadPlayerConfig();
 #endif

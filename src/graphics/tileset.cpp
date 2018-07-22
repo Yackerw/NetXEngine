@@ -70,10 +70,6 @@ void Tileset::draw_tile(int x, int y, int t)
 	// 16 tiles per row on all tilesheet
 	int srcx = (t % 16) * TILE_W;
 	int srcy = (t / 16) * TILE_H;
-	
-	if (t == 33) {
-		printf("A");
-	}
 
 	DrawSurface(tileset, x, y, srcx, srcy, TILE_W, TILE_H);
 }

@@ -482,7 +482,9 @@ signed short *final;
 	{
 		// first mix instruments
 		mixed_sample = note_channel[0].outbuffer[cursample];
-		for(i=1;i<16;i++) mixed_sample += note_channel[i].outbuffer[cursample];
+		for (i = 1; i < 16; i++) { 
+			mixed_sample += note_channel[i].outbuffer[cursample];
+		}
 		
 		if (mixed_sample > 32767) mixed_sample = 32767;
 		else if (mixed_sample < -32768) mixed_sample = -32768;
