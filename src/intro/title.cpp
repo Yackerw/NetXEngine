@@ -468,6 +468,7 @@ bool title_init(int param)
 	game.switchstage.eventonentry = 0;
 	game.showmapnametime = 0;
 	textbox.SetVisible(false);
+	LoadPlayerConfig();
 	
 	if (niku_load(&title.besttime))
 		title.besttime = 0xffffffff;
