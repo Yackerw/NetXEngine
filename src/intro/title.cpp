@@ -308,6 +308,7 @@ static void handle_input()
 			Multiplayer = 1;
 			title.cursel = 3;
 			choice = 50;
+			SavePlayerConfig();
 		}
 
 		if (Multiplayer == 4) {
@@ -316,6 +317,7 @@ static void handle_input()
 				title.cursel = 4;
 			}
 			choice = 40;
+			SavePlayerConfig();
 		}
 
 		if (Multiplayer == 7) {
