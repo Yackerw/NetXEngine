@@ -18,6 +18,7 @@ using namespace Graphics;
 #include "debug.h"
 #include "ai/ai.h"
 #include "NetPlayer.h"
+#include "ai/boss/balfrog.h"
 
 char*(**ObjSyncTickFuncs)(Object *obj);
 void(**ObjSyncTickFuncsRecv)(char *buff, int id);
@@ -1139,6 +1140,15 @@ void Object::OnDeath(bool synced)
 		(*objprop[this->type].ai_routines.ondeath)(this);
 }
 
+void UpdateLinkedObject(Object *o) {
+	if (Host != 1 || o->serialization == -1) return;
+	char *buff = (char*)malloc(8);
+	memcpy(&buff[4], &o->linkedobject->serialization, 4);
+	memcpy(buff, &o->serialization, 4);
+	Packet_Send_Host(buff, 8, 18, 1);
+	free(buff);
+}
+
 int *ObjSyncTickSizes;
 
 void RegisterTickSyncFuncSend(char*(*func)(Object*), int id, int size) {
@@ -1178,8 +1188,8 @@ void UpdateObjSyncs() {
 }
 
 //simple functions for syncing
-char *BasicSync(Object *obj) {
-	char *outbuff = (char*)malloc(BASICSYNCSIZE);
+char *BasicSync(Object *o) {
+	/*char *outbuff = (char*)malloc(BASICSYNCSIZE);
 	memcpy(outbuff, &(obj->x), sizeof(int));
 	memcpy(outbuff + 4, &(obj->y), sizeof(int));
 	memcpy(outbuff + 8, &(obj->xinertia), sizeof(int));
@@ -1187,20 +1197,38 @@ char *BasicSync(Object *obj) {
 	memcpy(outbuff + 16, &(obj->state), sizeof(int));
 	memcpy(outbuff + 20, &(obj->substate), sizeof(int));
 	memcpy(outbuff + 24, &(obj->hp), sizeof(int));
-	memcpy(outbuff + 28, &(obj->dir), sizeof(int));
-	return outbuff;
+	memcpy(outbuff + 28, &(obj->dir), sizeof(int));*/
+	BasicSyncStruct *s = (BasicSyncStruct*)malloc(sizeof(BasicSyncStruct));
+	s->x = o->x;
+	s->y = o->y;
+	s->xinertia = o->xinertia;
+	s->yinertia = o->yinertia;
+	s->state = o->state;
+	s->substate = o->substate;
+	s->hp = o->hp;
+	s->dir = o->dir;
+	return(char*)s;
 }
 
 void BasicSyncRecv(char *buff, int objid) {
-	Object *obj = netobjs[objid].obj;
-	memcpy(&(obj->x), buff, sizeof(int));
+	Object *o = netobjs[objid].obj;
+	/*memcpy(&(obj->x), buff, sizeof(int));
 	memcpy(&(obj->y), buff + 4, sizeof(int));
 	memcpy(&(obj->xinertia), buff + 8, sizeof(int));
 	memcpy(&(obj->yinertia), buff + 12, sizeof(int));
 	memcpy(&(obj->state), buff + 16, sizeof(int));
 	memcpy(&(obj->substate), buff + 20, sizeof(int));
 	memcpy(&(obj->hp), buff + 24, sizeof(int));
-	memcpy(&(obj->dir), buff + 28, sizeof(int));
+	memcpy(&(obj->dir), buff + 28, sizeof(int));*/
+	BasicSyncStruct *s = (BasicSyncStruct*)buff;
+	o->x = s->x;
+	o->y = s->y;
+	o->xinertia = s->xinertia;
+	o->yinertia = s->yinertia;
+	o->state = s->state;
+	o->substate = s->substate;
+	o->hp = s->hp;
+	o->dir = s->dir;
 }
 
 // For mannan, sync nothing
@@ -1211,6 +1239,25 @@ char *MannanSync(Object *obj) {
 
 void MannanRecv(char *buff, int objid) {
 	return;
+}
+
+// For skull step feet, fixes some issues with them
+char *SkullStepSend(Object *o) {
+	SkullStepStruct *s = (SkullStepStruct*)malloc(sizeof(SkullStepStruct));
+	s->x = o->x;
+	s->y = o->y;
+	s->angle = o->angle;
+	s->angleoffset = o->angleoffset;
+	return (char*)s;
+}
+
+void SkullStepRecv(char *buff, int objid) {
+	Object *o = netobjs[objid].obj;
+	SkullStepStruct *s = (SkullStepStruct*)buff;
+	o->x = s->x;
+	o->y = s->y;
+	o->angle = s->angle;
+	o->angleoffset = s->angleoffset;
 }
 
 void RegisterBasic() {
@@ -1261,10 +1308,38 @@ void RegisterBasic() {
 	// How much you wanna bet that I'll forget I made this later and be totally confused as to why something is broken?
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_MISSILES, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_MISSILES);
-	RegisterTickSyncFuncSend(BasicSync, OBJ_BALFROG, BASICSYNCSIZE);
-	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALFROG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BAT_HANG, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BAT_HANG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BAT_CIRCLE, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BAT_CIRCLE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BEETLE_BROWN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BEETLE_BROWN);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POLISH, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POLISH);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POLISHBABY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POLISHBABY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC1, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC1);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC2, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC2);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SUNSTONE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SUNSTONE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_ARMADILLO, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_ARMADILLO);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CROW, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CROW);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CROWWITHSKULL, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CROWWITHSKULL);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLHEAD, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLHEAD);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLHEAD_CARRIED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLHEAD_CARRIED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLSTEP, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLSTEP);
+	RegisterTickSyncFuncSend(SkullStepSend, OBJ_SKULLSTEP_FOOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(SkullStepRecv, OBJ_SKULLSTEP_FOOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKELETON, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKELETON);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CURLY_BOSS, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CURLY_BOSS);
 }

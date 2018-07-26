@@ -14,6 +14,7 @@
 #include "../../player.h"
 #include "../../map.h"
 #include "../../graphics/sprites.h"
+#include "../../Networking.h"
 
 INITFUNC(AIRoutines)
 {
@@ -438,10 +439,11 @@ void ai_crow(Object *o)
 			{
 				if (!o->linkedobject)
 				{	// move towards player
-					if (o->x < player->x) o->xinertia += 0x10;
+					Player *P = FindPlayer(o);
+					if (o->x < P->x) o->xinertia += 0x10;
 									 else o->xinertia -= 0x10;
 					
-					if (o->y < player->y) o->yinertia += 0x10;
+					if (o->y < P->y) o->yinertia += 0x10;
 									 else o->yinertia -= 0x10;
 				}
 				else
@@ -480,9 +482,13 @@ Object *skull;
 
 	// create the skullhead we're carrying
 	skull = CreateObject(0, 0, OBJ_SKULLHEAD_CARRIED);
-	skull->linkedobject = o;
-	skull->timer = random(0, 50);
-	o->linkedobject = skull;
+	if (Host == 1) {
+		skull->linkedobject = o;
+		skull->timer = random(0, 50);
+		o->linkedobject = skull;
+		UpdateLinkedObject(o);
+		UpdateLinkedObject(skull);
+	}
 	
 	// switch over to the main crow AI, but only move up & down
 	o->yinertia = random(-0x200, -0x100);
@@ -554,11 +560,14 @@ void ai_skullhead_carried(Object *o)
 	// if our crow dies, change into a regular skullhead
 	if (!o->linkedobject)
 	{
-		o->type = OBJ_SKULLHEAD;
-		o->state = 2;	// falling
-		o->speed = 0x200;
-		XMOVE(o->speed);
-		ai_skullhead(o);
+		if (Host == 1) {
+			o->SetType(OBJ_SKULLHEAD);
+			o->type = OBJ_SKULLHEAD;
+			o->state = 2;	// falling
+			o->speed = 0x200;
+			XMOVE(o->speed);
+			ai_skullhead(o);
+		}
 		return;
 	}
 	
@@ -569,9 +578,11 @@ void ai_skullhead_carried(Object *o)
 		{
 			o->frame = 0;
 			
+			Player *P = FindPlayer(o);
+
 			// shoot only when player near
-			if ((abs(player->x - o->x) < (130 * CSFI)) &&
-				(abs(player->y - o->y) < (100 * CSFI)))
+			if ((abs(P->x - o->x) < (130 * CSFI)) &&
+				(abs(P->y - o->y) < (100 * CSFI)))
 			{
 				o->timer++;
 			}
@@ -704,12 +715,15 @@ Object *foot;
 			o->y += (7 * CSFI);
 			
 			// spawn the feet
-			foot = CreateObject(0, 0, OBJ_SKULLSTEP_FOOT);
-			foot->linkedobject = o;
-			
-			foot = CreateObject(0, 0, OBJ_SKULLSTEP_FOOT);
-			foot->linkedobject = o;
-			foot->angleoffset = 128;
+			if (Host == 1) {
+				foot = CreateObject(0, 0, OBJ_SKULLSTEP_FOOT);
+				foot->linkedobject = o;
+				UpdateLinkedObject(foot);
+				foot = CreateObject(0, 0, OBJ_SKULLSTEP_FOOT);
+				foot->linkedobject = o;
+				foot->angleoffset = 128;
+				UpdateLinkedObject(foot);
+			}
 			
 			o->state = 1;
 			o->angle = 200;
@@ -945,6 +959,7 @@ uint8_t pnear;
 void ai_curlys_mimigas(Object *o)
 {
 static const uint8_t mimiga_walk_frames[5] = { 0, 2, 0, 3 };
+Player *P = FindPlayer(o);
 
 	switch(o->state)
 	{
@@ -1003,8 +1018,7 @@ static const uint8_t mimiga_walk_frames[5] = { 0, 2, 0, 3 };
 			o->state = 14;
 			o->timer = random(0, 50);
 			o->animframe = 0;
-			
-			if (o->x <= player->x) o->dir = RIGHT;
+			if (o->x <= P->x) o->dir = RIGHT;
 					          else o->dir = LEFT;
 			// fall thru
 		case 14:
@@ -1087,6 +1101,7 @@ void c------------------------------() {}
 
 void ai_beetle_horizwait(Object *o)
 {
+	Player *P = FindPlayer(o);
 	enum { FLYING = 0, ON_WALL = 1 };
 	
 	if (o->state == FLYING)
@@ -1128,10 +1143,10 @@ void ai_beetle_horizwait(Object *o)
 	}
 	else
 	{	// waiting on wall
-		if (abs(o->y - player->y) < (12 * CSFI))
+		if (abs(o->y - P->y) < (12 * CSFI))
 		{
-			if ((o->dir == RIGHT && (player->x > o->x)) || \
-				(o->dir == LEFT && (player->x < o->x)))
+			if ((o->dir == RIGHT && (P->x > o->x)) || \
+				(o->dir == LEFT && (P->x < o->x)))
 			{
 				o->animframe = 0;
 				o->state = FLYING;

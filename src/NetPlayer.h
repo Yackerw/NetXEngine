@@ -22,6 +22,17 @@ extern char pskin;
 
 #define truenumskins 13 // Includes dev skins
 
+// Data syncing structs
+typedef struct {
+	int x;
+	int y;
+	int xinertia;
+	int yinertia;
+	int curweapon;
+	char dir;
+	bool inputs[INPUT_COUNT];
+} PlayerStepSync;
+
 Player netInitPlayer();
 void netHandlePlayer(int pl);
 void netHandlePlayer_am(int pl);

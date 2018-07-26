@@ -25,6 +25,7 @@
 #include "console.h"
 #include "ResourceManager.h"
 #include "Networking.h"
+#include "NetPlayer.h"
 
 // which textbox options are enabled by the "<TUR" script command.
 #define TUR_PARAMS		(TB_LINE_AT_ONCE | TB_VARIABLE_WIDTH_CHARS | TB_CURSOR_NEVER_SHOWN)
@@ -981,6 +982,19 @@ int cmdip;
 				{
 					game.bossbar.object = target;
 					game.bossbar.defeated = false;
+					short pcount = 0;
+					short i = 0;
+					while (i < MAXCLIENTS) {
+						if (clients[i].used == true) {
+							pcount++;
+						}
+						i++;
+					}
+					o->hp += (o->hp * pcount);
+					if (Host == 0) {
+						player->x = players[ClientNode].x;
+						player->y = players[ClientNode].y;
+					}
 					game.bossbar.starting_hp = target->hp;
 					game.bossbar.bar.displayed_value = target->hp;
 				}

@@ -58,7 +58,7 @@ enum CreateObjectFlags
 	CF_DEFAULT			= 0x00
 };
 
-Object *CreateObject(int x, int y, int type);
+Object *CreateObject(int x, int y, int type, bool onLoad = false);
 Object *CreateBullet(int x, int y, int type);
 Object *CreateObject(int x, int y, int type, int xinertia, int yinertia, \
 					int dir=0, Object *linkedobject=NULL, uint32_t createflags=CF_DEFAULT, bool synced = false, bool onLoad = false);

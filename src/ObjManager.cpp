@@ -95,6 +95,7 @@ Object *o;
 		out.dir = dir;
 		// TODO: add
 		out.linkedobject = 0;
+		if (linkedobject) out.linkedobject = o->linkedobject->serialization;
 		out.createflags = createflags;
 		out.onLoad = onLoad;
 		memcpy(outbuff + 4, &out, sizeof(objargs));
@@ -148,9 +149,9 @@ Object *o;
 	return o;
 }
 
-Object *CreateObject(int x, int y, int type)
+Object *CreateObject(int x, int y, int type, bool onLoad)
 {
-	return CreateObject(x, y, type, 0, 0, RIGHT, NULL, CF_DEFAULT);
+	return CreateObject(x, y, type, 0, 0, RIGHT, NULL, CF_DEFAULT, false, onLoad);
 }
 
 /*

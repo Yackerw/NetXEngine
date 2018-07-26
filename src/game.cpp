@@ -304,6 +304,16 @@ void game_tick_normal(void)
 		shouldloadlevelobjs = false;
 	}
 
+	// Update the linked object stuff
+	if (game.switchstage.mapno == -1 && linkednum != 0) {
+		int i = 0;
+		while (i < linkednum) {
+			netobjs[linkedset[i].parent].obj->linkedobject = netobjs[linkedset[i].child].obj;
+			i++;
+		}
+		linkednum = 0;
+	}
+
 	if (!game.frozen)
 	{
 		// run AI for player and stageboss first
@@ -316,6 +326,14 @@ void game_tick_normal(void)
 			i++;
 		}
 		game.stageboss.Run();
+
+		if (Host == 1) {
+			char *outbuff = game.stageboss.Sync();
+			if (outbuff != NULL) {
+				Packet_Send_Host(outbuff, game.stageboss.SyncSize, 17);
+			}
+			free(outbuff);
+		}
 		
 		// now objects AI and move all objects to their new positions
 		Objects::RunAI();

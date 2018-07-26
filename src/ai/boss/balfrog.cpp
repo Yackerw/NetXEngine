@@ -88,11 +88,12 @@ void BalfrogBoss::OnMapEntry(void)
 	
 	o = CreateObject(FROG_START_X, FROG_START_Y, OBJ_BALFROG);
 	game.stageboss.object = o;
-	
+	game.stageboss.SyncSize = sizeof(BalfrogSync);
+
 	o->hp = 300;
 	o->damage = 0;	// damage comes from our bbox puppets, not our own bbox
 	o->flags |= FLAG_SHOW_FLOATTEXT;
-	
+
 	o->sprite = SPR_BALFROG;
 	o->dir = RIGHT;
 	o->invisible = true;
@@ -109,6 +110,44 @@ void BalfrogBoss::OnMapEntry(void)
 	
 	objprop[OBJ_BALFROG].xponkill = 1;
 	objprop[OBJ_BALFROG].shaketime = 9;
+}
+
+char *BalfrogBoss::Sync() {
+	if (o) {
+		BalfrogSync *syncstuff = (BalfrogSync*)malloc(sizeof(BalfrogSync));
+		syncstuff->x = o->x;
+		syncstuff->y = o->y;
+		syncstuff->hp = o->hp;
+		syncstuff->flags = o->flags;
+		syncstuff->state = o->state;
+		syncstuff->substate = o->substate;
+		syncstuff->invisible = o->invisible;
+		syncstuff->dir = o->dir;
+		syncstuff->timer = o->timer;
+		syncstuff->xinertia = o->xinertia;
+		syncstuff->yinertia = o->yinertia;
+		syncstuff->sprite = o->sprite;
+		return (char*)syncstuff;
+	}
+	return NULL;
+}
+
+void BalfrogBoss::SyncRecv(char* buff) {
+	if (o) {
+		BalfrogSync *syncstuff = (BalfrogSync*)buff;
+		o->x = syncstuff->x;
+		o->y = syncstuff->y;
+		o->hp = syncstuff->hp;
+		o->flags = syncstuff->flags;
+		o->state = syncstuff->state;
+		o->substate = syncstuff->substate;
+		o->invisible = syncstuff->invisible;
+		o->dir = syncstuff->dir;
+		o->timer = syncstuff->timer;
+		o->xinertia = syncstuff->xinertia;
+		o->yinertia = syncstuff->yinertia;
+		o->sprite = syncstuff->sprite;
+	}
 }
 
 /*

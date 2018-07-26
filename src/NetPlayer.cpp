@@ -1132,6 +1132,26 @@ static Object *netFireSimpleBulletOffset(int otype, int btype, int xoff, int yof
 	shot->x = xoff;
 	shot->y = yoff;
 
+	// Adjust fireball speed
+	if (otype == OBJ_FIREBALL1 || otype == OBJ_FIREBALL23) {
+		switch (dir) {
+		case LEFT: shot->xinertia = -0x400; break;
+		case RIGHT: shot->xinertia = 0x400; break;
+
+		case UP:
+			shot->xinertia = p->xinertia + ((p->dir == RIGHT) ? 128 : -128);
+			if (p->xinertia) shot->dir = (p->xinertia > 0) ? RIGHT : LEFT;
+			shot->yinertia = -0x5ff;
+			break;
+
+		case DOWN:
+			shot->xinertia = p->xinertia;
+			if (p->xinertia) shot->dir = (p->xinertia > 0) ? RIGHT : LEFT;
+			shot->yinertia = 0x5ff;
+			break;
+		}
+	}
+
 	return shot;
 }
 
@@ -1299,25 +1319,27 @@ void ConnectRecv(char *buff) {
 }
 
 char *SyncPositionSend() {
-	char *buff = (char*)malloc((sizeof(int)*5)+1+INPUT_COUNT);
-	memcpy(buff, &(player->x), sizeof(int));
-	memcpy(buff+4, &(player->y), sizeof(int));
-	memcpy(buff+8, &(player->xinertia), sizeof(int));
-	memcpy(buff+12, &(player->yinertia), sizeof(int));
-	memcpy(buff + 16, &(player->curWeapon), sizeof(int));
-	memcpy(buff + 20, &(player->dir), 1);
-	memcpy(buff + 21, pinputs, INPUT_COUNT);
-	return buff;
+	PlayerStepSync *s = (PlayerStepSync*)malloc(sizeof(PlayerStepSync));
+	s->x = player->x;
+	s->y = player->y;
+	s->xinertia = player->xinertia;
+	s->yinertia = player->yinertia;
+	s->curweapon = player->curWeapon;
+	s->dir = player->dir;
+	memcpy(&(s->inputs), pinputs, INPUT_COUNT);
+	return (char*)s;
 }
 
 void SyncPositionRecv(unsigned char *buff, int pl) {
-	memcpy(&(players[pl].x), buff, sizeof(int));
-	memcpy(&(players[pl].y), buff+4, sizeof(int));
-	memcpy(&(players[pl].xinertia), buff+8, sizeof(int));
-	memcpy(&(players[pl].yinertia), buff+12, sizeof(int));
-	memcpy(&(players[pl].curWeapon), buff + 16, sizeof(int));
-	memcpy(&(players[pl].dir), buff + 20, 1);
-	memcpy(&netpinputs[pl], buff + 21, INPUT_COUNT);
+	PlayerStepSync *s = (PlayerStepSync*)buff;
+	Player *p = &players[pl];
+	p->x = s->x;
+	p->y = s->y;
+	p->xinertia = s->xinertia;
+	p->yinertia = s->yinertia;
+	p->curWeapon = s->curweapon;
+	p->dir = s->dir;
+	memcpy(netpinputs[pl], &s->inputs, INPUT_COUNT);
 }
 
 char *ConnectOthers(int joiner) {
@@ -1342,9 +1364,8 @@ char *BulletSpawnSend() {
 
 void BulletSpawnRecv(unsigned char *buff, int pnum) {
 	Player *p = &players[pnum];
-	NetBullet b;
-	memcpy(&b, buff, sizeof(NetBullet));
-	netFireSimpleBulletOffset(b.otype, b.btype, b.x, b.y, b.dir, p);
+	NetBullet *b = (NetBullet*)buff;
+	netFireSimpleBulletOffset(b->otype, b->btype, b->x, b->y, b->dir, p);
 }
 
 char *MissileSpawnSend() {
@@ -1431,7 +1452,7 @@ void Name_Receive(unsigned char* tempname, int node) {
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
 	Net_RegisterConnectEventSvRecv(ConnectRecv);
-	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, (sizeof(int) * 5) + 1 + INPUT_COUNT, 0);
+	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, sizeof(PlayerStepSync), 0);
 	Net_RegisterPlayerEventRecv(SyncPositionRecv, (sizeof(int) * 5) + 1 + INPUT_COUNT);
 	Net_RegisterConnectEventOthersSend(ConnectOthers, sizeof(int));
 	Net_RegisterConnectEventOthersRecv(ConnectOthersRecv);

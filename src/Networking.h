@@ -62,6 +62,14 @@ typedef struct {
 	int type; // Expand this if necessary
 } PacketData_t;
 
+typedef struct {
+	int parent;
+	int child;
+} LinkData_t;
+
+extern LinkData_t linkedset[1024];
+extern int linkednum;
+
 extern ClientInfo_t clients[MAXCLIENTS];
 
 extern int ClientID;

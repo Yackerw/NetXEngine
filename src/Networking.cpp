@@ -12,6 +12,9 @@
 int sockaddrsize = sizeof(sockaddr);
 
 
+LinkData_t linkedset[1024];
+int linkednum = 0;
+
 ClientInfo_t clients[MAXCLIENTS];
 
 WSADATA wsaData;
@@ -572,7 +575,7 @@ void Net_ParseBuffs() {
 							int ser;
 							memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 							// We are loading from the start of the level, so store it for when we load a level
-							if (obj.onLoad == true) {
+							if (obj.onLoad == true || game.switchstage.mapno != -1) {
 								nextloadobjs[nextloadid] = obj;
 								nextloadobjsser[nextloadid] = ser;
 								nextloadid++;
@@ -581,6 +584,7 @@ void Net_ParseBuffs() {
 								netobjs[ser].obj = CreateObject(obj.x, obj.y, obj.type, obj.xinertia, obj.yinertia, obj.dir, NULL, 0, 1);
 								netobjs[ser].valid = true;
 								netobjs[ser].obj->serialization = ser;
+								if (obj.linkedobject && netobjs[obj.linkedobject].valid) netobjs[ser].obj->linkedobject = netobjs[obj.linkedobject].obj;
 							}
 						}
 						arraypos++;
@@ -728,9 +732,37 @@ void Net_ParseBuffs() {
 					}
 					break;
 					case 16: {
-						PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
-						arraypos++;
+						if (Host == 0) {
+							PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
+							arraypos++;
+						}
 					}
+					break;
+					case 17: {
+						if (Host == 0) {
+							game.stageboss.SyncRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
+							arraypos++;
+						}
+					}
+					break;
+					case 18: {
+						if (Host == 0) {
+							// TODO: make this store to a value to execute later
+							int ser;
+							int sync;
+							memcpy(&ser, &clients[i].ReceiveStack[arraypos].Stack[4], 4);
+							memcpy(&sync, &clients[i].ReceiveStack[arraypos].Stack[8], 4);
+							if (game.switchstage.mapno == -1) {
+								if (sync && netobjs[sync].valid && netobjs[ser].valid) netobjs[ser].obj->linkedobject = netobjs[sync].obj;
+							}
+							else {
+								linkedset[linkednum].parent = ser;
+								linkedset[linkednum].child = sync;
+								linkednum++;
+							}
+						}
+					}
+					arraypos++;
 					break;
 					default:
 						// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
@@ -873,7 +905,7 @@ void ResendImportant(void *notused) {
 			clients[i].time = t;
 			// Also timeout the client themselves. If we haven't heard from them in a while, nuke em
 			if (clients[i].time >= clients[i].timeout && (Host == 1 || i == ClientNode)) {
-				//CloseConn(&clients[i]);
+				CloseConn(&clients[i]);
 			}
 		}
 		i++;

@@ -268,6 +268,7 @@ void c------------------------------() {}
 
 void ai_bat_hang(Object *o)
 {
+	Player *P = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -313,7 +314,7 @@ void ai_bat_hang(Object *o)
 			o->timer++;
 			if (o->timer > 20 || o->blockd)
 			{
-				if (o->blockd || ((player->y - 0x2000) < o->y))
+				if (o->blockd || ((P->y - 0x2000) < o->y))
 				{	// start flying
 					o->animtimer = 0;
 					o->frame = 2;
@@ -328,7 +329,7 @@ void ai_bat_hang(Object *o)
 			ANIMATE(1, 2, 4);
 			FACEPLAYER;
 			
-			o->xinertia += (o->x > player->x) ? -0x20 : 0x20;
+			o->xinertia += (o->x > P->x) ? -0x20 : 0x20;
 			o->yinertia += (o->y > o->ymark) ? -0x10 : 0x10;
 			
 			LIMITX(0x200);
@@ -342,6 +343,7 @@ void ai_bat_hang(Object *o)
 
 void ai_bat_circle(Object *o)
 {
+	Player *P = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -373,7 +375,7 @@ void ai_bat_circle(Object *o)
 			
 			if (!o->timer2)
 			{
-				if (pdistlx(0x1000) && (player->y > o->y) && pdistly(0xC000))
+				if (pdistlx(0x1000) && (P->y > o->y) && pdistly(0xC000))
 				{	// dive attack
 					o->xinertia /= 2;
 					o->yinertia = 0;

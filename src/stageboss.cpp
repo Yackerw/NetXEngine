@@ -96,6 +96,15 @@ void StageBossManager::RunAftermove()
 	if (fBoss) fBoss->RunAftermove();
 }
 
+char *StageBossManager::Sync() {
+	if (fBoss) return fBoss->Sync();
+	return NULL;
+}
+
+void StageBossManager::SyncRecv(char *buff) {
+	if (fBoss) fBoss->SyncRecv(buff);
+}
+
 /*
 void c------------------------------() {}
 */

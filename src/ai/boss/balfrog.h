@@ -5,6 +5,22 @@
 #include "../../stageboss.h"
 #include "../IrregularBBox.h"
 
+// Struct for syncing
+typedef struct {
+	int x;
+	int y;
+	short state;
+	short substate;
+	bool invisible;
+	char dir;
+	short sprite;
+	int hp;
+	int flags;
+	int timer;
+	int xinertia;
+	int yinertia;
+} BalfrogSync;
+
 class BalfrogBoss : public StageBoss
 {
 public:
@@ -12,6 +28,9 @@ public:
 	void Run();
 
 	void place_bboxes();
+
+	char *Sync();
+	void SyncRecv(char*);
 
 private:
 	void RunDeathAnim();
