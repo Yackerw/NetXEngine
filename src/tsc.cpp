@@ -990,7 +990,7 @@ int cmdip;
 						}
 						i++;
 					}
-					o->hp += (o->hp * pcount);
+					target->hp += (target->hp * pcount);
 					if (Host == 0) {
 						player->x = players[ClientNode].x;
 						player->y = players[ClientNode].y;

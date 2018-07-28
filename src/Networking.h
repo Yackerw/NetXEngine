@@ -45,8 +45,8 @@ typedef struct {
 	SendStack_t SendStack[FullStackSize];
 	int SendStackPos;
 	char used;
-	StackData_t ReceiveStack[20000];
-	int ReceiveStackPos;
+	StackData_t ReceiveStack[10000];
+	volatile int ReceiveStackPos;
 	HANDLE ReceiveStackMutex;
 	StackData_t ImportantStack[FullStackSize];
 	int ImportantStackPos;

@@ -245,7 +245,7 @@ SocketInfo *ClientCreate(char *ip, int port) {
 }
 
 void Receive_Data(void *fricc) {
-	char *data = (char*)malloc(10024);
+	char *data = (char*)malloc(20024);
 	PacketData_t *packetdata = (PacketData_t*)data;
 	while (1) {
 		sockaddr_in conninfo;
@@ -351,6 +351,7 @@ void Receive_Data(void *fricc) {
 					clients[ClientNode].id = packetdata->id;
 					clients[ClientNode].used = 1;
 					clients[ClientNode].ImportantStackPos = -1;
+					clients[ClientNode].ReceiveStackMutex = CreateMutex(NULL, false, NULL);
 					timeb t;
 					ftime(&t);
 					clients[ClientNode].timeout = ((1000 * t.time) + t.millitm) + 2000;
@@ -408,7 +409,7 @@ void Receive_Data(void *fricc) {
 						WaitForSingleObject(clients[packetdata->node].ReceiveStackMutex, INFINITE);
 						ClientInfo_t *cl = &clients[packetdata->node];
 						// Allocate memory to the stack's buffer
-						clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].Stack = (char*)malloc(recvamnt - (sizeof(PacketData_t) - 4));
+						cl->ReceiveStack[cl->ReceiveStackPos].Stack = (char*)malloc(recvamnt - (sizeof(PacketData_t) - 4));
 						// Copy data to our receiving buffer
 						char *test = data + (sizeof(PacketData_t) - 4);
 						memcpy(clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].Stack, test, recvamnt - (sizeof(PacketData_t) - 4));
@@ -425,6 +426,8 @@ void Receive_Data(void *fricc) {
 				while (cl->ImportantStack[(cl->ImportantStackPos + 1) % FullStackSize].used) {
 					// Claim the mutex
 					WaitForSingleObject(clients[packetdata->node].ReceiveStackMutex, INFINITE);
+					char **frick = &clients[packetdata->node].ReceiveStack[cl->ReceiveStackPos].Stack;
+					frick[0] = NULL;
 					cl->ImportantStackPos++;
 					cl->ImportantStackPos %= FullStackSize;
 					cl->ReceiveStack[cl->ReceiveStackPos].Stack = cl->ImportantStack[cl->ImportantStackPos].Stack;
@@ -448,10 +451,6 @@ void Receive_Data(void *fricc) {
 				}
 			}
 		}
-		//printf(data);
-		//char *str = (char*)malloc(32); //this code will get ip, just leaving it just in case
-		//inet_ntop(AF_INET, &frikk.sin_addr.S_un.S_addr, str, 32);
-		//printf(str);
 	}
 	free(data);
 }
@@ -667,11 +666,11 @@ void Net_ParseBuffs() {
 							memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
 							memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
 							memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
-							for (i = 0; i < NUM_TELEPORTER_SLOTS; i++)
+							for (int i2 = 0; i2 < NUM_TELEPORTER_SLOTS; i2++)
 							{
 								int slotno, scriptno;
-								memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
-								memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+								memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
+								memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
 								if (slotno != 0 && scriptno != 0) {
 									textbox.StageSelect.SetSlot(slotno, scriptno);
 								}
