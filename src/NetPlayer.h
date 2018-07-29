@@ -16,6 +16,7 @@ extern int PlayerShotEvent;
 extern int PlayerMissileEvent;
 extern int PlayerBladeEvent;
 extern int PlayerSkinUpdateEvent;
+extern int MGunEvent;
 extern char pskin;
 
 #define numskins 13

@@ -13,8 +13,8 @@
 #include <process.h>
 #include <time.h>
 
-#define SendStackSize 1024
-#define FullStackSize 2049
+#define SendStackSize 2048
+#define FullStackSize 4097
 #define MAXCLIENTS 32
 
 #define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.-b"
@@ -129,6 +129,11 @@ float GetFloatBuff(char *buff, int offs);
 
 // Parse our data
 void Net_ParseBuffs();
+
+// Close down netplay
+void Net_Close();
+
+void Net_TrueClose();
 
 // for player functions
 int Net_RegisterPlayerEventSend(char *(*func)(), int buffsize, bool important = 1);

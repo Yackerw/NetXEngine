@@ -269,13 +269,14 @@ void Game::switchmap(int mapno, int scriptno, int px, int py)
 
 void Game::reset()
 {
-	//memset(inputs, 0, sizeof(inputs));
-	//StopLoopSounds();
-	//tsc->StopScripts();
+	memset(inputs, 0, sizeof(inputs));
+	StopLoopSounds();
+	tsc->StopScripts();
 	
 	game.pause(false);
-	//game.setmode(GM_INTRO, 0, true);
-	//console.SetVisible(false);
+	game.setmode(GM_INTRO, 0, true);
+	console.SetVisible(false);
+	Net_Close();
 }
 
 /*

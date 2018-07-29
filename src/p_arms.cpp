@@ -558,6 +558,7 @@ int x, y;
 		// drop an OBJ_MGUN_SHOOTER object to fire the layers (trail) of the MGun blast.
 		GetPlayerShootPoint(&x, &y);
 		FireLevel23MGun(x, y, level, dir);
+		Net_FirePlayerEvent(MGunEvent);
 		rumble(0.3,200);
 	}
 	
@@ -803,6 +804,12 @@ Object *shot;
 	shot->mgun.nlayers = no_layers[level];
 	shot->mgun.wave_amt = random(-0xAA, 0xAA);
 	shot->invisible = true;
+
+	// Store some info in SyncBull so if a player is shooting this, we can sync it
+	SyncBull.dir = dir;
+	SyncBull.x = x;
+	SyncBull.y = y;
+	SyncBull.otype = level;
 }
 
 

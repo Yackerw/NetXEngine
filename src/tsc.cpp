@@ -832,6 +832,7 @@ int cmdip;
 				// Return if client
 				if (Host == 0) {
 					didexecute++;
+					StopScript(s);
 					return;
 				}
 				bool waslocked = (player->inputs_locked || game.frozen);

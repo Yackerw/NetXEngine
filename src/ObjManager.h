@@ -49,7 +49,9 @@ namespace Objects
 #define FOREACH_OBJECT(O)		for(O=firstobject; O; O=O->next)
 
 // max expected objects to exist at once (for buffer allocation)
-#define MAX_OBJECTS				1024
+#define MAX_OBJECTS				2048
+
+extern int NumObjects;
 
 enum CreateObjectFlags
 {

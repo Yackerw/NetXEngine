@@ -27,7 +27,7 @@ int ClientNode = -1;
 
 char Host = true;
 
-SocketInfo *Sock;
+SocketInfo *Sock = NULL;
 
 void(**recvfuncs)(unsigned char*, int, int);
 void(**sendfuncs)(unsigned char*, int);
@@ -117,6 +117,10 @@ SocketInfo *Server_Create(int port) {
 	char tmp = 0;
 	char out;
 	DWORD out2;
+
+	// Because we're gonna be receiving a lot of data, let's make sure we have the space
+	int rcvbuffsize = 1000000;
+	setsockopt(SockInf->sock, SOL_SOCKET, SO_RCVBUF, (char*)&rcvbuffsize, sizeof(int));
 	// Disable killing the socket if port is deemed unreachable
 	WSAIoctl(SockInf->sock, -1744830452, &tmp, 1, &out, 1, &out2, NULL, NULL);
 	return SockInf;
@@ -139,12 +143,25 @@ void CloseConn(ClientInfo_t *info) {
 		Packet_Send_Host(discnnbuff, PlayerDisconnectSize, 5, 1);
 		free(discnnbuff);
 	}
-	// Do disconnect message stuff here
 	int i = 0;
 	while (i < FullStackSize) {
 		if (info->SendStack[i].valid) {
 			free(info->SendStack[i].buff);
 		}
+		i++;
+	}
+	// Clear the receive stack
+	WaitForSingleObject(info->ReceiveStackMutex, INFINITE);
+	i = 0;
+	while (i < info->ReceiveStackPos) {
+		if (info->ReceiveStack[i].used) free(info->ReceiveStack[i].Stack);
+		info->ReceiveStack[i].used = false;
+		i++;
+	}
+	// And clear out the important receive stack
+	i = 0;
+	while (i < FullStackSize) {
+		if (info->ImportantStack[i].used) free(info->ImportantStack[i].Stack);
 		i++;
 	}
 	CloseHandle(info->ReceiveStackMutex);
@@ -231,6 +248,9 @@ SocketInfo *ClientCreate(char *ip, int port) {
 	SockInf->port = port;
 	SockInf->info.sin_family = AF_INET;
 	SockInf->info.sin_port = htons(port);
+	// Because we're gonna be receiving a lot of data, let's make sure we have the space
+	int rcvbuffsize = 1000000;
+	setsockopt(SockInf->sock, SOL_SOCKET, SO_RCVBUF, (char*)&rcvbuffsize, sizeof(int));
 	inet_pton(AF_INET, ip, &SockInf->info.sin_addr.S_un.S_addr);
 	PacketData_t *authpack = (PacketData_t *)malloc(sizeof(PacketData_t) + sizeof(CONNECTAUTH));
 	authpack->node = -1;
@@ -251,7 +271,7 @@ void Receive_Data(void *fricc) {
 		sockaddr_in conninfo;
 		int recvamnt = recvfrom(Sock->sock, data, 10024, 0, (sockaddr*)&conninfo, &sockaddrsize);
 		// Cleanup
-		if (Sock->sock == NULL || Sock->sock == SOCKET_ERROR) {
+		if (Sock == NULL || Sock->sock == NULL || Sock->sock == SOCKET_ERROR) {
 			free(data);
 			return;
 		}
@@ -263,6 +283,12 @@ void Receive_Data(void *fricc) {
 		if (recvamnt < sizeof(PacketData_t)) {
 			continue;
 		}
+
+		// Special for toon: log our data
+		/*char *sprinted = (char*)malloc(64);
+		sprintf(sprinted, "Dtype %i", packetdata->type);
+		Chat_WriteToLog(sprinted);
+		free(sprinted);*/
 
 		// if node is -1, then treat it as a connection packet
 		if (packetdata->node == -1 && Host == 1) {
@@ -494,28 +520,27 @@ void Net_ParseBuffs() {
 						break;
 					case 2:
 						// Player events
-						if (Host == 1) {
-							if (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerSkinUpdateEvent) {
-								printf("A");
+						if (GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) >= 0 && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) < PlayerEventRecvNum) {
+							if (Host == 1) {
+								PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
 							}
-							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, i);
-						}
-						else {
-							PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, ClientNode);
-							if (ShouldMoveToHost == true && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerUpdateEvent) {
-								memcpy(&(player->x), &players[ClientNode].x, sizeof(int));
-								memcpy(&(player->y), &players[ClientNode].y, sizeof(int));
-								ShouldMoveToHost = false;
+							else {
+								PlayerEventRecvFuncs[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]((unsigned char*)clients[i].ReceiveStack[arraypos].Stack + 8, ClientNode);
+								if (ShouldMoveToHost == true && GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4) == PlayerUpdateEvent) {
+									memcpy(&(player->x), &players[ClientNode].x, sizeof(int));
+									memcpy(&(player->y), &players[ClientNode].y, sizeof(int));
+									ShouldMoveToHost = false;
+								}
 							}
-						}
-						// relay data
-						if (Host == true) {
-							int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
-							char *temparray = (char*)malloc(buffsize);
-							memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
-							memcpy(temparray, &i, 4);
-							Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
-							free(temparray);
+							// relay data
+							if (Host == true) {
+								int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
+								char *temparray = (char*)malloc(buffsize);
+								memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
+								memcpy(temparray, &i, 4);
+								Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
+								free(temparray);
+							}
 						}
 						arraypos++;
 						break;
@@ -639,17 +664,28 @@ void Net_ParseBuffs() {
 						if (Host == 0) {
 							int id2 = 0;
 							memcpy(&id2, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(short));
-							Object *o = ID2Lookup[id2];
-							int newtype;
-							memcpy(&newtype, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
-							if (newtype < OBJ_LAST) {
-								o->ChangeType(newtype, true);
-								unsigned int ser;
-								memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 12, sizeof(int));
-								if (ser < MAX_OBJECTS) {
-									o->serialization = ser;
-									netobjs[ser].obj = o;
-									netobjs[ser].valid = true;
+							unsigned int ser;
+							memcpy(&ser, clients[i].ReceiveStack[arraypos].Stack + 12, sizeof(int));
+							Object *o;
+							// If we've previously serialized this object, we should prioritize that over an ID2Lookup
+							if (netobjs[ser].valid) {
+								o = netobjs[ser].obj;
+							}
+							else {
+								// Otherwise make an attempt to find it through ID2 (not entirely consistent, hence prioritizing serialization)
+								o = ID2Lookup[id2];
+							}
+							// if o is still NULL, then don't execute
+							if (o != NULL) {
+								int newtype;
+								memcpy(&newtype, clients[i].ReceiveStack[arraypos].Stack + 8, sizeof(int));
+								if (newtype < OBJ_LAST) {
+									o->ChangeType(newtype, true);
+									if (ser < MAX_OBJECTS) {
+										o->serialization = ser;
+										netobjs[ser].obj = o;
+										netobjs[ser].valid = true;
+									}
 								}
 							}
 						}
@@ -687,7 +723,7 @@ void Net_ParseBuffs() {
 							 break;
 					case 14:
 					{
-						// Host has opted to change rooms. Currently only used for teleporter, regular tsc handles the rest
+						// Host has opted to change rooms.
 						if (Host == 0) {
 							game.pause(0);
 							int parm[4];
@@ -725,7 +761,7 @@ void Net_ParseBuffs() {
 						if (Host == 0) {
 							memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int), MAX_INVENTORY * sizeof(int));
 							memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-							memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+							memcpy(game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
 						}
 						arraypos++;
 					}
@@ -781,6 +817,44 @@ void Net_ParseBuffs() {
 		ReleaseMutex(clients[i].ReceiveStackMutex);
 		i++;
 	}
+}
+
+// free everything networking related
+void Net_Close() {
+	if (Host != -1) {
+		for (int i = 0; i < MAXCLIENTS; i++) {
+			if (clients[i].used && Host == 1) {
+				CloseConn(&clients[i]);
+			}
+			clients[i].used = false;
+		}
+		if (Host == 0) {
+			CloseConn(&clients[ClientNode]);
+		}
+		if (Sock != NULL) {
+			closesocket(Sock->sock);
+			// Wait a sec so our thread doesn't die
+			Sleep(16);
+			free(Sock);
+			Sock = NULL;
+		}
+	}
+	ClientID = -1;
+	ClientNode = -1;
+	Host = -1;
+}
+
+// For closing the game
+void Net_TrueClose() {
+	WSACleanup();
+	free(PlayerEventSendSizes);
+	free(PlayerEventRecvSizes);
+	free(PlayerEventSendFuncs);
+	free(PlayerEventRecvFuncs);
+	free(netobjs);
+	free(ObjSyncTickFuncs);
+	free(ObjSyncTickFuncsRecv);
+	free(ObjSyncTickSizes);
 }
 
 // for player functions

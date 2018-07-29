@@ -104,6 +104,8 @@ void Object::Destroy()
 {
 Object * const &o = this;
 
+NumObjects--;
+
 	// make sure no pointers are pointing at us
 	DisconnectGamePointers();
 	// delete associated floaty text as soon as it's animation is done
@@ -1274,6 +1276,12 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_FLYING);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_RUNNING, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_RUNNING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BUST_IN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BUST_IN);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_DROP_IN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_DROP_IN);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BOSS_IGOR, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BOSS_IGOR);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_FLYING, BASICSYNCSIZE);
@@ -1290,8 +1298,6 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FROG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_MINIFROG, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MINIFROG);
-	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_FLYING, BASICSYNCSIZE);
-	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_FLYING);
 	// How much you wanna bet that I'll forget I made this later and be totally confused as to why something is broken?
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_MISSILES, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_MISSILES);
@@ -1309,6 +1315,8 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC1);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC2, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC2);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC_ENEMY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC_ENEMY);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_SUNSTONE, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SUNSTONE);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_ARMADILLO, BASICSYNCSIZE);
@@ -1329,4 +1337,34 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKELETON);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_CURLY_BOSS, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CURLY_BOSS);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_FLOWER, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_FLOWER);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_FRENZIED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_FRENZIED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_BLOCK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_BLOCK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_ARMORED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_ARMORED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_FLYING, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_FLYING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_DYING, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_DYING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_SHOOTING_PURPLE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CRITTER_SHOOTING_PURPLE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FIREWHIRR, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FIREWHIRR);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_EGG, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_EGG);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FUZZ_CORE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FUZZ_CORE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FUZZ, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FUZZ);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BUYOBUYO_BASE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BUYOBUYO_BASE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BUYOBUYO, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BUYOBUYO);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POOH_BLACK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POOH_BLACK);
 }

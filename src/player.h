@@ -115,7 +115,7 @@ enum PMoveModes
 
 // how much fuel you start out with in the Booster on each jump.
 // (for both 0.8 and 2.0)
-#define BOOSTER_FUEL_QTY	50000
+#define BOOSTER_FUEL_QTY	50
 
 enum BoosterState
 {

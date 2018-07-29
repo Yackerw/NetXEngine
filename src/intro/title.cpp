@@ -469,6 +469,7 @@ bool title_init(int param)
 	game.showmapnametime = 0;
 	textbox.SetVisible(false);
 	LoadPlayerConfig();
+	Multiplayer = 0;
 	
 	if (niku_load(&title.besttime))
 		title.besttime = 0xffffffff;

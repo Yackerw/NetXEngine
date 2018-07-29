@@ -25,6 +25,8 @@ int nextloadobjsser[MAX_OBJECTS];
 int nextloadid;
 int shouldloadlevelobjs = 0;
 
+int NumObjects = 0;
+
 /*
 void c------------------------------() {}
 */
@@ -33,6 +35,8 @@ Object *CreateObject(int x, int y, int type, int xinertia, int yinertia,
 					int dir, Object *linkedobject, uint32_t createflags, bool synced, bool onLoad)
 {
 Object *o;
+
+NumObjects++;
 
 	// return if we're client and spawning something supposed to be serialized
 	if (Host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
@@ -142,6 +146,10 @@ Object *o;
 		{
 			bullets[i]=o;
 			break;
+		}
+		if (i == 63) {
+			// We failed to find, abort
+			o->deleted = true;
 		}
 	}
 	LL_ADD_END(o, lower, higher, lowestobject, highestobject);

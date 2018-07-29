@@ -1006,6 +1006,8 @@ void netDrawPlayer(Player *p)
 		}
 	}
 
+	p->sprite = SPR_MYCHAR;
+
 	if (p->equipmask & EQUIP_WHIMSTAR)
 		draw_whimstars(&p->whimstar);
 }
@@ -1363,8 +1365,16 @@ char *BulletSpawnSend() {
 }
 
 void BulletSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &players[pnum];
 	NetBullet *b = (NetBullet*)buff;
+	// return if otype or btype aren't valid (i.e. keep people from spawning anything they want)
+	if (b->btype >= B_CURLYS_NEMESIS || b->btype < 0 || b->otype < OBJ_SHOTS_START || b->otype > OBJ_SPUR_TRAIL) {
+		return;
+	}
 	netFireSimpleBulletOffset(b->otype, b->btype, b->x, b->y, b->dir, p);
 }
 
@@ -1375,6 +1385,10 @@ char *MissileSpawnSend() {
 }
 
 void MissileSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &players[pnum];
 	NetBullet b;
 	memcpy(&b, buff, sizeof(NetBullet));
@@ -1388,6 +1402,10 @@ char *BladeSpawnSend() {
 }
 
 void BladeSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &(players[pnum]);
 	netPFireBlade(p, buff[0]);
 }
@@ -1449,6 +1467,29 @@ void Name_Receive(unsigned char* tempname, int node) {
 	}
 }
 
+// Special function for machine gun shooting
+char *NetMGunShotSend() {
+	char *out = (char*)malloc(sizeof(NetBullet));
+	memcpy(out, &SyncBull, sizeof(NetBullet));
+	return out;
+}
+
+void NetMGunShotRecv(unsigned char *in, int pnode) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
+	NetBullet *b = (NetBullet*)in;
+	if (b->otype > 2 || b->otype < 0) {
+		return;
+	}
+	int x, y;
+	netGetPlayerShootPoint(&players[pnode], &x, &y);
+	FireLevel23MGun(b->x, b->y, b->otype, b->dir);
+}
+
+int MGunEvent;
+
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
 	Net_RegisterConnectEventSvRecv(ConnectRecv);
@@ -1469,4 +1510,7 @@ void SetupNetPlayerFuncs() {
 
 	nameevent = Net_RegisterPlayerEventSend(Name_Send, 15);
 	Net_RegisterPlayerEventRecv(Name_Receive, 15);
+
+	MGunEvent = Net_RegisterPlayerEventSend(NetMGunShotSend, sizeof(NetBullet));
+	Net_RegisterPlayerEventRecv(NetMGunShotRecv, sizeof(NetBullet));
 }
