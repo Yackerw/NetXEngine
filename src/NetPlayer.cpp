@@ -1318,6 +1318,24 @@ void ConnectRecv(char *buff) {
 	player->hp = player->maxHealth; // fade
 	fade.set_full(1);
 	game.setmode(GM_NORMAL);
+	// update player inventory
+	for (i = 0; i < player->ninventory; i++) {
+		switch (player->inventory[i]) {
+		case ITEM_TURBOCHARGE:
+			player->equipmask |= EQUIP_TURBOCHARGE;
+			break;
+		case ITEM_BOOSTER08:
+			if (!player->equipmask & EQUIP_BOOSTER20) \
+				player->equipmask |= EQUIP_BOOSTER08;
+			break;
+		case ITEM_BOOSTER20:
+			player->equipmask |= EQUIP_BOOSTER20;
+			player->equipmask &= !EQUIP_BOOSTER08;
+			break;
+		case ITEM_AIRTANK:
+			player->equipmask |= EQUIP_AIRTANK;
+		}
+	}
 }
 
 char *SyncPositionSend() {
@@ -1420,6 +1438,12 @@ void DiscnnRecv(char *buff) {
 	int pnum;
 	memcpy(&pnum, buff, sizeof(int));
 	clients[pnum].used = false;
+	char msg[128];
+	sprintf(msg, "%s has disconnected", names[pnum]);
+	Chat_SetMessage(msg, 1);
+	sound(SND_COMPUTER_BEEP);
+	Chat_WriteToLog(msg);
+	chatstate.timer = (60 * 5);
 }
 
 char *SkinSend() {

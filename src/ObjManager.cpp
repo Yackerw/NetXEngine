@@ -102,14 +102,28 @@ NumObjects++;
 		if (linkedobject) out.linkedobject = o->linkedobject->serialization;
 		out.createflags = createflags;
 		out.onLoad = onLoad;
+		// If we've reached the end of the serialization array, then make it try and find somewhere else
+		int serpos = serializeid;
+		if (serializeid == MAX_OBJECTS) {
+			int i = 0;
+			while (i < MAX_OBJECTS) {
+				if (!netobjs[i].valid) {
+					serpos = i;
+					i = MAX_OBJECTS;
+				}
+				i++;
+			}
+		}
+		else {
+			serializeid++;
+		}
 		memcpy(outbuff + 4, &out, sizeof(objargs));
-		memcpy(outbuff, &serializeid, sizeof(int));
+		memcpy(outbuff, &serpos, sizeof(int));
 		Packet_Send_Host(outbuff, sizeof(objargs) + (sizeof(int)*2), 7, 1);
-		o->serialization = serializeid;
-		netobjs[serializeid].obj = o;
-		netobjs[serializeid].valid = true;
-		netobjs[serializeid].tickfunc = ObjSyncTickFuncs[type];
-		serializeid++;
+		o->serialization = serpos;
+		netobjs[serpos].obj = o;
+		netobjs[serpos].valid = true;
+		netobjs[serpos].tickfunc = ObjSyncTickFuncs[type];
 		free(outbuff);
 	}
 

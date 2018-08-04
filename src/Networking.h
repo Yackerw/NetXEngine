@@ -17,7 +17,11 @@
 #define FullStackSize 4097
 #define MAXCLIENTS 32
 
-#define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.-b"
+#define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.=b"
+
+#define CONN_TIMEOUT 8000 // connection timeout in ms
+
+extern HANDLE recthread;
 
 typedef struct {
 	SOCKET sock;
@@ -30,7 +34,6 @@ typedef struct {
 	int size;
 	bool valid;
 	long long timeout;
-	long long time;
 } SendStack_t;
 
 typedef struct {
@@ -50,7 +53,6 @@ typedef struct {
 	HANDLE ReceiveStackMutex;
 	StackData_t ImportantStack[FullStackSize];
 	int ImportantStackPos;
-	long long time;
 	time_t timeout;
 } ClientInfo_t;
 

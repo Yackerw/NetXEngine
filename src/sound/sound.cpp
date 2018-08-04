@@ -45,6 +45,7 @@ static const char bossmusic[] = { 4, 7, 10, 11, 15, 16, 17, 18, 21, 22, 31, 33, 
 static const char *org_dir = "org/";
 static const char *ogg_dir = "Ogg/";
 static const char *ogg11_dir = "Ogg11/";
+static const char *ogg17_dir = "Ogg17/";
 
 bool sound_init(void)
 {
@@ -204,6 +205,7 @@ void music(int songno, bool resume)
 				break;
 			case 1:
 			case 2:
+			case 3:
 				ogg11_stop();
 				break;
 		}
@@ -220,6 +222,9 @@ void music(int songno, bool resume)
 			break;
 		case 2:
 			start_ogg11_track(songno,resume, ogg11_dir);
+			break;
+		case 3:
+			start_ogg11_track(songno, resume, ogg17_dir);
 			break;
 	}
 }
@@ -287,6 +292,15 @@ void music_set_enabled(int newstate)
 						ogg11_stop();
 				}
 				break;
+			case 3:
+				if (play != ogg11_is_playing())
+				{
+					if (play)
+						start_ogg11_track(cursong, 0, ogg17_dir);
+					else
+						ogg11_stop();
+				}
+				break;
 		}
 	}
 }
@@ -313,6 +327,9 @@ void music_set_newmusic(int newstate)
 			case 2:
 				start_ogg11_track(cursong, 0, ogg11_dir);
 				break;
+			case 3:
+				start_ogg11_track(cursong, 0, ogg17_dir);
+				break;
 		}
 	}
 }
@@ -326,6 +343,7 @@ void music_fade()
 			break;
 		case 1:
 		case 2:
+		case 3:
 			ogg11_fade();
 			break;
 	}
@@ -344,6 +362,7 @@ void music_run_fade()
 			break;
 		case 1:
 		case 2:
+		case 3:
 			ogg11_run_fade();
 			break;
 	}

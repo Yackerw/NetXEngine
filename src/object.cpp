@@ -1139,10 +1139,14 @@ void UpdateLinkedObject(Object *o) {
 }
 
 int *ObjSyncTickSizes;
+int *ObjSyncTickXSize;
+int *ObjSyncTickYSize;
 
-void RegisterTickSyncFuncSend(char*(*func)(Object*), int id, int size) {
+void RegisterTickSyncFuncSend(char*(*func)(Object*), int id, int size, int sizex = 600 * CSFI, int sizey = 550 * CSFI) {
 	ObjSyncTickFuncs[id] = func;
 	ObjSyncTickSizes[id] = size;
+	ObjSyncTickXSize[id] = sizex;
+	ObjSyncTickYSize[id] = sizey;
 }
 
 void RegisterTickSyncFuncRecv(void(*func)(char*, int), int id) {
@@ -1169,7 +1173,11 @@ void UpdateObjSyncs() {
 			memmove(buff + 8, buff, size - 8);
 			memcpy(buff, &(netobjs[i].obj->type), sizeof(int));
 			memcpy(buff + 4, &i, sizeof(int));
-			Packet_Send_Host(buff, size, 8, 0);
+			// iterate through clients and determine if they're close
+			for (int i2 = 0; i2 < MAXCLIENTS; i2++) {
+				if (clients[i2].used && abs(players[i2].x - netobjs[i].obj->x) <= ObjSyncTickXSize[netobjs[i].obj->type] && abs(players[i2].y - netobjs[i].obj->y) <= ObjSyncTickYSize[netobjs[i].obj->type]) \
+					Packet_Send(buff, i2, size, 8, 0);
+			}
 			free(buff);
 		}
 		i++;
@@ -1367,4 +1375,10 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BUYOBUYO);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_POOH_BLACK, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POOH_BLACK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MINICORE_SHOT, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MINICORE_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CORE_GHOSTIE, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CORE_GHOSTIE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CORE_BLAST, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CORE_BLAST);
 }

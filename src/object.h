@@ -762,6 +762,8 @@ typedef struct {
 extern char*(**ObjSyncTickFuncs)(Object *obj);
 extern void(**ObjSyncTickFuncsRecv)(char *buff, int id);
 extern int *ObjSyncTickSizes;
+extern int *ObjSyncTickXSize;
+extern int *ObjSyncTickYSize;
 
 void RegisterBasic();
 

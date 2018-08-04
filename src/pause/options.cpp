@@ -364,15 +364,15 @@ void _music_get(ODItem *item)
 void _tracks_change(ODItem *item, int dir)
 {
 	int result = settings->new_music + dir;
-	if (result < 0) result = 2;
-	if (result > 2) result = 0;
+	if (result < 0) result = 3;
+	if (result > 3) result = 0;
 	music_set_newmusic(result);
 	sound(SND_MENU_SELECT);
 }
 
 void _tracks_get(ODItem *item)
 {
-	static const char *strs[] = { "Old", "New", "Remastered" };
+	static const char *strs[] = { "Old", "New", "Remastered", "Famitracks" };
 	strcpy(item->suffix, strs[settings->new_music]);
 }
 

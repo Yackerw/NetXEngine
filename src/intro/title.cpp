@@ -141,7 +141,7 @@ static void draw_title()
 			//draw_sprite(cx + 24, cy + 16, ((SPR_MYCHAR)) + player->skin, title.selframe);
 			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe&1);
 		}
-		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Chako","Santa","Booster","Human Sue","Demon Crown","Root The Cat","Suguri","Sora" };
+		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Chako","Santa","Toroko","Puppy","Booster","Dr. Gero","Nurse Hasumi","Jenka","Human Sue","Demon Crown","Root The Cat","Suguri","Sora" };
 		font_draw(cx + 27 - (strlen(skinnames[player->skin])*2), cy + 46, skinnames[player->skin]);
 		//draw_sprite(cx+24,cy+16, title.sprite+title.cursel, title.selframe);
 	}
@@ -155,7 +155,7 @@ static void draw_title()
 	if (Multiplayer == 6) {
 		Sock = ClientCreate(IPAddress, 5029);
 		if (Sock != NULL) {
-			_beginthread(Receive_Data, 2048, NULL);
+			recthread = (HANDLE)_beginthread(Receive_Data, 2048, NULL);
 			int i = 0;
 			while (i < 100 && ClientNode == -1) {
 				Sleep(20);
@@ -429,7 +429,7 @@ static void selectoption(int index)
 		break;
 		case 20: {		// Start hosting
 			Sock = Server_Create(5029);
-			_beginthread(Receive_Data, 2048, NULL);
+			recthread = (HANDLE)_beginthread(Receive_Data, 2048, NULL);
 			Host = 1;
 			Multiplayer = 0;
 

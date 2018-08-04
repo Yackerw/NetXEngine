@@ -88,6 +88,70 @@ Object *o;
 	return o;
 }
 
+char *CoreBoss::Sync() {
+	CoreSync_t *t = (CoreSync_t*)malloc(sizeof(CoreSync_t));
+	if (o) {
+		t->hp = o->hp;
+		t->m.x = o->x;
+		t->m.y = o->y;
+		t->m.sprite = o->sprite;
+		t->m.state = o->state;
+		t->m.xinertia = o->xinertia;
+		t->m.yinertia = o->yinertia;
+		t->m.flags = o->flags;
+		t->m.frame = o->frame;
+		t->m.invisible = o->invisible;
+		t->m.substate = o->substate;
+		t->timer = o->timer;
+	}
+	for (int i = 0; i < 7; i++) {
+		if (pieces[i]) {
+			t->pc[i].x = pieces[i]->x;
+			t->pc[i].y = pieces[i]->y;
+			t->pc[i].state = pieces[i]->state;
+			t->pc[i].substate = pieces[i]->substate;
+			t->pc[i].xinertia = pieces[i]->xinertia;
+			t->pc[i].yinertia = pieces[i]->yinertia;
+			t->pc[i].invisible = pieces[i]->invisible;
+			t->pc[i].flags = pieces[i]->flags;
+			t->pc[i].sprite = pieces[i]->sprite;
+			t->pc[i].frame = pieces[i]->frame;
+		}
+	}
+	return (char*)t;
+}
+
+void CoreBoss::SyncRecv(char *buff) {
+	CoreSync_t *t = (CoreSync_t*)buff;
+	if (o) {
+		o->hp = t->hp;
+		o->x = t->m.x;
+		o->y = t->m.y;
+		o->sprite = t->m.sprite;
+		o->state = t->m.state;
+		o->xinertia = t->m.xinertia;
+		o->yinertia = t->m.yinertia;
+		o->flags = t->m.flags;
+		o->frame = t->m.frame;
+		o->invisible = t->m.invisible;
+		o->substate = t->m.substate;
+		o->timer = t->timer;
+	}
+	for (int i = 0; i < 7; i++) {
+		if (pieces[i]) {
+			pieces[i]->x = t->pc[i].x;
+			pieces[i]->y = t->pc[i].y;
+			pieces[i]->state = t->pc[i].state;
+			pieces[i]->substate = t->pc[i].substate;
+			pieces[i]->xinertia = t->pc[i].xinertia;
+			pieces[i]->yinertia = t->pc[i].yinertia;
+			pieces[i]->invisible = t->pc[i].invisible;
+			pieces[i]->flags = t->pc[i].flags;
+			pieces[i]->sprite = t->pc[i].sprite;
+			pieces[i]->frame = t->pc[i].frame;
+		}
+	}
+}
 
 // called at the entry to the Core room.
 // initilize all the pieces of the Core boss.
@@ -148,6 +212,8 @@ void CoreBoss::OnMapEntry(void)
 	
 	pieces[4]->x = (o->x - 0x6000);
 	pieces[4]->y = (o->y - 0x4000);
+
+	game.stageboss.SyncSize = sizeof(CoreSync_t);
 	
 	this->hittimer = 0;
 }

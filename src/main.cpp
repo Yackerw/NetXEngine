@@ -1,4 +1,3 @@
-#define _DEBUG
 #include "nx.h"
 #include <cstdarg>
 #if !defined(_WIN32)
@@ -465,7 +464,7 @@ shutdown: ;
 	if (chatlogfile != NULL) {
 		fclose(chatlogfile);
 	}
-	//Net_Close(); //causes game to crash on shutdown; may be bad practice, but until fixed, do not do
+	Net_Close(); //causes game to crash on shutdown; may be bad practice, but until fixed, do not do
 	Net_TrueClose();
 	
 	Graphics::close();

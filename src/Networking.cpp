@@ -8,6 +8,8 @@
 #include "NetPlayer.h"
 #include "chat.h"
 #include <sys/timeb.h>
+#include "inventory.h"
+#include "sound\sound.h"
 
 int sockaddrsize = sizeof(sockaddr);
 
@@ -67,6 +69,8 @@ int bannum = 0;
 //WSAdata variable, stores information about winsock
 WSADATA wsadata;
 
+HANDLE recthread;
+
 char Networking_Init() {
 	//initialize startup
 	int startup = WSAStartup(MAKEWORD(2, 2), &wsadata);
@@ -84,11 +88,15 @@ char Networking_Init() {
 	ObjSyncTickFuncs = (char*(**)(Object*))malloc(sizeof(void(*)(void)) * OBJ_LAST);
 	ObjSyncTickFuncsRecv = (void(**)(char*,int))calloc(sizeof(void(*)(void)) * OBJ_LAST,1);
 	ObjSyncTickSizes = (int*)malloc(sizeof(int)*OBJ_LAST);
+	ObjSyncTickXSize = (int*)malloc(sizeof(int)*OBJ_LAST);
+	ObjSyncTickYSize = (int*)malloc(sizeof(int)*OBJ_LAST);
 	PlayerEventSendNum = 0;
 	PlayerEventRecvNum = 0;
 	numsend = 0;
 	numrecv = 0;
 	TscExec = 0;
+	// rng
+	srand(time(NULL));
 	return 1;
 }
 
@@ -142,6 +150,26 @@ void CloseConn(ClientInfo_t *info) {
 		char *discnnbuff = PlayerDisconnectSend(nodenum);
 		Packet_Send_Host(discnnbuff, PlayerDisconnectSize, 5, 1);
 		free(discnnbuff);
+	}
+	// disconnect message
+	if (nodenum != -1) {
+		char msg[128];
+		if (Host == 1) {
+			sprintf(msg, "%s has disconnected", names[nodenum]);
+			Chat_SetMessage(msg, 1);
+			sound(SND_COMPUTER_BEEP);
+			Chat_WriteToLog(msg);
+			chatstate.timer = (60 * 5);
+		}
+		else {
+			sprintf(msg, "You have disconnected from the server");
+			Chat_SetMessage(msg, 1);
+			sound(SND_COMPUTER_BEEP);
+			Chat_WriteToLog(msg);
+			chatstate.timer = (60 * 5);
+		}
+		// send disconnect message
+		Packet_Send(msg, nodenum, 1, 19);
 	}
 	int i = 0;
 	while (i < FullStackSize) {
@@ -204,7 +232,6 @@ void Packet_Send(char *buff, int node, int datasize, short type, char important)
 		timeb ti;
 		ftime(&ti);
 		long long t = (1000 * ti.time) + ti.millitm;
-		info->SendStack[info->SendStackPos].time = t;
 		info->SendStack[info->SendStackPos].timeout = t + 300;
 		info->SendStackPos++;
 		info->SendStackPos %= FullStackSize;
@@ -284,12 +311,6 @@ void Receive_Data(void *fricc) {
 			continue;
 		}
 
-		// Special for toon: log our data
-		/*char *sprinted = (char*)malloc(64);
-		sprintf(sprinted, "Dtype %i", packetdata->type);
-		Chat_WriteToLog(sprinted);
-		free(sprinted);*/
-
 		// if node is -1, then treat it as a connection packet
 		if (packetdata->node == -1 && Host == 1) {
 			if (memcmp(data + sizeof(PacketData_t), CONNECTAUTH, sizeof(CONNECTAUTH)) == 0) {
@@ -316,8 +337,7 @@ void Receive_Data(void *fricc) {
 						//clients[i].time = time(&clients[i].timeout);
 						timeb t;
 						ftime(&t);
-						clients[i].time = (1000 * t.time) + t.millitm;
-						clients[i].timeout = clients[i].time + 2000;
+						clients[i].timeout = (1000 * t.time) + t.millitm + CONN_TIMEOUT;
 						clients[i].ImportantStackPos = -1;
 						memset(clients[i].SendStack, 0, sizeof(SendStack_t) * FullStackSize);
 						// Send them an authorization packet
@@ -340,10 +360,9 @@ void Receive_Data(void *fricc) {
 		} // Otherwise store this packet for later use.
 		else if (packetdata->node >= 0 && packetdata->node < MAXCLIENTS && (clients[packetdata->node].used && packetdata->id == clients[packetdata->node].id) || ClientNode == -1) {
 			// Some kind of system message, otherwise let other stuff deal with it
-			//clients[packetdata->node].timeout = time(NULL) + 2000;
 			timeb t;
 			ftime(&t);
-			clients[packetdata->node].timeout = (1000 * t.time) + t.millitm + 2000;
+			clients[packetdata->node].timeout = (1000 * t.time) + t.millitm + CONN_TIMEOUT;
 			if (packetdata->important >= 2) {
 				// We've received acknowledgement for an important packet, remove it from the stack
 				if (packetdata->important == 2 && clients[packetdata->node].SendStack[packetdata->packetid].valid) {
@@ -538,7 +557,7 @@ void Net_ParseBuffs() {
 								char *temparray = (char*)malloc(buffsize);
 								memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
 								memcpy(temparray, &i, 4);
-								Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 0)]);
+								Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]);
 								free(temparray);
 							}
 						}
@@ -694,7 +713,6 @@ void Net_ParseBuffs() {
 					case 13: {
 						// Host has reloaded save, adjust
 						if (Host == 0) {
-							int i = 0;
 							// change map
 							memcpy(&game.switchstage.mapno, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
 							memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int) + 4, sizeof(int) * MAX_INVENTORY);
@@ -762,12 +780,31 @@ void Net_ParseBuffs() {
 							memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int), MAX_INVENTORY * sizeof(int));
 							memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
 							memcpy(game.flags, clients[i].ReceiveStack[arraypos].Stack + (sizeof(int) * (MAX_INVENTORY + 2)), NUM_GAMEFLAGS);
+							// update player inventory
+							for (int i2 = 0; i2 < player->ninventory; i2++) {
+								switch (player->inventory[i]) {
+								case ITEM_TURBOCHARGE:
+									player->equipmask |= EQUIP_TURBOCHARGE;
+									break;
+								case ITEM_BOOSTER08:
+									if (!player->equipmask & EQUIP_BOOSTER20) \
+										player->equipmask |= EQUIP_BOOSTER08;
+									break;
+								case ITEM_BOOSTER20:
+									player->equipmask |= EQUIP_BOOSTER20;
+									player->equipmask &= !EQUIP_BOOSTER08;
+									break;
+								case ITEM_AIRTANK:
+									player->equipmask |= EQUIP_AIRTANK;
+								}
+							}
 						}
 						arraypos++;
 					}
 					break;
 					case 16: {
 						if (Host == 0) {
+							// Player join event
 							PlayerJoinEventSvRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 							arraypos++;
 						}
@@ -775,6 +812,7 @@ void Net_ParseBuffs() {
 					break;
 					case 17: {
 						if (Host == 0) {
+							// Stage boss sync
 							game.stageboss.SyncRecv(clients[i].ReceiveStack[arraypos].Stack + 4);
 							arraypos++;
 						}
@@ -782,7 +820,7 @@ void Net_ParseBuffs() {
 					break;
 					case 18: {
 						if (Host == 0) {
-							// TODO: make this store to a value to execute later
+							// Syncs object links
 							int ser;
 							int sync;
 							memcpy(&ser, &clients[i].ReceiveStack[arraypos].Stack[4], 4);
@@ -796,6 +834,10 @@ void Net_ParseBuffs() {
 								linkednum++;
 							}
 						}
+					}
+					case 19: {
+						// Disconnection
+						CloseConn(&clients[i]);
 					}
 					arraypos++;
 					break;
@@ -821,6 +863,9 @@ void Net_ParseBuffs() {
 
 // free everything networking related
 void Net_Close() {
+	// I'm totally aware this memory leaks, but I can't super effectively kill the thread otherwise
+	TerminateThread(recthread, 0);
+	CloseHandle(recthread);
 	if (Host != -1) {
 		for (int i = 0; i < MAXCLIENTS; i++) {
 			if (clients[i].used && Host == 1) {
@@ -855,6 +900,8 @@ void Net_TrueClose() {
 	free(ObjSyncTickFuncs);
 	free(ObjSyncTickFuncsRecv);
 	free(ObjSyncTickSizes);
+	free(ObjSyncTickXSize);
+	free(ObjSyncTickYSize);
 }
 
 // for player functions
@@ -947,7 +994,6 @@ void ResendImportant(void *notused) {
 	timeb newtime;
 	ftime(&newtime);
 	long long t = (1000 * newtime.time) + newtime.millitm;
-	int finaltime = t - oldtime;
 	// Iterate over the clients and all the important packets we've sent
 	while (i < MAXCLIENTS) {
 		if (clients[i].used > 0) {
@@ -964,20 +1010,18 @@ void ResendImportant(void *notused) {
 				// If this is a valid packet
 				if (clients[i].SendStack[startpos].valid) {
 					// Increment our timeout timer
-					clients[i].SendStack[startpos].time += finaltime;
 					// If it's been met, re-send the packet and increment the timeout time by 300
-					if (clients[i].SendStack[startpos].time >= clients[i].SendStack[startpos].timeout) {
+					if (t >= clients[i].SendStack[startpos].timeout) {
 						sendto(Sock->sock, clients[i].SendStack[startpos].buff, clients[i].SendStack[startpos].size, 0, (sockaddr*)&clients[i].info, sockaddrsize);
-						clients[i].SendStack[startpos].timeout += 300;
+						clients[i].SendStack[startpos].timeout = t + 300;
 					}
 				}
 				// Iterate through array
 				startpos++;
 				startpos %= FullStackSize;
 			}
-			clients[i].time = t;
 			// Also timeout the client themselves. If we haven't heard from them in a while, nuke em
-			if (clients[i].time >= clients[i].timeout && (Host == 1 || i == ClientNode)) {
+			if (t >= clients[i].timeout && (Host == 1 || i == ClientNode)) {
 				CloseConn(&clients[i]);
 			}
 		}
