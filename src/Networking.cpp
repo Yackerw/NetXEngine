@@ -433,7 +433,12 @@ void Receive_Data(void *fricc) {
 							PacketData_t ack;
 							ack.id = ClientID;
 							ack.important = 2;
-							ack.node = ClientNode;
+							if (Host == 1) {
+								ack.node = packetdata->node;
+							}
+							else {
+								ack.node = ClientNode;
+							}
 							ack.packetid = packetdata->packetid;
 							sendto(Sock->sock, (char*)&ack, sizeof(PacketData_t), 0, (sockaddr*)&clients[packetdata->node].info, sockaddrsize);
 						}
@@ -444,7 +449,12 @@ void Receive_Data(void *fricc) {
 							PacketData_t ack;
 							ack.id = ClientID;
 							ack.important = 2;
-							ack.node = ClientNode;
+							if (Host == 1) {
+								ack.node = packetdata->node;
+							}
+							else {
+								ack.node = ClientNode;
+							}
 							ack.packetid = packetdata->packetid;
 							sendto(Sock->sock, (char*)&ack, sizeof(PacketData_t), 0, (sockaddr*)&clients[packetdata->node].info, sockaddrsize);
 						}
