@@ -834,13 +834,14 @@ void Net_ParseBuffs() {
 								linkednum++;
 							}
 						}
+						arraypos++;
 					}
 					break;
 					case 19: {
 						// Disconnection
 						CloseConn(&clients[i]);
+						arraypos++;
 					}
-					arraypos++;
 					break;
 					default:
 						// Something terribly, terribly wrong has happened. Or someone's doing something malicious. Either way, kill it
