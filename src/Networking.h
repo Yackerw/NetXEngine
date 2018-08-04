@@ -17,7 +17,7 @@
 #define FullStackSize 4097
 #define MAXCLIENTS 32
 
-#define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.=b"
+#define CONNECTAUTH "Yacker(tm) brand netplay v0.1, NetXEngine v0.3.+b"
 
 #define CONN_TIMEOUT 8000 // connection timeout in ms
 
