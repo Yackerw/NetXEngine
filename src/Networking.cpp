@@ -399,7 +399,7 @@ void Receive_Data(void *fricc) {
 					clients[ClientNode].ReceiveStackMutex = CreateMutex(NULL, false, NULL);
 					timeb t;
 					ftime(&t);
-					clients[ClientNode].timeout = ((1000 * t.time) + t.millitm) + 2000;
+					clients[ClientNode].timeout = ((1000 * t.time) + t.millitm) + CONN_TIMEOUT;
 					// Tell the server that we connected
 					char tmp = 0;
 					Packet_Send(&tmp, ClientNode, 1, 1, 0);
@@ -835,6 +835,7 @@ void Net_ParseBuffs() {
 							}
 						}
 					}
+					break;
 					case 19: {
 						// Disconnection
 						CloseConn(&clients[i]);
