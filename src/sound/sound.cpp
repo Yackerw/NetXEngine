@@ -46,6 +46,7 @@ static const char *org_dir = "org/";
 static const char *ogg_dir = "Ogg/";
 static const char *ogg11_dir = "Ogg11/";
 static const char *ogg17_dir = "Ogg17/";
+static const char *ogg_ridic = "Ogg_ridic/";
 
 bool sound_init(void)
 {
@@ -206,6 +207,7 @@ void music(int songno, bool resume)
 			case 1:
 			case 2:
 			case 3:
+			case 4:
 				ogg11_stop();
 				break;
 		}
@@ -225,6 +227,9 @@ void music(int songno, bool resume)
 			break;
 		case 3:															//ADDED THIS
 			start_ogg11_track(songno,resume, ogg17_dir);
+			break;
+		case 4:															//ADDED THIS
+			start_ogg11_track(songno, resume, ogg_ridic);
 			break;
 	}
 }
@@ -301,6 +306,15 @@ void music_set_enabled(int newstate)
 						ogg11_stop();
 				}
 				break;
+			case 4:
+				if (play != ogg11_is_playing())
+				{
+					if (play)
+						start_ogg11_track(cursong, 0, ogg_ridic);
+					else
+						ogg11_stop();
+				}
+				break;
 		}
 	}
 }
@@ -330,6 +344,9 @@ void music_set_newmusic(int newstate)
 			case 3:
 				start_ogg11_track(cursong, 0, ogg17_dir);
 				break;
+			case 4:
+				start_ogg11_track(cursong, 0, ogg_ridic);
+				break;
 		}
 	}
 }
@@ -344,6 +361,7 @@ void music_fade()
 		case 1:
 		case 2:
 		case 3:
+		case 4:
 			ogg11_fade();
 			break;
 	}
@@ -363,8 +381,8 @@ void music_run_fade()
 		case 1:
 		case 2:
 		case 3:
+		case 4:
 			ogg11_run_fade();
 			break;
 	}
 }
-
