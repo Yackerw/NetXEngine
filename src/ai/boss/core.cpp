@@ -117,6 +117,9 @@ char *CoreBoss::Sync() {
 			t->pc[i].sprite = pieces[i]->sprite;
 			t->pc[i].frame = pieces[i]->frame;
 		}
+		else {
+			t->pc[i].state = -1;
+		}
 	}
 	return (char*)t;
 }
@@ -138,7 +141,7 @@ void CoreBoss::SyncRecv(char *buff) {
 		o->timer = t->timer;
 	}
 	for (int i = 0; i < 7; i++) {
-		if (pieces[i]) {
+		if (pieces[i] && t->pc[i].state != -1) {
 			pieces[i]->x = t->pc[i].x;
 			pieces[i]->y = t->pc[i].y;
 			pieces[i]->state = t->pc[i].state;

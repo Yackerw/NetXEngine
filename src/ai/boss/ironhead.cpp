@@ -46,6 +46,40 @@ INITFUNC(AIRoutines)
 void c------------------------------() {}
 */
 
+char *IronheadBoss::Sync() {
+	IronheadSync *s = (IronheadSync*)malloc(sizeof(IronheadSync));
+	// safety precaution, just return with safe values
+	if (!o) {
+		s->state = -1;
+		return (char*)s;
+	}
+	s->x = o->x;
+	s->y = o->y;
+	s->xinertia = o->xinertia;
+	s->yinertia = o->yinertia;
+	s->hp = o->hp;
+	s->state = o->state;
+	return (char*)s;
+}
+
+void IronheadBoss::SyncRecv(char *buff) {
+	IronheadSync *s = (IronheadSync*)buff;
+	// safety precaution episode 2
+	if (!o) {
+		return;
+	}
+	if (s->state == -1) {
+		o->hp = 0;
+		return;
+	}
+	o->x = s->x;
+	o->y = s->y;
+	o->xinertia = s->xinertia;
+	o->yinertia = s->yinertia;
+	o->hp = s->hp;
+	o->state = s->state;
+}
+
 void IronheadBoss::OnMapEntry()
 {
 	o = CreateObject(0, 0, OBJ_IRONH);
@@ -54,6 +88,7 @@ void IronheadBoss::OnMapEntry()
 	o->state = IRONH_SPAWN_FISHIES;
 	
 	game.stageboss.object = o;
+	game.stageboss.SyncSize = sizeof(IronheadSync);
 	this->hittimer = 0;
 }
 

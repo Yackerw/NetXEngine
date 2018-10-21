@@ -66,6 +66,61 @@ head_bboxes[] =
 void c------------------------------() {}
 */
 
+char *SistersBoss::Sync() {
+	SistersSync *s = (SistersSync*)malloc(sizeof(SistersSync));
+	if (main) {
+		s->hp = main->hp;
+		s->xmark = main->xmark;
+		s->ymark = main->ymark;
+		s->timer = main->timer;
+		s->timer2 = main->timer2;
+	}
+	else {
+		s->hp = 0;
+		s->xmark = 0;
+		s->ymark = 0;
+		s->timer = 0;
+		s->timer2 = 0;
+	}
+	s->mainangle = mainangle;
+	// iterate over heads and bodies, ensure they're valid, and if so, store their state
+	for (int i = 0; i < NUM_SISTERS; i++) {
+		if (head[i]) {
+			s->headstate[i] = head[i]->state;
+		}
+		else {
+			s->headstate[i] = -1;
+		}
+		if (body[i]) {
+			s->bodystate[i] = body[i]->state;
+		}
+		else {
+			s->bodystate[i] = -1;
+		}
+	}
+	return (char*)s;
+}
+
+void SistersBoss::SyncRecv(char *buff) {
+	SistersSync *s = (SistersSync*)buff;
+	if (!main) return;
+	main->hp = s->hp;
+	main->xmark = s->xmark;
+	main->ymark = s->ymark;
+	main->timer = s->timer;
+	main->timer2 = s->timer2;
+	mainangle = s->mainangle;
+	// iterate over heads and bodies, ensure they're valid, and if so, make sure the values we received are valid, and if so, store state
+	for (int i = 0; i < NUM_SISTERS; i++) {
+		if (head[i] && s->headstate[i] != -1) {
+			head[i]->state = s->headstate[i];
+		}
+		if (body[i] && s->bodystate[i] != -1) {
+			body[i]->state = s->bodystate[i];
+		}
+	}
+}
+
 void SistersBoss::OnMapEntry()
 {
 int i;
@@ -119,6 +174,7 @@ int i;
 	main->flags |= FLAG_SCRIPTONDEATH;
 	
 	game.stageboss.object = main;
+	game.stageboss.SyncSize = sizeof(SistersSync);
 }
 
 void SistersBoss::OnMapExit()

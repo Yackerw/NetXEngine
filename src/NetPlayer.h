@@ -19,9 +19,9 @@ extern int PlayerSkinUpdateEvent;
 extern int MGunEvent;
 extern char pskin;
 
-#define numskins 18
+#define numskins 19
 
-#define truenumskins 18 // Includes dev skins
+#define truenumskins 19 // Includes dev skins
 
 // Data syncing structs
 typedef struct {

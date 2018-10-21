@@ -104,6 +104,7 @@ void c------------------------------() {}
 
 void ai_critter_hopping_red(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -309,6 +310,7 @@ void c------------------------------() {}
 
 void ai_red_demon(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:

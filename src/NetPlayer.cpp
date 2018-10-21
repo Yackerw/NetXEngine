@@ -1330,10 +1330,14 @@ void ConnectRecv(char *buff) {
 			break;
 		case ITEM_BOOSTER20:
 			player->equipmask |= EQUIP_BOOSTER20;
-			player->equipmask &= !EQUIP_BOOSTER08;
+			//player->equipmask &= !EQUIP_BOOSTER08;
 			break;
 		case ITEM_AIRTANK:
 			player->equipmask |= EQUIP_AIRTANK;
+			break;
+		case ITEM_ARMS_BARRIER:
+			player->equipmask |= EQUIP_ARMS_BARRIER;
+			break;
 		}
 	}
 }

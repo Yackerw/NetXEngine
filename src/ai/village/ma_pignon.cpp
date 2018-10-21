@@ -49,6 +49,7 @@ void ai_ma_pignon(Object *o)
 	debug("yinertia: %d", o->yinertia);
 	debug("frame: %d", o->frame);
 	*/
+	Player *player = FindPlayer(o);
 	
 	switch(o->state)
 	{
