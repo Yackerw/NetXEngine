@@ -326,6 +326,7 @@ static void handle_input()
 				SavePlayerConfig();
 			}
 			choice = 40;
+			SavePlayerConfig();
 		}
 
 		if (Multiplayer == 7) {

@@ -19,7 +19,7 @@ extern int PlayerSkinUpdateEvent;
 extern int MGunEvent;
 extern char pskin;
 
-#define numskins 19
+#define numskins 17
 
 #define truenumskins 19 // Includes dev skins
 

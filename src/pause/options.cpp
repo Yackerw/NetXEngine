@@ -523,17 +523,3 @@ static void _finish_control_edit(Message *msg)
 	sound(SND_MENU_SELECT);
 	opt.dlg->Refresh();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
