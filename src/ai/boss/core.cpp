@@ -104,6 +104,9 @@ char *CoreBoss::Sync() {
 		t->m.substate = o->substate;
 		t->timer = o->timer;
 	}
+	else {
+		t->hp = -1;
+	}
 	for (int i = 0; i < 7; i++) {
 		if (pieces[i]) {
 			t->pc[i].x = pieces[i]->x;
@@ -126,7 +129,7 @@ char *CoreBoss::Sync() {
 
 void CoreBoss::SyncRecv(char *buff) {
 	CoreSync_t *t = (CoreSync_t*)buff;
-	if (o) {
+	if (o && t->hp != -1) {
 		o->hp = t->hp;
 		o->x = t->m.x;
 		o->y = t->m.y;
