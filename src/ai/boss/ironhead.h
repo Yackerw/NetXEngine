@@ -4,12 +4,25 @@
 #include "../../object.h"
 #include "../../stageboss.h"
 
+typedef struct {
+	int state;
+	int x;
+	int y;
+	int xinertia;
+	int yinertia;
+	int hp;
+} IronheadSync;
+
 class IronheadBoss : public StageBoss
 {
 public:
 	void OnMapEntry();
 	void OnMapExit();
 	void Run();
+
+	char *Sync();
+	void SyncRecv(char *buff);
+	int SyncSize;
 
 private:
 	Object *o;

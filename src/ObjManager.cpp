@@ -25,6 +25,8 @@ int nextloadobjsser[MAX_OBJECTS];
 int nextloadid;
 int shouldloadlevelobjs = 0;
 
+int NumObjects = 0;
+
 /*
 void c------------------------------() {}
 */
@@ -34,8 +36,10 @@ Object *CreateObject(int x, int y, int type, int xinertia, int yinertia,
 {
 Object *o;
 
+NumObjects++;
+
 	// return if we're client and spawning something supposed to be serialized
-	if (host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
+	if (Host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
 		o = new Object;
 		*o = ZERO_OBJECT;
 		o->deleted = true;
@@ -84,11 +88,9 @@ Object *o;
 		o->OnSpawn();
 	// sync online
 	o->serialization = -1;
-	if (host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
+	if (Host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
 		objargs out;
-		char *outbuff = (char*)malloc(sizeof(objargs) + (sizeof(int) * 2));
-		int tmp = 7;
-		memcpy(outbuff, &tmp, sizeof(int));
+		char *outbuff = (char*)malloc(sizeof(objargs) + sizeof(int));
 		out.x = x;
 		out.y = y;
 		out.type = type;
@@ -97,16 +99,31 @@ Object *o;
 		out.dir = dir;
 		// TODO: add
 		out.linkedobject = 0;
+		if (linkedobject) out.linkedobject = o->linkedobject->serialization;
 		out.createflags = createflags;
 		out.onLoad = onLoad;
-		memcpy(outbuff + 8, &out, sizeof(objargs));
-		memcpy(outbuff + 4, &serializeid, sizeof(int));
-		Net_AddToOut(outbuff, sizeof(objargs) + (sizeof(int)*2));
-		o->serialization = serializeid;
-		netobjs[serializeid].obj = o;
-		netobjs[serializeid].valid = true;
-		netobjs[serializeid].tickfunc = ObjSyncTickFuncs[type];
-		serializeid++;
+		// If we've reached the end of the serialization array, then make it try and find somewhere else
+		int serpos = serializeid;
+		if (serializeid == MAX_OBJECTS) {
+			int i = 0;
+			while (i < MAX_OBJECTS) {
+				if (!netobjs[i].valid) {
+					serpos = i;
+					i = MAX_OBJECTS;
+				}
+				i++;
+			}
+		}
+		else {
+			serializeid++;
+		}
+		memcpy(outbuff + 4, &out, sizeof(objargs));
+		memcpy(outbuff, &serpos, sizeof(int));
+		Packet_Send_Host(outbuff, sizeof(objargs) + (sizeof(int)*2), 7, 1);
+		o->serialization = serpos;
+		netobjs[serpos].obj = o;
+		netobjs[serpos].valid = true;
+		netobjs[serpos].tickfunc = ObjSyncTickFuncs[type];
 		free(outbuff);
 	}
 
@@ -144,15 +161,19 @@ Object *o;
 			bullets[i]=o;
 			break;
 		}
+		if (i == 63) {
+			// We failed to find, abort
+			o->deleted = true;
+		}
 	}
 	LL_ADD_END(o, lower, higher, lowestobject, highestobject);
 	
 	return o;
 }
 
-Object *CreateObject(int x, int y, int type)
+Object *CreateObject(int x, int y, int type, bool onLoad)
 {
-	return CreateObject(x, y, type, 0, 0, RIGHT, NULL, CF_DEFAULT);
+	return CreateObject(x, y, type, 0, 0, RIGHT, NULL, CF_DEFAULT, false, onLoad);
 }
 
 /*

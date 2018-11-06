@@ -25,6 +25,7 @@
 #include "console.h"
 #include "ResourceManager.h"
 #include "Networking.h"
+#include "NetPlayer.h"
 
 // which textbox options are enabled by the "<TUR" script command.
 #define TUR_PARAMS		(TB_LINE_AT_ONCE | TB_VARIABLE_WIDTH_CHARS | TB_CURSOR_NEVER_SHOWN)
@@ -503,19 +504,17 @@ const uint8_t *TSC::FindScriptData(int scriptno, ScriptPages pageno, ScriptPages
 bool TSC::StartScript(int scriptno, ScriptPages pageno)
 {
 	// Don't execute if we're the host and haven't been told to by the server (or are in the entry script)
-	if (host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
+	if (Host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
 		return false;
 	}
 	// Set it back to false again
 	TscExec = false;
 	// don't re-execute the on entry event
 	// If we're the server, tell everyone to execute!
-	if (host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
-		char *buff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 6;
-		memcpy(buff, &tmp, sizeof(int));
-		memcpy(buff + 4, &scriptno, sizeof(int));
-		Net_AddToOut(buff,sizeof(int)*2);
+	if (Host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
+		char *buff = (char*)malloc(sizeof(int));
+		memcpy(buff, &scriptno, sizeof(int));
+		Packet_Send_Host(buff,sizeof(int), 6, 1);
 		free(buff);
 	}
 const uint8_t *program;
@@ -831,8 +830,9 @@ int cmdip;
 			case OP_TRA:
 			{
 				// Return if client
-				if (host == 0) {
+				if (Host == 0) {
 					didexecute++;
+					StopScript(s);
 					return;
 				}
 				bool waslocked = (player->inputs_locked || game.frozen);
@@ -857,26 +857,6 @@ int cmdip;
 						player->inputs_locked = true;
 						game.frozen = false;
 					}
-				}
-				// If we're the host then sync this TRA
-				if (host == 1) {
-					char *outbuff = (char*)malloc((sizeof(int) * 5) + 2);
-					int tmp = 14;
-					memcpy(outbuff, &tmp, sizeof(int));
-					memcpy(outbuff + sizeof(int), parm, sizeof(int) * 4);
-					outbuff[sizeof(int) * 5] = player->invisible;
-					outbuff[(sizeof(int) * 5) + 1] = player->hide;
-					Net_AddToOut(outbuff, (sizeof(int) * 5) + 2);
-					free(outbuff);
-					// PART 2
-					outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
-					tmp = 15;
-					memcpy(outbuff, &tmp, sizeof(int));
-					memcpy(outbuff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
-					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
-					memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 2)), &game.flags, NUM_GAMEFLAGS);
-					Net_AddToOut(outbuff, (sizeof(int) * (MAX_INVENTORY + 2)) + NUM_GAMEFLAGS);
-					free(outbuff);
 				}
 				Teleporting = false;
 				
@@ -1003,6 +983,19 @@ int cmdip;
 				{
 					game.bossbar.object = target;
 					game.bossbar.defeated = false;
+					short pcount = 0;
+					short i = 0;
+					while (i < MAXCLIENTS) {
+						if (clients[i].used == true) {
+							pcount++;
+						}
+						i++;
+					}
+					target->hp += (target->hp * pcount);
+					if (Host == 0) {
+						player->x = players[ClientNode].x;
+						player->y = players[ClientNode].y;
+					}
 					game.bossbar.starting_hp = target->hp;
 					game.bossbar.bar.displayed_value = target->hp;
 				}
@@ -1105,7 +1098,7 @@ int cmdip;
 			break;
 			case OP_LDP:
 				// do not do if client
-				if (host != 0) {
+				if (Host != 0) {
 					game.switchstage.mapno = LOAD_GAME;
 				}
 			break;
@@ -1252,11 +1245,11 @@ int cmdip;
 			
 			case OP_SLP:	// bring up teleporter menu
 			{
-				if (host != 0) {
+				if (Host != 0) {
 					textbox.StageSelect.SetVisible(true);
 				}
 				// If we're the host then make note to sync next <YNJ
-				if (host == 1) {
+				if (Host == 1) {
 					Teleporting = true;
 				}
 				return;

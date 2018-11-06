@@ -19,6 +19,7 @@
 #include "../../graphics/sprites.h"
 #include "../../graphics/tileset.h"
 #include "../../autogen/sprites.h"
+#include "../../Networking.h"
 
 
 #define STATE_X_APPEAR				1		// script-triggered: must stay constant
@@ -60,10 +61,66 @@ INITFUNC(AIRoutines)
 	ONDEATH(OBJ_X_MAINOBJECT, ondeath_x_mainobject);
 }
 
+char *XBoss::Sync() {
+	XSync_t *x = (XSync_t*)malloc(sizeof(XSync_t));
+	// emergency fix
+	SyncSize = sizeof(XSync_t);
+	// Only sync mainobject if it exists
+	if (mainobject) {
+		x->mainobj.x = mainobject->x;
+		x->mainobj.y = mainobject->y;
+		x->mainobj.flags = mainobject->flags;
+		x->mainobj.state = mainobject->state;
+		x->mainobj.hp = mainobject->hp;
+		x->mainobj.substate = mainobject->substate;
+		x->mainobj.dir = mainobject->dir;
+		x->mainobj.sprite = mainobject->sprite;
+		x->mainobj.invisible = mainobject->invisible;
+	}
+	for (int i = 0; i < npieces; i++) {
+		x->pieces[i].x = piecelist[i]->x;
+		x->pieces[i].y = piecelist[i]->y;
+		x->pieces[i].flags = piecelist[i]->flags;
+		x->pieces[i].state = piecelist[i]->state;
+		x->pieces[i].hp = piecelist[i]->hp;
+		x->pieces[i].substate = piecelist[i]->substate;
+		x->pieces[i].dir = piecelist[i]->dir;
+		x->pieces[i].sprite = piecelist[i]->sprite;
+		x->pieces[i].invisible = piecelist[i]->invisible;
+	}
+	return (char*)x;
+}
+
+void XBoss::SyncRecv(char *buff) {
+	XSync_t *x = (XSync_t*) buff;
+	if (mainobject) {
+		mainobject->x = x->mainobj.x;
+		mainobject->y = x->mainobj.y;
+		mainobject->flags = x->mainobj.flags;
+		mainobject->state = x->mainobj.state;
+		mainobject->hp = x->mainobj.hp;
+		mainobject->substate = x->mainobj.substate;
+		mainobject->dir = x->mainobj.dir;
+		mainobject->sprite = x->mainobj.sprite;
+		mainobject->invisible = x->mainobj.invisible;
+	}
+	for (int i = 0; i < npieces; i++) {
+		piecelist[i]->x = x->pieces[i].x;
+		piecelist[i]->y = x->pieces[i].y;
+		piecelist[i]->flags = x->pieces[i].flags;
+		piecelist[i]->state = x->pieces[i].state;
+		piecelist[i]->hp = x->pieces[i].hp;
+		piecelist[i]->substate = x->pieces[i].substate;
+		piecelist[i]->dir = x->pieces[i].dir;
+		piecelist[i]->sprite = x->pieces[i].sprite;
+		piecelist[i]->invisible = x->pieces[i].invisible;
+	}
+}
+
 void XBoss::OnMapEntry(void)
 {
 	stat("XBoss::OnMapEntry()");
-	
+
 	memset(&X, 0, sizeof(X));
 	memset(&body, 0, sizeof(body));
 	memset(&treads, 0, sizeof(treads));
@@ -78,6 +135,7 @@ void XBoss::OnMapEntry(void)
 	
 	
 	game.stageboss.object = mainobject;
+	game.stageboss.SyncSize = sizeof(XSync_t);
 }
 
 void XBoss::OnMapExit()
@@ -103,6 +161,14 @@ int i;
 		o->hp = 1;
 		o->x = -(SCREEN_WIDTH * CSFI);
 		return;
+	}
+	// Important failsafe for clients
+	if (Host == 0) {
+		if (!X.initilized)
+		{
+			Init();
+			X.initilized = true;
+		}
 	}
 	
 	switch(o->state)

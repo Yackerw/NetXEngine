@@ -9,12 +9,26 @@
 // like 10 and running the fight!
 #define NUM_SISTERS			2
 
+typedef struct {
+	int hp;
+	int xmark;
+	int ymark;
+	int mainangle;
+	int bodystate[NUM_SISTERS];
+	int headstate[NUM_SISTERS];
+	int timer;
+	int timer2;
+} SistersSync;
+
 class SistersBoss : public StageBoss
 {
 public:
 	void OnMapEntry();
 	void OnMapExit();
 	void Run();
+	char *Sync();
+	void SyncRecv(char *buff);
+	int SyncSize;
 
 private:
 	void run_head(int index);

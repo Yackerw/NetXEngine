@@ -79,7 +79,7 @@ static void draw_title()
 	if (Multiplayer == 0) {
 		//show if its hosting
 		const char* multitx;
-		if (host != -1) {
+		if (Host != -1) {
 			multitx = "----";
 		}
 		else {
@@ -87,7 +87,7 @@ static void draw_title()
 		}
 		const char* mymenus[] = { "New game","Load game", "Options", multitx, "Quit" };
 
-		if (host == 1) {
+		if (Host == 1) {
 			font_draw(cx + 10, cy - 32, "(Hosting!)");
 		}
 
@@ -141,7 +141,7 @@ static void draw_title()
 			//draw_sprite(cx + 24, cy + 16, ((SPR_MYCHAR)) + player->skin, title.selframe);
 			draw_sprite(cx + 24, cy + 16, (SPR_CURLYCHAR - 1) + player->skin, title.selframe&1);
 		}
-		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Chako","Toroko","Mimiga Soldier","Puppy","Booster","Dr. Gero","Nurse Hasumi","Jenka","Demon Crown","Root The Cat","Suguri","Sora" };
+		const char* skinnames[] = { "Quote","Curly","Sue","King","Jack","Colon","Chako","Santa","Toroko","Mimiga Soldier","Puppy","Booster","Dr. Gero","Nurse Hasumi","Jenka","Human Sue","Demon Crown","Root The Cat","Suguri","Sora" };
 		font_draw(cx + 27 - (strlen(skinnames[player->skin])*2), cy + 46, skinnames[player->skin]);
 		//draw_sprite(cx+24,cy+16, title.sprite+title.cursel, title.selframe);
 	}
@@ -153,15 +153,21 @@ static void draw_title()
 		font_draw(cx + 10, cy, name);
 	}
 	if (Multiplayer == 6) {
-		client = Client_Connect(IPAddress);
-		if (client != INVALID_SOCKET) {
-			sockrecthread *sock;
-			sock = (sockrecthread*)malloc(sizeof(sockrecthread));
-			sock->sock = client;
-			sock->socknum = 0;
-			sockets[0].used = 1;
-			_beginthread(packet_receiving, 256, (void*)sock);
-			host = 0;
+		Sock = ClientCreate(IPAddress, 5029);
+		if (Sock != NULL) {
+			recthread = (HANDLE)_beginthread(Receive_Data, 2048, NULL);
+			int i = 0;
+			while (i < 100 && ClientNode == -1) {
+				Sleep(20);
+				i++;
+			}
+			if (ClientNode == -1) {
+				Multiplayer = 7;
+				Sock->sock = NULL;
+				Host = -1;
+				return;
+			}
+			Host = 0;
 			Net_FirePlayerEvent(PlayerSkinUpdateEvent);
 
 			//set name to "Player" if empty
@@ -285,7 +291,9 @@ static void handle_input()
 	
 	if (buttonjustpushed() || justpushed(ENTERKEY))
 	{
-		sound(SND_MENU_SELECT);
+		if (Multiplayer != 4 || justpushed(ENTERKEY)) {
+			sound(SND_MENU_SELECT);
+		}
 		int choice = title.cursel;
 
 		if (Multiplayer == 1) {
@@ -315,6 +323,7 @@ static void handle_input()
 			if (justpushed(ENTERKEY)) {
 				Multiplayer = 1;
 				title.cursel = 4;
+				SavePlayerConfig();
 			}
 			choice = 40;
 			SavePlayerConfig();
@@ -399,7 +408,7 @@ static void selectoption(int index)
 		break;
 		case 3:		// Multiplayer
 		{
-			if (host == -1) {
+			if (Host == -1) {
 				Multiplayer = 1;
 				title.cursel = 0;
 			}
@@ -420,10 +429,9 @@ static void selectoption(int index)
 		}
 		break;
 		case 20: {		// Start hosting
-			server = Server_Create();
-			Server_Listen(server);
-			_beginthread(Serv_Connect, 256, (void*)&server);
-			host = 1;
+			Sock = Server_Create(5029);
+			recthread = (HANDLE)_beginthread(Receive_Data, 2048, NULL);
+			Host = 1;
 			Multiplayer = 0;
 
 			//set name to "~Host" if empty
@@ -461,6 +469,8 @@ bool title_init(int param)
 	game.switchstage.eventonentry = 0;
 	game.showmapnametime = 0;
 	textbox.SetVisible(false);
+	LoadPlayerConfig();
+	Multiplayer = 0;
 	
 	if (niku_load(&title.besttime))
 		title.besttime = 0xffffffff;

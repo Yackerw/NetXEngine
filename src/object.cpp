@@ -18,6 +18,7 @@ using namespace Graphics;
 #include "debug.h"
 #include "ai/ai.h"
 #include "NetPlayer.h"
+#include "ai/boss/balfrog.h"
 
 char*(**ObjSyncTickFuncs)(Object *obj);
 void(**ObjSyncTickFuncsRecv)(char *buff, int id);
@@ -64,15 +65,13 @@ void Object::Delete(int synced)
 Object * const &o = this;
 
 	// If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == 0 && this->serialization != -1) {
+	if (Host == 0 && synced == 0 && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1 && synced != 2) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 10;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1 && synced != 2) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 4, 10, 1);
 		free(outbuff);
 	}
 	if (o->deleted)
@@ -104,6 +103,8 @@ Object * const &o = this;
 void Object::Destroy()
 {
 Object * const &o = this;
+
+NumObjects--;
 
 	// make sure no pointers are pointing at us
 	DisconnectGamePointers();
@@ -162,19 +163,6 @@ Object * const &o = this;
 	o->hp = objprop[type].initial_hp;
 	o->damage = objprop[o->type].damage;
 	o->frame = 0;
-
-	// Boss specific hack lol
-	if (type == OBJ_BALROG_BOSS_RUNNING || type == OBJ_BALROG_BOSS_FLYING || type == OBJ_BALROG_BOSS_MISSILES || type == OBJ_BOSS_IGOR || type == OBJ_BALFROG) {
-		short pcount = 0;
-		short i = 0;
-		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
-				pcount++;
-			}
-			i++;
-		}
-		o->hp += (o->hp * (1.85f * pcount));
-	}
 	
 	// apply nxflags to new object type!
 	// (did this so toroko would handle slopes properly in Gard cutscene)
@@ -200,10 +188,10 @@ Object * const &o = this;
 void Object::ChangeType(int type, bool synced)
 {
 Object * const &o = this;
-	if (ObjSyncTickFuncsRecv[type] != NULL && host == 0 && synced == false) {
+	if (ObjSyncTickFuncsRecv[type] != NULL && Host == 0 && synced == false) {
 		return;
 	}
-	if (host == 1 && ObjSyncTickFuncsRecv[type] != NULL) {
+	if (Host == 1 && (ObjSyncTickFuncsRecv[type] != NULL || this->serialization != -1)) {
 		if (this->serialization == -1) {
 			this->serialization = serializeid;
 			serializeid++;
@@ -213,14 +201,12 @@ Object * const &o = this;
 		netobjs[this->serialization].tickfunc = ObjSyncTickFuncs[type];
 		// This is generally only called by ID2 so determine the ID2 and use that
 		char *outbuff = (char*)malloc(sizeof(int) * 4);
-		int tmp = 12;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->id2), sizeof(short));
-		outbuff[6] = 0;
-		outbuff[7] = 0;
-		memcpy(outbuff + 8, &type, sizeof(int));
-		memcpy(outbuff + 12, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, sizeof(int) * 4);
+		memcpy(outbuff, &(this->id2), sizeof(short));
+		outbuff[2] = 0;
+		outbuff[3] = 0;
+		memcpy(outbuff + 4, &type, sizeof(int));
+		memcpy(outbuff + 8, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, sizeof(int) * 3, 12, 1);
 		free(outbuff);
 	}
 	// un-serialize
@@ -806,15 +792,13 @@ void Object::Kill(bool synced)
 Object * const &o = this;
 	
 // If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == false && this->serialization != -1) {
+	if (Host == 0 && synced == false && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 11;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 8, 11, 1);
 		free(outbuff);
 	}
 	o->hp = 0;
@@ -1132,26 +1116,37 @@ void Object::OnSpawn()
 void Object::OnDeath(bool synced)
 {
 	// If we're client and this object is serialized and we didn't get a message from the server, return
-	if (host == 0 && synced == false && this->serialization != -1) {
+	if (Host == 0 && synced == false && this->serialization != -1) {
 		return;
 	}
-	if (host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int) * 2);
-		int tmp = 9;
-		memcpy(outbuff, &tmp, sizeof(int));
-		memcpy(outbuff + 4, &(this->serialization), sizeof(int));
-		Net_AddToOut(outbuff, 8);
+	if (Host == 1 && this->serialization != -1) {
+		char *outbuff = (char*)malloc(sizeof(int));
+		memcpy(outbuff, &(this->serialization), sizeof(int));
+		Packet_Send_Host(outbuff, 4, 9, 1);
 		free(outbuff);
 	}
 	if (objprop[this->type].ai_routines.ondeath)
 		(*objprop[this->type].ai_routines.ondeath)(this);
 }
 
-int *ObjSyncTickSizes;
+void UpdateLinkedObject(Object *o) {
+	if (Host != 1 || o->serialization == -1) return;
+	char *buff = (char*)malloc(8);
+	memcpy(&buff[4], &o->linkedobject->serialization, 4);
+	memcpy(buff, &o->serialization, 4);
+	Packet_Send_Host(buff, 8, 18, 1);
+	free(buff);
+}
 
-void RegisterTickSyncFuncSend(char*(*func)(Object*), int id, int size) {
+int *ObjSyncTickSizes;
+int *ObjSyncTickXSize;
+int *ObjSyncTickYSize;
+
+void RegisterTickSyncFuncSend(char*(*func)(Object*), int id, int size, int sizex = 600 * CSFI, int sizey = 550 * CSFI) {
 	ObjSyncTickFuncs[id] = func;
 	ObjSyncTickSizes[id] = size;
+	ObjSyncTickXSize[id] = sizex;
+	ObjSyncTickYSize[id] = sizey;
 }
 
 void RegisterTickSyncFuncRecv(void(*func)(char*, int), int id) {
@@ -1173,14 +1168,16 @@ void UpdateObjSyncs() {
 	while (i < serializeid) {
 		if (netobjs[i].valid == true && netobjs[i].tickfunc != NULL) {
 			char *buff = netobjs[i].tickfunc(netobjs[i].obj);
-			int size = ObjSyncTickSizes[netobjs[i].obj->type] + 12;
+			int size = ObjSyncTickSizes[netobjs[i].obj->type] + 8;
 			buff = (char*)realloc(buff, size);
-			memmove(buff + 12, buff, size - 12);
-			int tmp = 8;
-			memcpy(buff, &tmp, sizeof(int));
-			memcpy(buff + 4, &(netobjs[i].obj->type), sizeof(int));
-			memcpy(buff + 8, &i, sizeof(int));
-			Net_AddToOut(buff, size);
+			memmove(buff + 8, buff, size - 8);
+			memcpy(buff, &(netobjs[i].obj->type), sizeof(int));
+			memcpy(buff + 4, &i, sizeof(int));
+			// iterate through clients and determine if they're close
+			for (int i2 = 0; i2 < MAXCLIENTS; i2++) {
+				if (clients[i2].used && abs(players[i2].x - netobjs[i].obj->x) <= ObjSyncTickXSize[netobjs[i].obj->type] && abs(players[i2].y - netobjs[i].obj->y) <= ObjSyncTickYSize[netobjs[i].obj->type]) \
+					Packet_Send(buff, i2, size, 8, 0);
+			}
 			free(buff);
 		}
 		i++;
@@ -1188,8 +1185,8 @@ void UpdateObjSyncs() {
 }
 
 //simple functions for syncing
-char *BasicSync(Object *obj) {
-	char *outbuff = (char*)malloc(BASICSYNCSIZE);
+char *BasicSync(Object *o) {
+	/*char *outbuff = (char*)malloc(BASICSYNCSIZE);
 	memcpy(outbuff, &(obj->x), sizeof(int));
 	memcpy(outbuff + 4, &(obj->y), sizeof(int));
 	memcpy(outbuff + 8, &(obj->xinertia), sizeof(int));
@@ -1197,20 +1194,38 @@ char *BasicSync(Object *obj) {
 	memcpy(outbuff + 16, &(obj->state), sizeof(int));
 	memcpy(outbuff + 20, &(obj->substate), sizeof(int));
 	memcpy(outbuff + 24, &(obj->hp), sizeof(int));
-	memcpy(outbuff + 28, &(obj->dir), sizeof(int));
-	return outbuff;
+	memcpy(outbuff + 28, &(obj->dir), sizeof(int));*/
+	BasicSyncStruct *s = (BasicSyncStruct*)malloc(sizeof(BasicSyncStruct));
+	s->x = o->x;
+	s->y = o->y;
+	s->xinertia = o->xinertia;
+	s->yinertia = o->yinertia;
+	s->state = o->state;
+	s->substate = o->substate;
+	s->hp = o->hp;
+	s->dir = o->dir;
+	return(char*)s;
 }
 
 void BasicSyncRecv(char *buff, int objid) {
-	Object *obj = netobjs[objid].obj;
-	memcpy(&(obj->x), buff, sizeof(int));
+	Object *o = netobjs[objid].obj;
+	/*memcpy(&(obj->x), buff, sizeof(int));
 	memcpy(&(obj->y), buff + 4, sizeof(int));
 	memcpy(&(obj->xinertia), buff + 8, sizeof(int));
 	memcpy(&(obj->yinertia), buff + 12, sizeof(int));
 	memcpy(&(obj->state), buff + 16, sizeof(int));
 	memcpy(&(obj->substate), buff + 20, sizeof(int));
 	memcpy(&(obj->hp), buff + 24, sizeof(int));
-	memcpy(&(obj->dir), buff + 28, sizeof(int));
+	memcpy(&(obj->dir), buff + 28, sizeof(int));*/
+	BasicSyncStruct *s = (BasicSyncStruct*)buff;
+	o->x = s->x;
+	o->y = s->y;
+	o->xinertia = s->xinertia;
+	o->yinertia = s->yinertia;
+	o->state = s->state;
+	o->substate = s->substate;
+	o->hp = s->hp;
+	o->dir = s->dir;
 }
 
 // For mannan, sync nothing
@@ -1221,6 +1236,25 @@ char *MannanSync(Object *obj) {
 
 void MannanRecv(char *buff, int objid) {
 	return;
+}
+
+// For skull step feet, fixes some issues with them
+char *SkullStepSend(Object *o) {
+	SkullStepStruct *s = (SkullStepStruct*)malloc(sizeof(SkullStepStruct));
+	s->x = o->x;
+	s->y = o->y;
+	s->angle = o->angle;
+	s->angleoffset = o->angleoffset;
+	return (char*)s;
+}
+
+void SkullStepRecv(char *buff, int objid) {
+	Object *o = netobjs[objid].obj;
+	SkullStepStruct *s = (SkullStepStruct*)buff;
+	o->x = s->x;
+	o->y = s->y;
+	o->angle = s->angle;
+	o->angleoffset = s->angleoffset;
 }
 
 void RegisterBasic() {
@@ -1250,6 +1284,12 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_FLYING);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_RUNNING, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_RUNNING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BUST_IN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BUST_IN);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_DROP_IN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_DROP_IN);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BOSS_IGOR, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BOSS_IGOR);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_FLYING, BASICSYNCSIZE);
@@ -1266,15 +1306,127 @@ void RegisterBasic() {
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FROG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_MINIFROG, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MINIFROG);
-	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_FLYING, BASICSYNCSIZE);
-	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_FLYING);
 	// How much you wanna bet that I'll forget I made this later and be totally confused as to why something is broken?
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BALROG_BOSS_MISSILES, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALROG_BOSS_MISSILES);
-	RegisterTickSyncFuncSend(BasicSync, OBJ_BALFROG, BASICSYNCSIZE);
-	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BALFROG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BAT_HANG, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BAT_HANG);
 	RegisterTickSyncFuncSend(BasicSync, OBJ_BAT_CIRCLE, BASICSYNCSIZE);
 	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BAT_CIRCLE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BEETLE_BROWN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BEETLE_BROWN);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POLISH, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POLISH);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POLISHBABY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POLISHBABY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC1, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC1);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC2, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC2);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIMIGAC_ENEMY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIMIGAC_ENEMY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SUNSTONE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SUNSTONE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_ARMADILLO, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_ARMADILLO);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CROW, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CROW);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CROWWITHSKULL, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CROWWITHSKULL);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLHEAD, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLHEAD);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLHEAD_CARRIED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLHEAD_CARRIED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKULLSTEP, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKULLSTEP);
+	RegisterTickSyncFuncSend(SkullStepSend, OBJ_SKULLSTEP_FOOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(SkullStepRecv, OBJ_SKULLSTEP_FOOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_SKELETON, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_SKELETON);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CURLY_BOSS, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CURLY_BOSS);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_FLOWER, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_FLOWER);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_FRENZIED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_FRENZIED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_TOROKO_BLOCK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_TOROKO_BLOCK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_ARMORED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_ARMORED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_FLYING, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_FLYING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_DYING, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_DYING);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_SHOOTING_PURPLE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CRITTER_SHOOTING_PURPLE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FIREWHIRR, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FIREWHIRR);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GAUDI_EGG, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GAUDI_EGG);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FUZZ_CORE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FUZZ_CORE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FUZZ, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FUZZ);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BUYOBUYO_BASE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BUYOBUYO_BASE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_BUYOBUYO, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_BUYOBUYO);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_POOH_BLACK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_POOH_BLACK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MINICORE_SHOT, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MINICORE_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CORE_GHOSTIE, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CORE_GHOSTIE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CORE_BLAST, BASICSYNCSIZE, 900 * CSFI, 900 * CSFI);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CORE_BLAST);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_IRONH_FISHY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_IRONH_FISHY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_IRONH_SHOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_IRONH_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_IRONH_BRICK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_IRONH_BRICK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_DRAGON_ZOMBIE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_DRAGON_ZOMBIE);
+	RegisterTickSyncFuncSend(MannanSync, OBJ_DRAGON_ZOMBIE_DEAD, 1);
+	RegisterTickSyncFuncRecv(MannanRecv, OBJ_DRAGON_ZOMBIE_DEAD);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_DRAGON_ZOMBIE_SHOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_DRAGON_ZOMBIE_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_COUNTER_BOMB, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_COUNTER_BOMB);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_HOPPY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_HOPPY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_NIGHT_SPIRIT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_NIGHT_SPIRIT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_NIGHT_SPIRIT_SHOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_NIGHT_SPIRIT_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_ORANGEBELL, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_ORANGEBELL);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_ORANGEBELL_BABY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_ORANGEBELL_BABY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MIDORIN, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MIDORIN);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_STUMPY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_STUMPY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_DROLL, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_DROLL);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GUNFISH, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GUNFISH);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_GUNFISH_SHOT, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_GUNFISH_SHOT);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MA_PIGNON, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MA_PIGNON);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MA_PIGNON_ROCK, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MA_PIGNON_ROCK);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_MA_PIGNON_CLONE, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_MA_PIGNON_CLONE);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_CRITTER_HOPPING_RED, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_CRITTER_HOPPING_RED);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_RED_DEMON, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_RED_DEMON);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_IGOR_BALCONY, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_IGOR_BALCONY);
+	RegisterTickSyncFuncSend(BasicSync, OBJ_FRENZIED_MIMIGA, BASICSYNCSIZE);
+	RegisterTickSyncFuncRecv(BasicSyncRecv, OBJ_FRENZIED_MIMIGA);
 }

@@ -72,21 +72,7 @@ Networking_Init();
 Chat_Init();
 SetupNetPlayerFuncs();
 RegisterBasic();
-host = -1;
-if (host == 1) {
-	server = Server_Create();
-	Server_Listen(server);
-	_beginthread(Serv_Connect, 256, (void*)&server);
-}
-if (host == 0) {
-	client = Client_Connect("127.0.0.1");
-	sockrecthread *sock;
-	sock = (sockrecthread*)malloc(sizeof(sockrecthread));
-	sock->sock = client;
-	sock->socknum = 0;
-	sockets[0].used = 1;
-	_beginthread(packet_receiving, 256, (void*)sock);
-}
+Host = -1;
 
 	game = {};
 	tsc = new TSC();
@@ -283,13 +269,14 @@ void Game::switchmap(int mapno, int scriptno, int px, int py)
 
 void Game::reset()
 {
-	//memset(inputs, 0, sizeof(inputs));
-	//StopLoopSounds();
-	//tsc->StopScripts();
+	memset(inputs, 0, sizeof(inputs));
+	StopLoopSounds();
+	tsc->StopScripts();
 	
 	game.pause(false);
-	//game.setmode(GM_INTRO, 0, true);
-	//console.SetVisible(false);
+	game.setmode(GM_INTRO, 0, true);
+	console.SetVisible(false);
+	Net_Close();
 }
 
 /*
@@ -318,18 +305,36 @@ void game_tick_normal(void)
 		shouldloadlevelobjs = false;
 	}
 
+	// Update the linked object stuff
+	if (game.switchstage.mapno == -1 && linkednum != 0) {
+		int i = 0;
+		while (i < linkednum) {
+			netobjs[linkedset[i].parent].obj->linkedobject = netobjs[linkedset[i].child].obj;
+			i++;
+		}
+		linkednum = 0;
+	}
+
 	if (!game.frozen)
 	{
 		// run AI for player and stageboss first
 		HandlePlayer();
 		int i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
+			if (clients[i].used == 1) {
 				netHandlePlayer(i);
 			}
 			i++;
 		}
 		game.stageboss.Run();
+
+		if (Host == 1) {
+			char *outbuff = game.stageboss.Sync();
+			if (outbuff != NULL) {
+				Packet_Send_Host(outbuff, game.stageboss.SyncSize, 17);
+			}
+			free(outbuff);
+		}
 		
 		// now objects AI and move all objects to their new positions
 		Objects::RunAI();
@@ -339,7 +344,7 @@ void game_tick_normal(void)
 		HandlePlayer_am();
 		i = 0;
 		while (i < MAXCLIENTS) {
-			if (sockets[i].used == true) {
+			if (clients[i].used == 1) {
 				netHandlePlayer_am(i);
 			}
 			i++;
@@ -491,7 +496,7 @@ extern int flipacceltime;
 	// Draw other players
 	int i = 0;
 	while (i < MAXCLIENTS) {
-		if (sockets[i].used == true) {
+		if (clients[i].used == 1) {
 			netDrawPlayer(&players[i]);
 		}
 		i++;

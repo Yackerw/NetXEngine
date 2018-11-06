@@ -13,6 +13,8 @@
 #include "../../game.h"
 #include "../../player.h"
 
+#include "../../Networking.h"
+
 INITFUNC(AIRoutines)
 {
 	ONTICK(OBJ_TOROKO_FRENZIED, ai_toroko_frenzied);
@@ -31,15 +33,17 @@ void ai_toroko_frenzied(Object *o)
 {
 Object *block = o->linkedobject;
 
-#define SPAWNBLOCK	\
+Player *player = FindPlayer(o);
+
+#define SPAWNBLOCK	if (Host != 0) {\
 {					\
 	block = CreateObject(0, 0, OBJ_TOROKO_BLOCK);	\
 	block->PushBehind(o);						\
 	block->linkedobject = o;					\
 	o->linkedobject = block;				\
 	block->flags &= ~FLAG_INVULNERABLE;		\
-}
-#define THROWBLOCK	\
+}}
+#define THROWBLOCK	if (Host != 0) {\
 {			\
 	block->x += (16 * CSFI) * ((o->dir==RIGHT) ? 1 : -1);	\
 	block->y += (9 * CSFI);	\
@@ -47,7 +51,7 @@ Object *block = o->linkedobject;
 	ThrowObjectAtPlayer(block, 1, 0x900);		\
 	o->linkedobject = block->linkedobject = NULL;	\
 	sound(SND_EM_FIRE);		\
-}
+}}
 
 #define HOLDBRICKTIME		30
 
@@ -284,6 +288,8 @@ void aftermove_toroko_block(Object *o)
 
 void ai_toroko_flower(Object *o)
 {
+
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 10:

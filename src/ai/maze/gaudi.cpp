@@ -40,6 +40,7 @@ void c------------------------------() {}
 
 void ai_gaudi(Object *o)
 {
+	Player *player = FindPlayer(o);
 	if (o->hp <= (1000 - GAUDI_HP))
 	{
 		o->ChangeType(OBJ_GAUDI_DYING);
@@ -216,6 +217,7 @@ void c------------------------------() {}
 
 void ai_gaudi_flying(Object *o)
 {
+	Player *player = FindPlayer(o);
 	if (o->hp <= (1000 - GAUDI_FLYING_HP))
 	{
 		if (o->dir == LEFT)
@@ -287,6 +289,7 @@ void c------------------------------() {}
 
 void ai_gaudi_armored(Object *o)
 {
+	Player *player = FindPlayer(o);
 	if (o->hp <= (1000 - GAUDI_ARMORED_HP))
 	{
 		o->ChangeType(OBJ_GAUDI_DYING);

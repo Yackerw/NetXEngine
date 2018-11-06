@@ -295,7 +295,7 @@ Player *FindPlayer(Object *obj) {
 	Player *pl = player;
 	int i = 0;
 	while (i < MAXCLIENTS) {
-		if (sockets[i].used == true) {
+		if (clients[i].used == true) {
 			px = abs(obj->x - players[i].x);
 			py = abs(obj->y - players[i].y);
 			float dist = sqrtf((px*px)+(py*py));

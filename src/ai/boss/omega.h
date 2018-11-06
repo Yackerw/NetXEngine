@@ -4,13 +4,30 @@
 #include "../../object.h"
 #include "../../stageboss.h"
 
+typedef struct {
+	int x;
+	int y;
+	int legx[4];
+	int legy[4];
+	int xinertia;
+	int yinertia;
+	int state;
+	int sprite;
+	int hp;
+} OmegaSync_t;
+
 class OmegaBoss : public StageBoss
 {
 public:
+
+	char *Sync();
+	void SyncRecv(char *buff);
 	void OnMapEntry();
 	void OnMapExit();
 	
 	void Run();
+
+	int SyncSize;
 
 private:
 
