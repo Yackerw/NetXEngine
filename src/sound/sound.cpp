@@ -1,6 +1,6 @@
 
 /* SOUND.C
-  PXT/SS/Org sound interface
+PXT/SS/Org sound interface
 */
 #include <cstdio>
 #include <cstring>
@@ -70,19 +70,19 @@ bool sound_init(void)
 	}
 #endif
 	Mix_AllocateChannels(64);
-	
+
 	Mix_ChannelFinished(pxtSoundDone);
-	
+
 	if (pxt_init()) return 1;
-	
+
 	if (pxt_LoadSoundFX(ResourceManager::getInstance()->getPathForDir("pxt/"), NUM_SOUNDS)) return 1;
-	
+
 	if (org_init(ResourceManager::getInstance()->getLocalizedPath("wavetable.dat"), ResourceManager::getInstance()->getPathForDir("pxt/"), ORG_VOLUME))
 	{
 		staterr("Music failed to initialize");
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -101,7 +101,7 @@ void sound(int snd)
 {
 	if (!settings->sound_enabled)
 		return;
-	
+
 	pxt_Stop(snd);
 	pxt_Play(-1, snd, 0);
 }
@@ -110,7 +110,7 @@ void sound_loop(int snd)
 {
 	if (!settings->sound_enabled)
 		return;
-	
+
 	pxt_Play(-1, snd, -1);
 }
 
@@ -118,7 +118,7 @@ void sound_loop_resampled(int snd, int percent)
 {
 	if (!settings->sound_enabled)
 		return;
-	
+
 	pxt_PlayResampled(-1, snd, -1, percent);
 }
 
@@ -136,7 +136,7 @@ bool sound_is_playing(int snd)
 void StartStreamSound(int percent)
 {
 	sound_loop_resampled(SND_STREAM1, percent);
-	sound_loop_resampled(SND_STREAM2, percent+100);
+	sound_loop_resampled(SND_STREAM2, percent + 100);
 }
 
 void StartPropSound(void)
@@ -157,18 +157,18 @@ void c------------------------------() {}
 
 static void start_track(int songno, bool resume)
 {
-char fname[MAXPATHLEN];
+	char fname[MAXPATHLEN];
 
 	if (songno == 0)
 	{
 		org_stop();
 		return;
 	}
-	
+
 	strcpy(fname, org_dir);
 	strcat(fname, org_names[songno]);
 	strcat(fname, ".org");
-	
+
 	if (!org_load(ResourceManager::getInstance()->getLocalizedPath(fname)))
 	{
 		org_start(resume ? music_lastsongpos() : 0);
@@ -177,11 +177,11 @@ char fname[MAXPATHLEN];
 
 static void start_ogg11_track(int songno, bool resume, const char* dir)
 {
-    if (songno==0)
-    {
-        ogg11_stop();
-        return;
-    }
+	if (songno == 0)
+	{
+		ogg11_stop();
+		return;
+	}
 	ogg11_start(org_names[songno], dir, resume ? music_lastsongpos() : 0, resume ? songlooped : false);
 }
 
@@ -190,47 +190,47 @@ void music(int songno, bool resume)
 {
 	if (songno == cursong)
 		return;
-	
+
 	lastsong = cursong;
 	cursong = songno;
-	
+
 	stat(" >> music(%d)", songno);
-	
+
 	if (songno != 0 && !should_music_play(songno, settings->music_enabled))
 	{
 		stat("Not playing track %d because music_enabled is %d", songno, settings->music_enabled);
 		switch (settings->new_music)
 		{
-			case 0:
-				org_stop();
-				break;
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-				ogg11_stop();
-				break;
+		case 0:
+			org_stop();
+			break;
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			ogg11_stop();
+			break;
 		}
 		return;
 	}
-	
+
 	switch (settings->new_music)
 	{
-		case 0:
-			start_track(songno,resume);
-			break;
-		case 1:
-			start_ogg11_track(songno,resume, ogg_dir);
-			break;
-		case 2:
-			start_ogg11_track(songno,resume, ogg11_dir);
-			break;
-		case 3:															//ADDED THIS
-			start_ogg11_track(songno,resume, ogg17_dir);
-			break;
-		case 4:															//ADDED THIS
-			start_ogg11_track(songno, resume, ogg_ridic);
-			break;
+	case 0:
+		start_track(songno, resume);
+		break;
+	case 1:
+		start_ogg11_track(songno, resume, ogg_dir);
+		break;
+	case 2:
+		start_ogg11_track(songno, resume, ogg11_dir);
+		break;
+	case 3:															//ADDED THIS
+		start_ogg11_track(songno, resume, ogg17_dir);
+		break;
+	case 4:															//ADDED THIS
+		start_ogg11_track(songno, resume, ogg_ridic);
+		break;
 	}
 }
 
@@ -239,15 +239,15 @@ bool should_music_play(int songno, int musicmode)
 {
 	if (game.mode == GM_TITLE || game.mode == GM_CREDITS)
 		return true;
-	
-	switch(musicmode)
+
+	switch (musicmode)
 	{
-		case MUSIC_OFF: return false;
-		case MUSIC_ON:  return true;
-		case MUSIC_BOSS_ONLY:
-			return music_is_boss(songno);
+	case MUSIC_OFF: return false;
+	case MUSIC_ON:  return true;
+	case MUSIC_BOSS_ONLY:
+		return music_is_boss(songno);
 	}
-	
+
 	return false;
 }
 
@@ -264,57 +264,57 @@ void music_set_enabled(int newstate)
 	if (newstate != settings->music_enabled)
 	{
 		stat("music_set_enabled(%d)", newstate);
-		
+
 		settings->music_enabled = newstate;
 		bool play = should_music_play(cursong, newstate);
-		
+
 		switch (settings->new_music)
 		{
-			case 0:
-				if (play != org_is_playing())
-				{
-					if (play)
-						start_track(cursong,0);
-					else
-						org_stop();
-				}
-				break;
-			case 1:
-				if (play != ogg11_is_playing())
-				{
-					if (play)
-						start_ogg11_track(cursong,0, ogg_dir);
-					else
-						ogg11_stop();
-				}
-				break;
-			case 2:
-				if (play != ogg11_is_playing())
-				{
-					if (play)
-						start_ogg11_track(cursong,0, ogg11_dir);
-					else
-						ogg11_stop();
-				}
-				break;
-			case 3:
-				if (play != ogg11_is_playing())
-				{
-					if (play)
-						start_ogg11_track(cursong, 0, ogg17_dir);
-					else
-						ogg11_stop();
-				}
-				break;
-			case 4:
-				if (play != ogg11_is_playing())
-				{
-					if (play)
-						start_ogg11_track(cursong, 0, ogg_ridic);
-					else
-						ogg11_stop();
-				}
-				break;
+		case 0:
+			if (play != org_is_playing())
+			{
+				if (play)
+					start_track(cursong, 0);
+				else
+					org_stop();
+			}
+			break;
+		case 1:
+			if (play != ogg11_is_playing())
+			{
+				if (play)
+					start_ogg11_track(cursong, 0, ogg_dir);
+				else
+					ogg11_stop();
+			}
+			break;
+		case 2:
+			if (play != ogg11_is_playing())
+			{
+				if (play)
+					start_ogg11_track(cursong, 0, ogg11_dir);
+				else
+					ogg11_stop();
+			}
+			break;
+		case 3:
+			if (play != ogg11_is_playing())
+			{
+				if (play)
+					start_ogg11_track(cursong, 0, ogg17_dir);
+				else
+					ogg11_stop();
+			}
+			break;
+		case 4:
+			if (play != ogg11_is_playing())
+			{
+				if (play)
+					start_ogg11_track(cursong, 0, ogg_ridic);
+				else
+					ogg11_stop();
+			}
+			break;
 		}
 	}
 }
@@ -324,29 +324,29 @@ void music_set_newmusic(int newstate)
 	if (newstate != settings->new_music)
 	{
 		stat("music_set_newmusic(%d)", newstate);
-		
+
 		settings->new_music = newstate;
-		
+
 		org_stop();
 		ogg11_stop();
-		
+
 		switch (newstate)
 		{
-			case 0:
-				start_track(cursong,0);
-				break;
-			case 1:
-				start_ogg11_track(cursong, 0, ogg_dir);
-				break;
-			case 2:
-				start_ogg11_track(cursong, 0, ogg11_dir);
-				break;
-			case 3:
-				start_ogg11_track(cursong, 0, ogg17_dir);
-				break;
-			case 4:
-				start_ogg11_track(cursong, 0, ogg_ridic);
-				break;
+		case 0:
+			start_track(cursong, 0);
+			break;
+		case 1:
+			start_ogg11_track(cursong, 0, ogg_dir);
+			break;
+		case 2:
+			start_ogg11_track(cursong, 0, ogg11_dir);
+			break;
+		case 3:
+			start_ogg11_track(cursong, 0, ogg17_dir);
+			break;
+		case 4:
+			start_ogg11_track(cursong, 0, ogg_ridic);
+			break;
 		}
 	}
 }
@@ -355,34 +355,34 @@ void music_fade()
 {
 	switch (settings->new_music)
 	{
-		case 0:
-			org_fade();
-			break;
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-			ogg11_fade();
-			break;
+	case 0:
+		org_fade();
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		ogg11_fade();
+		break;
 	}
 }
 
-int music_cursong()		{ return cursong; }
-int music_lastsong() 	{ return lastsong; }
-int music_lastsongpos() 	{ return lastsongpos; }
+int music_cursong() { return cursong; }
+int music_lastsong() { return lastsong; }
+int music_lastsongpos() { return lastsongpos; }
 
 void music_run_fade()
 {
 	switch (settings->new_music)
 	{
-		case 0:
-			org_run_fade();
-			break;
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-			ogg11_run_fade();
-			break;
+	case 0:
+		org_run_fade();
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		ogg11_run_fade();
+		break;
 	}
 }

@@ -173,25 +173,30 @@ int sheetdatalength, spritesdatalength;
 	memcpy(&sprites[SPR_CHAKOCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_CHAKOCHAR].spritesheet = 69; //nice
 	sheetfiles.push_back("ChakoChar.pbm");
-	
+
+	// Ayy hack
+	memcpy(&sprites[SPR_SANTACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_SANTACHAR].spritesheet = 70;
+	sheetfiles.push_back("SantaChar.pbm");
+
 	// Ayy hack
 	memcpy(&sprites[SPR_TOROKOCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_TOROKOCHAR].spritesheet = 70;
+	sprites[SPR_TOROKOCHAR].spritesheet = 71;
 	sheetfiles.push_back("TorokoChar.pbm");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_SOLDIERCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SOLDIERCHAR].spritesheet = 71;
+	sprites[SPR_SOLDIERCHAR].spritesheet = 72;
 	sheetfiles.push_back("SoldierChar.pbm");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_PUPPYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_PUPPYCHAR].spritesheet = 72;
+	sprites[SPR_PUPPYCHAR].spritesheet = 73;
 	sheetfiles.push_back("PuppyChar.pbm");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_BOOSTERCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_BOOSTERCHAR].spritesheet = 73;
+	sprites[SPR_BOOSTERCHAR].spritesheet = 74;
 	sheetfiles.push_back("BoosterChar.pbm");
 	
 	// Ayy hack
@@ -205,28 +210,42 @@ int sheetdatalength, spritesdatalength;
 	sheetfiles.push_back("NurseHasumiChar.pbm");
 
 	// Ayy hack
+	memcpy(&sprites[SPR_DRGEROCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_DRGEROCHAR].spritesheet = 75;
+	sheetfiles.push_back("DrGeroChar.pbm");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_NRSHASUMICHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_NRSHASUMICHAR].spritesheet = 76;
+	sheetfiles.push_back("NurseHasumiChar.pbm");
+	// Ayy hack
 	memcpy(&sprites[SPR_JENKACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_JENKACHAR].spritesheet = 76;
+	sprites[SPR_JENKACHAR].spritesheet = 77;
 	sheetfiles.push_back("JenkaChar.pbm");
-	
+
+	// Ayy hack
+	memcpy(&sprites[SPR_HUMANSUECHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_HUMANSUECHAR].spritesheet = 78;
+	sheetfiles.push_back("HumanSueChar.pbm");
+
 	// Ayy hack
 	memcpy(&sprites[SPR_CROWNCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_CROWNCHAR].spritesheet = 77;
+	sprites[SPR_CROWNCHAR].spritesheet = 79;
 	sheetfiles.push_back("CrownChar.pbm");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_ROOTCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_ROOTCHAR].spritesheet = 78;
+	sprites[SPR_ROOTCHAR].spritesheet = 80;
 	sheetfiles.push_back("RootChar.pbm");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_SUGURICHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SUGURICHAR].spritesheet = 79;
+	sprites[SPR_SUGURICHAR].spritesheet = 81;
 	sheetfiles.push_back("SuguriChar.pbm");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_SORACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SORACHAR].spritesheet = 80;
+	sprites[SPR_SORACHAR].spritesheet = 82;
 	sheetfiles.push_back("SoraChar.pbm");
 #else
 	// Ayy hack
@@ -258,25 +277,30 @@ int sheetdatalength, spritesdatalength;
 	memcpy(&sprites[SPR_CHAKOCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_CHAKOCHAR].spritesheet = 69; //nice
 	sheetfiles.push_back("ChakoChar.bmp");
-	
+
+	// Ayy hack
+	memcpy(&sprites[SPR_SANTACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_SANTACHAR].spritesheet = 70;
+	sheetfiles.push_back("SantaChar.bmp");
+
 	// Ayy hack
 	memcpy(&sprites[SPR_TOROKOCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_TOROKOCHAR].spritesheet = 70;
+	sprites[SPR_TOROKOCHAR].spritesheet = 71;
 	sheetfiles.push_back("TorokoChar.bmp");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_SOLDIERCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SOLDIERCHAR].spritesheet = 71;
+	sprites[SPR_SOLDIERCHAR].spritesheet = 72;
 	sheetfiles.push_back("SoldierChar.bmp");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_PUPPYCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_PUPPYCHAR].spritesheet = 72;
+	sprites[SPR_PUPPYCHAR].spritesheet = 73;
 	sheetfiles.push_back("PuppyChar.bmp");
-	
+
 	// Ayy hack
 	memcpy(&sprites[SPR_BOOSTERCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_BOOSTERCHAR].spritesheet = 73;
+	sprites[SPR_BOOSTERCHAR].spritesheet = 74;
 	sheetfiles.push_back("BoosterChar.bmp");
 	
 	// Ayy hack
@@ -289,6 +313,26 @@ int sheetdatalength, spritesdatalength;
 	sprites[SPR_NRSHASUMICHAR].spritesheet = 75;
 	sheetfiles.push_back("NurseHasumiChar.bmp");
 
+
+	// Ayy hack
+	memcpy(&sprites[SPR_DRGEROCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_DRGEROCHAR].spritesheet = 75;
+	sheetfiles.push_back("DrGeroChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_NRSHASUMICHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_NRSHASUMICHAR].spritesheet = 76;
+	sheetfiles.push_back("NurseHasumiChar.bmp");
+	// Ayy hack
+	memcpy(&sprites[SPR_JENKACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_JENKACHAR].spritesheet = 77;
+	sheetfiles.push_back("JenkaChar.bmp");
+
+	// Ayy hack
+	memcpy(&sprites[SPR_HUMANSUECHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
+	sprites[SPR_HUMANSUECHAR].spritesheet = 78;
+	sheetfiles.push_back("HumanSueChar.bmp");
+
 	// Ayy hack
 	memcpy(&sprites[SPR_JENKACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
 	sprites[SPR_JENKACHAR].spritesheet = 76;
@@ -296,22 +340,22 @@ int sheetdatalength, spritesdatalength;
 	
 	// Ayy hack
 	memcpy(&sprites[SPR_CROWNCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_CROWNCHAR].spritesheet = 77;
+	sprites[SPR_CROWNCHAR].spritesheet = 79;
 	sheetfiles.push_back("CrownChar.bmp");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_ROOTCHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_ROOTCHAR].spritesheet = 78;
+	sprites[SPR_ROOTCHAR].spritesheet = 80;
 	sheetfiles.push_back("RootChar.bmp");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_SUGURICHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SUGURICHAR].spritesheet = 79;
+	sprites[SPR_SUGURICHAR].spritesheet = 81;
 	sheetfiles.push_back("SuguriChar.bmp");
 
 	// Ayy hack
 	memcpy(&sprites[SPR_SORACHAR], &sprites[SPR_MYCHAR], sizeof(SIFSprite));
-	sprites[SPR_SORACHAR].spritesheet = 80;
+	sprites[SPR_SORACHAR].spritesheet = 82;
 	sheetfiles.push_back("SoraChar.bmp");
 #endif
 	

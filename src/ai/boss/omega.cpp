@@ -53,6 +53,46 @@ INITFUNC(AIRoutines)
 	ONTICK(OBJ_OMEGA_SHOT, ai_omega_shot);
 }
 
+// For syncing
+char *OmegaBoss::Sync() {
+	Object *o = game.stageboss.object;
+	OmegaSync_t *s = (OmegaSync_t*)malloc(sizeof(OmegaSync_t));
+	if (o == NULL) return (char*)s;
+	s->x = o->x;
+	s->y = o->y;
+	int i = 0;
+	while (i < 4) {
+		s->legx[i] = pieces[i]->x;
+		s->legy[i] = pieces[i]->y;
+		i++;
+	}
+	s->state = o->state;
+	s->sprite = o->sprite;
+	s->xinertia = o->xinertia;
+	s->yinertia = o->yinertia;
+	s->hp = o->hp;
+	return (char*)s;
+}
+
+void OmegaBoss::SyncRecv(char *buff) {
+	Object *o = game.stageboss.object;
+	if (o == NULL) return;
+	OmegaSync_t *s = (OmegaSync_t*)buff;
+	o->x = s->x;
+	o->y = s->y;
+	int i = 0;
+	while (i < 4) {
+		pieces[i]->x = s->legx[i];
+		pieces[i]->y = s->legy[i];
+		i++;
+	}
+	o->state = s->state;
+	o->sprite = s->sprite;
+	o->xinertia = s->xinertia;
+	o->yinertia = s->yinertia;
+	o->hp = s->hp;
+}
+
 /*
 void c------------------------------() {}
 */
@@ -99,6 +139,8 @@ void OmegaBoss::OnMapEntry(void)
 	omg.orgy = game.stageboss.object->y;
 	
 	omg.shaketimer = 0;
+
+	game.stageboss.SyncSize = sizeof(OmegaSync_t);
 }
 
 void OmegaBoss::OnMapExit(void)

@@ -4,6 +4,29 @@
 #include "../../object.h"
 #include "../../stageboss.h"
 
+typedef struct {
+	int x;
+	int y;
+	int state;
+	int sprite;
+	int substate;
+	int dir;
+	int flags;
+	int hp;
+	bool invisible;
+} XSyncPart_t;
+// Sync struct
+typedef struct {
+	XSyncPart_t mainobj;
+	/*XSyncPart_t body[4];
+	XSyncPart_t treads[4];
+	XSyncPart_t internals;
+	XSyncPart_t doors[2];
+	XSyncPart_t targets[4];
+	XSyncPart_t fishspawners[4];*/
+	XSyncPart_t pieces[20];
+} XSync_t;
+
 enum XBDir
 {
 	UL, UR, LL, LR
@@ -16,6 +39,9 @@ public:
 	void OnMapExit();
 	void Run();
 	void RunAftermove();
+	char *Sync();
+	void SyncRecv(char *buff);
+	int SyncSize;
 	
 private:
 	void run_tread(int index);

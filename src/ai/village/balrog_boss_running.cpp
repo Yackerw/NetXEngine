@@ -34,7 +34,7 @@ void ai_balrog_boss_running(Object *o)
 		if ((pdistlx(12 * CSFI) && pdistly(8 * CSFI)) && o->timer > 8)
 		{
 			hurtplayer(2);
-			if (host == true) {
+			if (Host == -1) {
 				balrog_grab_player(o);
 				o->state = STATE_CAUGHT_PLAYER;
 			}
@@ -88,7 +88,7 @@ void ai_balrog_boss_running(Object *o)
 			{
 				if (o->timer > 25)
 				{	// initiate jump
-					if (host != 0 ) {
+					if (Host != 0 ) {
 						o->frame = 3;
 						o->yinertia = -0x400;
 						o->state = STATE_JUMP;
@@ -125,7 +125,7 @@ void ai_balrog_boss_running(Object *o)
 		// caught player
 		case STATE_CAUGHT_PLAYER:
 		{
-			if (host != 0) {
+			if (Host != 0) {
 				if (balrog_toss_player_away(o))
 					o->state = 0;
 			}

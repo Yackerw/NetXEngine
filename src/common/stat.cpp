@@ -39,6 +39,7 @@ void c------------------------------() {}
 
 void stat(const char *fmt, ...)
 {
+	return;
 va_list ar;
 char buffer[MAXBUFSIZE];
 

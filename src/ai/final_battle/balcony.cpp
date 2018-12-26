@@ -102,6 +102,7 @@ void c------------------------------() {}
 
 void ai_igor_balcony(Object *o)
 {
+	Player *player = FindPlayer(o);
 	if (!pdistlx(SCREEN_WIDTH * CSFI) && !pdistly(SCREEN_HEIGHT * CSFI))
 	{
 		o->state = 1;

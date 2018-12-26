@@ -157,6 +157,7 @@ bool movehandleslope(Object *o, int xinertia)
 {
 int xoff, opposing_x;
 int newx, newy, oldy;
+int oldyinert = o->yinertia;
 char blocked_wall;
 
 	if (!xinertia) return 0;
@@ -263,9 +264,9 @@ char blocked_wall;
 		if (moveme)
 		{	// moving down (actually up) the "descending" (closer to real ceil) portion
 			// of a ceiling slope tile. Reverse of floor slope thingy above.
-			if (o->yinertia < 0) {
+			if (oldyinert < 0) {
 				newy -= (1 * CSFI);
-				o->yinertia = MIN(0, o->yinertia + CSFI);
+				oldyinert = MIN(0, oldyinert + CSFI);
 			}
 		}
 	}

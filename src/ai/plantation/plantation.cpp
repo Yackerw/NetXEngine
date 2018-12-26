@@ -66,6 +66,7 @@ void ai_stumpy(Object *o)
 {
 	//debug("state: %d",o->state);
 	//debug("timer: %d",o->timer);
+	Player *player = FindPlayer(o);
 	o->frame ^= 1;
 	
 	switch(o->state)
@@ -161,6 +162,7 @@ void ai_stumpy(Object *o)
 // very happy green guy who runs back and forth
 void ai_midorin(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -231,6 +233,7 @@ void c------------------------------() {}
 // large bat with many baby bats
 void ai_orangebell(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -271,6 +274,7 @@ void ai_orangebell(Object *o)
 
 void ai_orangebell_baby(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:
@@ -344,6 +348,7 @@ void c------------------------------() {}
 
 void ai_gunfish(Object *o)
 {
+	Player *player = FindPlayer(o);
 	if (player->Bottom() > o->y && \
 		player->Bottom() < o->Top() + (2 * CSFI))
 	{	// make sure platform is real solid for him
@@ -480,7 +485,7 @@ void c------------------------------() {}
 
 void ai_droll(Object *o)
 {
-
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:

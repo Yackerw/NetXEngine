@@ -22,6 +22,7 @@ void c------------------------------() {}
 
 void ai_frenzied_mimiga(Object *o)
 {
+	Player *player = FindPlayer(o);
 	/*debug("state %d", o->state);
 	debug("timer %d", o->timer);
 	debug("xi %d", o->xinertia);

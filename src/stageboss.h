@@ -46,6 +46,9 @@ public:
 	// called every tick (for logic only, please don't draw from here)
 	virtual void Run() { }
 	virtual void RunAftermove() { }
+
+	virtual char *Sync() { return NULL; }
+	virtual void SyncRecv(char*) { }
 	
 	virtual void SetState(int newstate);
 };
@@ -65,6 +68,8 @@ public:
 	void OnMapExit();
 	void Run();
 	void RunAftermove();
+	char *Sync();
+	void SyncRecv(char*);
 	
 	void SetState(int newstate);
 	
@@ -73,6 +78,7 @@ public:
 	// this is set by the derived class, and is cleared in OnMapExit
 	// of the derived class and on a SetType().
 	Object *object;
+	int SyncSize;
 	
 private:
 	StageBoss *fBoss;

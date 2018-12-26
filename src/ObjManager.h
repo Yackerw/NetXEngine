@@ -49,7 +49,9 @@ namespace Objects
 #define FOREACH_OBJECT(O)		for(O=firstobject; O; O=O->next)
 
 // max expected objects to exist at once (for buffer allocation)
-#define MAX_OBJECTS				1024
+#define MAX_OBJECTS				2048
+
+extern int NumObjects;
 
 enum CreateObjectFlags
 {
@@ -58,7 +60,7 @@ enum CreateObjectFlags
 	CF_DEFAULT			= 0x00
 };
 
-Object *CreateObject(int x, int y, int type);
+Object *CreateObject(int x, int y, int type, bool onLoad = false);
 Object *CreateBullet(int x, int y, int type);
 Object *CreateObject(int x, int y, int type, int xinertia, int yinertia, \
 					int dir=0, Object *linkedobject=NULL, uint32_t createflags=CF_DEFAULT, bool synced = false, bool onLoad = false);

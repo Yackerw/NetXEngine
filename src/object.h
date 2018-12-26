@@ -7,7 +7,7 @@
 #define XP_MED_AMT				5
 #define XP_LARGE_AMT			20
 
-#define BASICSYNCSIZE sizeof(int)*8
+#define BASICSYNCSIZE sizeof(BasicSyncStruct)
 
 class Object
 {
@@ -737,13 +737,38 @@ public:
 
 #define OBJ_LAST					512
 
+
+// Struct for basic object sync
+typedef struct {
+	int x;
+	int y;
+	int xinertia;
+	int yinertia;
+	int state;
+	int substate;
+	int hp;
+	char dir;
+} BasicSyncStruct;
+
+// Struct that only syncs minimal values for skullstep feet
+typedef struct {
+	int x;
+	int y;
+	int angle;
+	int angleoffset;
+} SkullStepStruct;
+
 //array of functions relating to syncing objects
 extern char*(**ObjSyncTickFuncs)(Object *obj);
 extern void(**ObjSyncTickFuncsRecv)(char *buff, int id);
 extern int *ObjSyncTickSizes;
+extern int *ObjSyncTickXSize;
+extern int *ObjSyncTickYSize;
 
 void RegisterBasic();
 
 void UpdateObjSyncs();
+
+void UpdateLinkedObject(Object *o);
 
 #endif

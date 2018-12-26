@@ -30,7 +30,7 @@ void c------------------------------() {}
 // used only for purple ones in maze
 void ai_critter_shooting_purple(Object *o)
 {
-
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:

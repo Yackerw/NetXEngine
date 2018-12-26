@@ -37,6 +37,7 @@ void c------------------------------() {}
 
 void ai_firewhirr(Object *o)
 {
+	Player *player = FindPlayer(o);
 	FACEPLAYER;
 	
 	switch(o->state)
@@ -141,6 +142,7 @@ void c------------------------------() {}
 
 void ai_fuzz_core(Object *o)
 {
+	Player *player = FindPlayer(o);
 	ANIMATE(2, 0, 1);
 	
 	switch(o->state)
@@ -153,6 +155,7 @@ void ai_fuzz_core(Object *o)
 			{
 				Object *f = CreateObject(o->CenterX(), o->CenterY(), OBJ_FUZZ);
 				f->linkedobject = o;
+				UpdateLinkedObject(f);
 				f->angle = angle;
 				angle += (256 / 5);
 			}
@@ -185,6 +188,7 @@ void ai_fuzz_core(Object *o)
 
 void ai_fuzz(Object *o)
 {
+	Player *player = FindPlayer(o);
 	FACEPLAYER;
 	
 	switch(o->state)
@@ -240,6 +244,7 @@ void ai_buyobuyo_base(Object *o)
 	debug("timer: %d", o->timer);
 	debug("timer2: %d", o->timer2);
 }*/
+	Player *player = FindPlayer(o);
 	
 	if (o->state < 3 && o->hp < (1000 - BUYOBUYO_BASE_HP))
 	{
@@ -315,6 +320,7 @@ void ai_buyobuyo_base(Object *o)
 
 void ai_buyobuyo(Object *o)
 {
+	Player *player = FindPlayer(o);
 	bool deleteme = false;
 	ANIMATE(6, 0, 1);
 	

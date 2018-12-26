@@ -43,6 +43,7 @@ void c------------------------------() {}
 #define NS_GUARD_SET_POINT		6
 void ai_night_spirit(Object *o)
 {
+	Player *player = FindPlayer(o);
 	//debug("ns state: %d", o->state);
 	switch(o->state)
 	{
@@ -201,6 +202,7 @@ void c------------------------------() {}
 
 void ai_hoppy(Object *o)
 {
+	Player *player = FindPlayer(o);
 	switch(o->state)
 	{
 		case 0:

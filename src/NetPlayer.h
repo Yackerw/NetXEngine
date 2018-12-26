@@ -16,9 +16,23 @@ extern int PlayerShotEvent;
 extern int PlayerMissileEvent;
 extern int PlayerBladeEvent;
 extern int PlayerSkinUpdateEvent;
+extern int MGunEvent;
 extern char pskin;
 
 #define numskins 17
+
+#define truenumskins 19 // Includes dev skins
+
+// Data syncing structs
+typedef struct {
+	int x;
+	int y;
+	int xinertia;
+	int yinertia;
+	int curweapon;
+	char dir;
+	bool inputs[INPUT_COUNT];
+} PlayerStepSync;
 
 Player netInitPlayer();
 void netHandlePlayer(int pl);

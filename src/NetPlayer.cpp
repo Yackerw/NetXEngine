@@ -1006,6 +1006,8 @@ void netDrawPlayer(Player *p)
 		}
 	}
 
+	p->sprite = SPR_MYCHAR;
+
 	if (p->equipmask & EQUIP_WHIMSTAR)
 		draw_whimstars(&p->whimstar);
 }
@@ -1132,6 +1134,26 @@ static Object *netFireSimpleBulletOffset(int otype, int btype, int xoff, int yof
 	shot->x = xoff;
 	shot->y = yoff;
 
+	// Adjust fireball speed
+	if (otype == OBJ_FIREBALL1 || otype == OBJ_FIREBALL23) {
+		switch (dir) {
+		case LEFT: shot->xinertia = -0x400; break;
+		case RIGHT: shot->xinertia = 0x400; break;
+
+		case UP:
+			shot->xinertia = p->xinertia + ((p->dir == RIGHT) ? 128 : -128);
+			if (p->xinertia) shot->dir = (p->xinertia > 0) ? RIGHT : LEFT;
+			shot->yinertia = -0x5ff;
+			break;
+
+		case DOWN:
+			shot->xinertia = p->xinertia;
+			if (p->xinertia) shot->dir = (p->xinertia > 0) ? RIGHT : LEFT;
+			shot->yinertia = 0x5ff;
+			break;
+		}
+	}
+
 	return shot;
 }
 
@@ -1205,7 +1227,7 @@ char *ConnectSend() {
 	int i = 0;
 	int foundempty = false;
 	while (i < MAXCLIENTS) {
-		buff[i] = sockets[i].used;
+		buff[i] = clients[i].used;
 		if (buff[i] == false && foundempty == false) {
 			players[i] = netInitPlayer();
 			foundempty = true;
@@ -1253,18 +1275,9 @@ void ConnectRecv(char *buff) {
 	int i = 0;
 	bool foundclient = false;
 	while (i < MAXCLIENTS) {
-		sockets[i].used = buff[i];
-		if (sockets[i].used == true) {
+		clients[i].used = buff[i];
+		if (clients[i].used == true) {
 			players[i] = netInitPlayer();
-		}
-		else {
-			if (foundclient == false) {
-				// We will put the server where we should be
-				players[i] = netInitPlayer();
-				sockets[i].used = true;
-				CliNum = i;
-				foundclient = true;
-			}
 		}
 		i++;
 	}
@@ -1290,7 +1303,7 @@ void ConnectRecv(char *buff) {
 		memcpy(&plskins[i], buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, sizeof(char));
 		i++;
 	}
-	memcpy(&plskins[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+	memcpy(&plskins[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
 	int tmp = (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS;
 	// Names
 	i = 0;
@@ -1298,35 +1311,59 @@ void ConnectRecv(char *buff) {
 		memcpy(names[i], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), sizeof(char) * 15);
 		i++;
 	}
-	memcpy(names[CliNum], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
+	memcpy(names[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
 	player->invisible = false;
 	player->movementmode = MOVEMODE_NORMAL;
 	player->hide = false;
 	player->hp = player->maxHealth; // fade
 	fade.set_full(1);
 	game.setmode(GM_NORMAL);
+	// update player inventory
+	for (i = 0; i < player->ninventory; i++) {
+		switch (player->inventory[i]) {
+		case ITEM_TURBOCHARGE:
+			player->equipmask |= EQUIP_TURBOCHARGE;
+			break;
+		case ITEM_BOOSTER08:
+			if (!player->equipmask & EQUIP_BOOSTER20) \
+				player->equipmask |= EQUIP_BOOSTER08;
+			break;
+		case ITEM_BOOSTER20:
+			player->equipmask |= EQUIP_BOOSTER20;
+			//player->equipmask &= !EQUIP_BOOSTER08;
+			break;
+		case ITEM_AIRTANK:
+			player->equipmask |= EQUIP_AIRTANK;
+			break;
+		case ITEM_ARMS_BARRIER:
+			player->equipmask |= EQUIP_ARMS_BARRIER;
+			break;
+		}
+	}
 }
 
 char *SyncPositionSend() {
-	char *buff = (char*)malloc((sizeof(int)*5)+1+INPUT_COUNT);
-	memcpy(buff, &(player->x), sizeof(int));
-	memcpy(buff+4, &(player->y), sizeof(int));
-	memcpy(buff+8, &(player->xinertia), sizeof(int));
-	memcpy(buff+12, &(player->yinertia), sizeof(int));
-	memcpy(buff + 16, &(player->curWeapon), sizeof(int));
-	memcpy(buff + 20, &(player->dir), 1);
-	memcpy(buff + 21, pinputs, INPUT_COUNT);
-	return buff;
+	PlayerStepSync *s = (PlayerStepSync*)malloc(sizeof(PlayerStepSync));
+	s->x = player->x;
+	s->y = player->y;
+	s->xinertia = player->xinertia;
+	s->yinertia = player->yinertia;
+	s->curweapon = player->curWeapon;
+	s->dir = player->dir;
+	memcpy(&(s->inputs), pinputs, INPUT_COUNT);
+	return (char*)s;
 }
 
 void SyncPositionRecv(unsigned char *buff, int pl) {
-	memcpy(&(players[pl].x), buff, sizeof(int));
-	memcpy(&(players[pl].y), buff+4, sizeof(int));
-	memcpy(&(players[pl].xinertia), buff+8, sizeof(int));
-	memcpy(&(players[pl].yinertia), buff+12, sizeof(int));
-	memcpy(&(players[pl].curWeapon), buff + 16, sizeof(int));
-	memcpy(&(players[pl].dir), buff + 20, 1);
-	memcpy(&netpinputs[pl], buff + 21, INPUT_COUNT);
+	PlayerStepSync *s = (PlayerStepSync*)buff;
+	Player *p = &players[pl];
+	p->x = s->x;
+	p->y = s->y;
+	p->xinertia = s->xinertia;
+	p->yinertia = s->yinertia;
+	p->curWeapon = s->curweapon;
+	p->dir = s->dir;
+	memcpy(netpinputs[pl], &s->inputs, INPUT_COUNT);
 }
 
 char *ConnectOthers(int joiner) {
@@ -1338,7 +1375,7 @@ char *ConnectOthers(int joiner) {
 void ConnectOthersRecv(char *buff) {
 	int node;
 	memcpy(&node, buff, sizeof(int));
-	sockets[node].used = true;
+	clients[node].used = 1;
 	players[node] = netInitPlayer();
 }
 
@@ -1350,10 +1387,17 @@ char *BulletSpawnSend() {
 }
 
 void BulletSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &players[pnum];
-	NetBullet b;
-	memcpy(&b, buff, sizeof(NetBullet));
-	netFireSimpleBulletOffset(b.otype, b.btype, b.x, b.y, b.dir, p);
+	NetBullet *b = (NetBullet*)buff;
+	// return if otype or btype aren't valid (i.e. keep people from spawning anything they want)
+	if (b->btype >= B_CURLYS_NEMESIS || b->btype < 0 || b->otype < OBJ_SHOTS_START || b->otype > OBJ_SPUR_TRAIL) {
+		return;
+	}
+	netFireSimpleBulletOffset(b->otype, b->btype, b->x, b->y, b->dir, p);
 }
 
 char *MissileSpawnSend() {
@@ -1363,6 +1407,10 @@ char *MissileSpawnSend() {
 }
 
 void MissileSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &players[pnum];
 	NetBullet b;
 	memcpy(&b, buff, sizeof(NetBullet));
@@ -1376,6 +1424,10 @@ char *BladeSpawnSend() {
 }
 
 void BladeSpawnRecv(unsigned char *buff, int pnum) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
 	Player *p = &(players[pnum]);
 	netPFireBlade(p, buff[0]);
 }
@@ -1389,7 +1441,13 @@ char *DiscnnSend(int pnum) {
 void DiscnnRecv(char *buff) {
 	int pnum;
 	memcpy(&pnum, buff, sizeof(int));
-	sockets[pnum].used = false;
+	clients[pnum].used = false;
+	char msg[128];
+	sprintf(msg, "%s has disconnected", names[pnum]);
+	Chat_SetMessage(msg, 1);
+	sound(SND_COMPUTER_BEEP);
+	Chat_WriteToLog(msg);
+	chatstate.timer = (60 * 5);
 }
 
 char *SkinSend() {
@@ -1399,7 +1457,9 @@ char *SkinSend() {
 }
 
 void SkinRecv(unsigned char *buff, int p) {
-	memcpy(&plskins[p], buff, sizeof(char));
+	if (buff[0] >= 0 && buff[0] < truenumskins) {
+		memcpy(&plskins[p], buff, sizeof(char));
+	}
 }
 
 int PlayerUpdateEvent;
@@ -1428,17 +1488,40 @@ void Name_Receive(unsigned char* tempname, int node) {
 	Chat_WriteToLog(joingamemsg);
 	chatstate.timer = (60 * 5);
 	sound(SND_GET_MISSILE);
-	if (host == 1) {
+	if (Host == 1) {
 		char IP[32];
-		InetNtopA(sockets[node].data.sin_family, &sockets[node].data.sin_addr, IP, 32);
+		InetNtopA(clients[node].info.sin_family, &clients[node].info.sin_addr, IP, 32);
 		Chat_WriteToLog(IP);
 	}
 }
 
+// Special function for machine gun shooting
+char *NetMGunShotSend() {
+	char *out = (char*)malloc(sizeof(NetBullet));
+	memcpy(out, &SyncBull, sizeof(NetBullet));
+	return out;
+}
+
+void NetMGunShotRecv(unsigned char *in, int pnode) {
+	// Reserve 256 objects for the game to use
+	if (NumObjects > MAX_OBJECTS - 256) {
+		return;
+	}
+	NetBullet *b = (NetBullet*)in;
+	if (b->otype > 2 || b->otype < 0) {
+		return;
+	}
+	int x, y;
+	netGetPlayerShootPoint(&players[pnode], &x, &y);
+	FireLevel23MGun(b->x, b->y, b->otype, b->dir);
+}
+
+int MGunEvent;
+
 void SetupNetPlayerFuncs() {
 	Net_RegisterConnectEventSvSend(ConnectSend, cnnbuffsize);
 	Net_RegisterConnectEventSvRecv(ConnectRecv);
-	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, (sizeof(int) * 5) + 1 + INPUT_COUNT);
+	PlayerUpdateEvent = Net_RegisterPlayerEventSend(SyncPositionSend, sizeof(PlayerStepSync), 0);
 	Net_RegisterPlayerEventRecv(SyncPositionRecv, (sizeof(int) * 5) + 1 + INPUT_COUNT);
 	Net_RegisterConnectEventOthersSend(ConnectOthers, sizeof(int));
 	Net_RegisterConnectEventOthersRecv(ConnectOthersRecv);
@@ -1455,4 +1538,7 @@ void SetupNetPlayerFuncs() {
 
 	nameevent = Net_RegisterPlayerEventSend(Name_Send, 15);
 	Net_RegisterPlayerEventRecv(Name_Receive, 15);
+
+	MGunEvent = Net_RegisterPlayerEventSend(NetMGunShotSend, sizeof(NetBullet));
+	Net_RegisterPlayerEventRecv(NetMGunShotRecv, sizeof(NetBullet));
 }

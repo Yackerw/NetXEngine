@@ -4,12 +4,36 @@
 #include "../../object.h"
 #include "../../stageboss.h"
 
+
+typedef struct {
+	int x;
+	int y;
+	int state;
+	int substate;
+	int sprite;
+	int flags;
+	int invisible;
+	int frame;
+	int xinertia;
+	int yinertia;
+} CorePartsSync_t;
+
+typedef struct {
+	CorePartsSync_t pc[7];
+	int hp;
+	int timer;
+	CorePartsSync_t m;
+} CoreSync_t;
+
 class CoreBoss : public StageBoss
 {
 public:
 	void OnMapEntry();
 	void OnMapExit();
 	void Run();
+	char *Sync();
+	void SyncRecv(char *buff);
+	int SyncSize;
 
 private:
 	void RunOpenMouth();

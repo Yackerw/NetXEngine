@@ -345,6 +345,8 @@ bool freshstart;
 		{
 			StopLoopSounds();
 		}
+
+		bool synced = false;
 		
 		// enter next stage, whatever it may be
 		if (game.switchstage.mapno == LOAD_GAME || \
@@ -360,19 +362,18 @@ bool freshstart;
 				goto ingame_error;
 			}
 
+			synced = true;
 			// Loaded, inform everyone to drop everything and revert to this gamestate
-			if (host == 1) {
-				int buffsize = (sizeof(int) * (3 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+			if (Host == 1) {
+				int buffsize = (sizeof(int) * (2 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
 				char *buff = (char*)malloc(buffsize);
-				int tmp = 13;
-				memcpy(buff, &tmp, sizeof(int));
 				// also give us the current level
-				memcpy(buff + sizeof(int), &game.curmap, sizeof(int));
-				memcpy(buff + sizeof(int) * 2, &(player->inventory), MAX_INVENTORY * sizeof(int));
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->ninventory), sizeof(int));
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
+				memcpy(buff, &game.curmap, sizeof(int));
+				memcpy(buff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
 
 
 				int i = 0;
@@ -382,11 +383,11 @@ bool freshstart;
 					if (!textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno))
 						//textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno);
 					{
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 5)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
 					}
 				}
-				Net_AddToOut(buff, buffsize);
+				Packet_Send_Host(buff, buffsize, 13, 1);
 				free(buff);
 			}
 			
@@ -417,9 +418,35 @@ bool freshstart;
 			player->x = (game.switchstage.playerx * TILE_W) * CSFI;
 			player->y = (game.switchstage.playery * TILE_H) * CSFI;
 		}
+
+		int *old = (int*)malloc(sizeof(int) * 4);
+		old[0] = game.switchstage.mapno;
+		old[1] = game.switchstage.eventonentry;
+		old[2] = game.switchstage.playerx;
+		old[3] = game.switchstage.playery;
+
+		// If we're the host then sync this TRA
+		if (Host == 1 && !synced) {
+			char *outbuff = (char*)malloc((sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS);
+			memcpy(outbuff, &(player->inventory), MAX_INVENTORY * sizeof(int));
+			memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY)), &(player->ninventory), sizeof(int));
+			memcpy(outbuff + (sizeof(int) * (MAX_INVENTORY + 1)), game.flags, NUM_GAMEFLAGS);
+			Packet_Send_Host(outbuff, (sizeof(int) * (MAX_INVENTORY + 1)) + NUM_GAMEFLAGS, 15, 1);
+			free(outbuff);
+			// PART 2
+			outbuff = (char*)malloc((sizeof(int) * 4) + 2);
+			memcpy(outbuff, old, sizeof(int) * 4);
+			outbuff[sizeof(int) * 4] = player->invisible;
+			outbuff[(sizeof(int) * 4) + 1] = player->hide;
+			Packet_Send_Host(outbuff, (sizeof(int) * 4) + 2, 14, 1);
+			free(outbuff);
+		}
+		free(old);
 		
 		// start the level
-		if (game.initlevel()) return 1;
+		if (game.initlevel()) {
+			return 1;
+		}
 		
 		if (freshstart)
 			weapon_introslide();
@@ -428,16 +455,17 @@ bool freshstart;
 		game.stageboss.OnMapExit();
 		freshstart = false;
 	}
-
-	//close chat log
-	if (chatlogfile != NULL) {
-		fclose(chatlogfile);
-	}
 	
 shutdown: ;
 	game.tsc->Close();
 	game.close();
 	Carets::close();
+	//close chat log
+	if (chatlogfile != NULL) {
+		fclose(chatlogfile);
+	}
+	Net_Close(); //causes game to crash on shutdown; may be bad practice, but until fixed, do not do
+	Net_TrueClose();
 	
 	Graphics::close();
 	input_close();
