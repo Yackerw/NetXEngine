@@ -12,6 +12,7 @@ struct Settings
 	bool multisave;
 	bool show_fps;
 	bool fullscreen;
+	bool framerate;
 	
 	bool enable_debug_keys;
 	bool sound_enabled;

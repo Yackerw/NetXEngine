@@ -36,7 +36,8 @@ int fps = 0;
 static int fps_so_far = 0;
 static uint32_t fpstimer = 0;
 
-#define GAME_WAIT			(1000/GAME_FPS)	// sets framerate
+#define GAME_WAIT_50			(1000/GAME_50_FPS)	// sets framerate to 50
+#define GAME_WAIT_60			(1000/GAME_60_FPS)	// sets framerate to 60
 int framecount = 0;
 bool freezeframe = false;
 int flipacceltime = 0;
@@ -208,7 +209,14 @@ int32_t nexttick = 0;
 			if (game.ffwdtime)
 				game.ffwdtime--;
 			
-			nexttick = curtime + GAME_WAIT;
+			if (settings->framerate)
+			{
+				nexttick = curtime + GAME_WAIT_60;
+			}
+			else
+			{
+				nexttick = curtime + GAME_WAIT_50;
+			}
 			
 			// pause game if window minimized (disabled because pausing the game during netplay is a VERY bad idea!)
             //if(!Graphics::WindowVisible())
