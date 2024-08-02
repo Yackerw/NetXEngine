@@ -1,3 +1,6 @@
 build/
 tools/
 bin/
+win32/extract/Debug/
+win32/extract/x64/
+win32/.vs
