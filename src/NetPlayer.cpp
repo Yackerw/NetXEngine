@@ -23,6 +23,7 @@ using namespace Sprites;
 #include "chat.h"
 //#include "object.h"
 //#include "player.h"
+#include "ipfuncs.h"
 
 int nameevent;
 

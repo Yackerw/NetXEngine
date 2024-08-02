@@ -10,6 +10,9 @@
 #include <sys/timeb.h>
 #include "inventory.h"
 #include "sound\sound.h"
+#include "ipfuncs.h"
+
+#define tmpmax(X,Y) ((X > Y) ? X : Y)
 
 int sockaddrsize = sizeof(sockaddr);
 
@@ -609,7 +612,7 @@ void Net_ParseBuffs() {
 							if (Host == 0 && player->hp == 0) {
 								player->x = players[ClientNode].x;
 								player->y = players[ClientNode].y;
-								player->hp = max(player->maxHealth / 4, 1);
+								player->hp = tmpmax(player->maxHealth / 4, 1);
 								player->hide = false;
 							}
 							if (game.mode == GM_INVENTORY || game.mode == GM_MAP_SYSTEM || game.mode == GP_PAUSED || game.mode == GP_OPTIONS) {

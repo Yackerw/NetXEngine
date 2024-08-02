@@ -263,6 +263,7 @@
     <ClCompile Include="..\..\src\intro\intro.cpp" />
     <ClCompile Include="..\..\src\intro\title.cpp" />
     <ClCompile Include="..\..\src\inventory.cpp" />
+    <ClCompile Include="..\..\src\ipfuncs.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\map.cpp" />
     <ClCompile Include="..\..\src\map_system.cpp" />
@@ -407,6 +408,7 @@
     <ClInclude Include="..\..\src\intro\intro.h" />
     <ClInclude Include="..\..\src\intro\title.h" />
     <ClInclude Include="..\..\src\inventory.h" />
+    <ClInclude Include="..\..\src\ipfuncs.h" />
     <ClInclude Include="..\..\src\map.h" />
     <ClInclude Include="..\..\src\maprecord.h" />
     <ClInclude Include="..\..\src\map_system.h" />

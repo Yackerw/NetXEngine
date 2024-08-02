@@ -219,7 +219,7 @@ void ResourceManager::findLanguages()
     for (auto &l: langs)
     {
         std::cout << l << std::endl;
-        std::ifstream ifs(widen(l+"/system.json"));
+        std::ifstream ifs(widen(l+"/system.json").c_str());
         if (ifs.is_open())
         {
             ifs.close();

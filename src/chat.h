@@ -1,5 +1,6 @@
 //made by root
 #include <stdio.h>
+#include "ipfuncs.h"
 
 #ifndef __CHAT__
 #define __CHAT__

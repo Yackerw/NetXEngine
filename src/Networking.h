@@ -9,7 +9,7 @@
 #include <Windows.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <WS2tcpip.h>
+#include <ws2tcpip.h>
 #include <process.h>
 #include <time.h>
 
