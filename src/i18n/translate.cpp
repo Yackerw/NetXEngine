@@ -19,7 +19,7 @@ bool I18N::load()
 
         for (auto it = langfile.begin(); it != langfile.end(); ++it)
         {
-            _strings[ it.key() ] = it.value();
+            _strings[it.key()] = it.value().get_string();
         }
         return true;
     }

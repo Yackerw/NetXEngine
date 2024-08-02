@@ -4,3 +4,7 @@ bin/
 win32/extract/Debug/
 win32/extract/x64/
 win32/.vs
+win32/nx/Win32/Debug/
+win32/nx/Win32/Release/
+win32/nx/x64/Debug/
+win32/nx/x64/Release/

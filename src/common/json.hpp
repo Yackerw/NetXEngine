@@ -9783,6 +9783,11 @@ class basic_json
         return get_ref_impl<ReferenceType>(*this);
     }
 
+    // this is technically a modification, but i can't for the life of me get anything else to work
+    std::string get_string() {
+        return *(m_value.string);
+    }
+
     /*!
     @brief get a reference value (implicit)
     @copydoc get_ref()
