@@ -1,0 +1,91 @@
+#OBJS specifies which files to compile as part of the project
+OBJS_BASE = src/tsc.cpp src/trig.cpp src/statusbar.cpp src/stagedata.cpp src/stageboss.cpp src/slope.cpp src/settings.cpp src/screeneffect.cpp src/profile.cpp src/playerstats.cpp src/player.cpp src/p_arms.cpp src/object.cpp src/niku.cpp src/map_system.cpp src/map.cpp src/main.cpp src/ipfuncs.cpp src/inventory.cpp src/input.cpp src/game.cpp src/floattext.cpp src/debug.cpp src/console.cpp src/chat.cpp src/caret.cpp src/ResourceManager.cpp src/ObjManager.cpp src/Networking.cpp src/NetPlayer.cpp
+
+OBJS_COMMON = src/common/glob.cpp src/common/InitList.cpp src/common/misc.cpp src/common/myfnmatch.cpp
+
+OBJS_AUTOGEN = src/autogen/AssignSprites.cpp
+
+OBJS_GRAPHICS = src/graphics/font.cpp src/graphics/pngfuncs.cpp src/graphics/Renderer.cpp src/graphics/sprites.cpp src/graphics/Surface.cpp src/graphics/tileset.cpp src/graphics/zoom.cpp
+
+OBJS_SOUND = src/sound/Ogg.cpp src/sound/Organya.cpp src/sound/Pixtone.cpp src/sound/SoundManager.cpp
+
+OBJS_TEXTBOX = src/TextBox/ItemImage.cpp src/TextBox/SaveSelect.cpp src/TextBox/StageSelect.cpp src/TextBox/TextBox.cpp src/TextBox/YesNoPrompt.cpp
+
+OBJS_UTILS = src/Utils/Logger.cpp
+
+OBJS_I18N = src/i18n/minibidi.cpp src/i18n/translate.cpp
+
+OBJS_PAUSE = src/pause/dialog.cpp src/pause/message.cpp src/pause/mods.cpp src/pause/objects.cpp src/pause/options.cpp src/pause/pause.cpp
+
+OBJS_SIFLIB = src/siflib/sectSprites.cpp src/siflib/sectStringArray.cpp src/siflib/sif.cpp src/siflib/sifloader.cpp
+
+OBJS_AI = src/ai/ai.cpp src/ai/balrog_common.cpp src/ai/IrregularBBox.cpp src/ai/almond/almond.cpp src/ai/boss/balfrog.cpp src/ai/boss/ballos.cpp src/ai/boss/core.cpp src/ai/boss/heavypress.cpp src/ai/boss/ironhead.cpp src/ai/boss/omega.cpp src/ai/boss/sisters.cpp src/ai/boss/undead_core.cpp src/ai/boss/x.cpp src/ai/egg/egg.cpp src/ai/egg/egg2.cpp src/ai/egg/igor.cpp src/ai/final_battle/balcony.cpp src/ai/final_battle/doctor.cpp src/ai/final_battle/doctor_common.cpp src/ai/final_battle/doctor_frenzied.cpp src/ai/final_battle/final_misc.cpp src/ai/final_battle/misery.cpp src/ai/final_battle/sidekicks.cpp src/ai/first_cave/first_cave.cpp src/ai/hell/ballos_misc.cpp src/ai/hell/ballos_priest.cpp src/ai/hell/hell.cpp src/ai/last_cave/last_cave.cpp src/ai/maze/balrog_boss_missiles.cpp src/ai/maze/critter_purple.cpp src/ai/maze/gaudi.cpp src/ai/maze/labyrinth_m.cpp src/ai/maze/maze.cpp src/ai/maze/pooh_black.cpp src/ai/npc/balrog.cpp src/ai/npc/curly.cpp src/ai/npc/curly_ai.cpp src/ai/npc/misery.cpp src/ai/npc/npcguest.cpp src/ai/npc/npcplayer.cpp src/ai/npc/npcregu.cpp src/ai/oside/oside.cpp src/ai/plantation/plantation.cpp src/ai/sand/curly_boss.cpp src/ai/sand/puppy.cpp src/ai/sand/sand.cpp src/ai/sand/toroko_frenzied.cpp src/ai/sym/smoke.cpp src/ai/sym/sym.cpp src/ai/village/balrog_boss_running.cpp src/ai/village/ma_pignon.cpp src/ai/village/village.cpp src/ai/weapons/blade.cpp src/ai/weapons/bubbler.cpp src/ai/weapons/fireball.cpp src/ai/weapons/missile.cpp src/ai/weapons/nemesis.cpp src/ai/weapons/polar_mgun.cpp src/ai/weapons/snake.cpp src/ai/weapons/spur.cpp src/ai/weapons/weapons.cpp src/ai/weapons/whimstar.cpp src/ai/weed/balrog_boss_flying.cpp src/ai/weed/frenzied_mimiga.cpp src/ai/weed/weed.cpp
+
+OBJS_ENDGAME = src/endgame/credits.cpp src/endgame/CredReader.cpp src/endgame/island.cpp src/endgame/misc.cpp
+
+OBJS_INTRO = src/intro/intro.cpp src/intro/title.cpp
+
+OBJS_RESOURCE = platform\win32\nx\nx_mgw.res
+
+
+OBJS = $(OBJS_BASE) $(OBJS_COMMON) $(OBJS_AUTOGEN) $(OBJS_GRAPHICS) $(OBJS_SOUND) $(OBJS_TEXTBOX) $(OBJS_UTILS) $(OBJS_I18N) $(OBJS_PAUSE) $(OBJS_SIFLIB) $(OBJS_AI) $(OBJS_ENDGAME) $(OBJS_INTRO) $(OBJS_RESOURCE)
+
+
+
+#INCLUDE_PATHS specifies the additional include paths we'll need
+INCLUDE_PATHS = -I$(CURDIR)\platform\win32\ext\include -I$(CURDIR)\src -I$(CURDIR)\deps
+
+#LIBRARY_PATHS specifies the additional library paths we'll need
+LIBRARY_PATHS = -L$(CURDIR)\platform\win32\ext\lib\x86
+
+#LINKER_FLAGS specifies the libraries we're linking against
+LINKER_FLAGS = -l:libpng16.lib -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lWs2_32 -mwindows -lm -lddraw -ldinput -ldsound -ldxguid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid
+
+
+#CC specifies which compiler we're using
+CC = g++
+
+
+
+
+OPTIMIZATIONS =
+STRIPFLAG =
+EXENAME = netx
+COMPILER_SPECIFIC_DEFINES =  
+
+
+
+ifdef DEBUG
+	OPTIMIZATIONS = -O0
+	STRIPFLAG = -g
+	EXENAME = netx-mgw-debug
+else
+	OPTIMIZATIONS = -Os
+	STRIPFLAG = -s
+	EXENAME = netx-mgw-release
+endif
+
+#Set this if using MinGW32 rather than 64/TDM-GCC
+ifdef USE_MINGW32
+	COMPILER_SPECIFIC_DEFINES = -DNETX_MINGW32
+endif
+
+
+
+
+#COMPILER_FLAGS specifies the additional compilation options we're using
+# -w suppresses all warnings
+# -Wl,-subsystem,windows gets rid of the console window
+# -g, compile for gdb
+# -s, strips symbols
+COMPILER_FLAGS = -DUNICODE -D_UNICODE $(COMPILER_SPECIFIC_DEFINES) $(STRIPFLAG) $(OPTIMIZATIONS) -m32 -w
+
+#OBJ_NAME specifies the name of our exectuable
+OBJ_NAME = build/$(EXENAME)
+
+
+
+
+#This is the target that compiles our executable
+all : $(OBJS)
+	$(CC) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
