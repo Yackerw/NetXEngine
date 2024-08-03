@@ -1,0 +1,1 @@
+(This file gets overwritten every time you start the game. Be sure to save any chatlogs you might want to keep!)

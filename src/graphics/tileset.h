@@ -1,25 +1,34 @@
-
 #ifndef _TILESET_H
 #define _TILESET_H
-#include "nxsurface.h"
-#define TILE_W				16
-#define TILE_H				16
 
-namespace Tileset
+#include "Surface.h"
+
+#define TILE_W 16
+#define TILE_H 16
+
+namespace NXE
 {
-	bool Init();
-	void Close();
-	
-	bool Load(int new_tileset);
-	void Reload();
-	void draw_tile(int x, int y, int t);
+namespace Graphics
+{
 
-	void draw_tilegrid_begin(size_t max_count);
-	void draw_tilegrid_add(int x, int y, int t);
-	void draw_tilegrid_end();
-	
-	NXSurface *GetSurface();
+class Tileset
+{
+  public:
+    Tileset();
+    ~Tileset();
+    bool init();
+    void close();
+
+    bool load(int new_tileset);
+    void reload();
+
+    void drawTile(int x, int y, int t);
+  private:
+    Surface *_tileset = nullptr;
+    int _current_tileset = -1;
 };
 
+}; // namespace Graphics
+}; // namespace Tileset
 
 #endif

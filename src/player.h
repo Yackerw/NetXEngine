@@ -2,12 +2,14 @@
 #ifndef _PLAYER_H
 #define _PLAYER_H
 
-#include "object.h"
-#include "p_arms.h"
 #include "ai/weapons/whimstar.h"
 #include "input.h"
+#include "object.h"
+#include "p_arms.h"
 
-#define MAX_INVENTORY		42
+#include <vector>
+
+#define MAX_INVENTORY 42
 
 class Player : public Object
 {
@@ -74,6 +76,7 @@ public:
 	FloatText *XPText;
 	
 	Weapon weapons[WPN_COUNT];
+    std::vector<int> wpnOrder;
 	int curWeapon;
 	
 	int maxHealth;					// max health
@@ -100,6 +103,8 @@ public:
 	int nrepel_l, nrepel_r, nrepel_u, nrepel_d;
 
 	int8_t skin;
+        int8_t fire_limit;
+        int8_t auto_fire_limit;
 };
 
 extern Player *player;
@@ -108,36 +113,36 @@ extern bool lastpinputs[INPUT_COUNT];
 
 enum PMoveModes
 {
-	MOVEMODE_NORMAL = 0,
-	MOVEMODE_ZEROG  = 1,
-	MOVEMODE_DEBUG  = 2
+  MOVEMODE_NORMAL = 0,
+  MOVEMODE_ZEROG  = 1,
+  MOVEMODE_DEBUG  = 2
 };
 
 // how much fuel you start out with in the Booster on each jump.
 // (for both 0.8 and 2.0)
-#define BOOSTER_FUEL_QTY	50
+#define BOOSTER_FUEL_QTY 50
 
 enum BoosterState
 {
-	BOOST_OFF = 0,
-	BOOST_UP,
-	BOOST_DOWN,
-	BOOST_HOZ,
-	BOOST_08
+  BOOST_OFF = 0,
+  BOOST_UP,
+  BOOST_DOWN,
+  BOOST_HOZ,
+  BOOST_08
 };
 
-#define EQUIP_BOOSTER08		0x01
-#define EQUIP_MAP			0x02
-#define EQUIP_ARMS_BARRIER	0x04
-#define EQUIP_TURBOCHARGE	0x08
-#define EQUIP_AIRTANK		0x10
-#define EQUIP_BOOSTER20		0x20
-#define EQUIP_MIMIGA_MASK	0x40
-#define EQUIP_WHIMSTAR		0x80
-#define EQUIP_NIKUMARU		0x100
+#define EQUIP_BOOSTER08 0x01
+#define EQUIP_MAP 0x02
+#define EQUIP_ARMS_BARRIER 0x04
+#define EQUIP_TURBOCHARGE 0x08
+#define EQUIP_AIRTANK 0x10
+#define EQUIP_BOOSTER20 0x20
+#define EQUIP_MIMIGA_MASK 0x40
+#define EQUIP_WHIMSTAR 0x80
+#define EQUIP_NIKUMARU 0x100
 
-//void AddXP(int xp, bool quiet = false);
-//void SubXP(int xp, bool quiet = false);
+// void AddXP(int xp, bool quiet = false);
+// void SubXP(int xp, bool quiet = false);
 void hurtplayer(int damage);
 
 void PInitFirstTime();

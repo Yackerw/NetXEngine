@@ -1,18 +1,18 @@
 //made by root
 
-#include "graphics/graphics.h"
 #include "graphics/sprites.h"
 #include "graphics/font.h"
 #include "autogen/sprites.h"
-#include "sound/sound.h"
+#include "sound/SoundManager.h"
 #include "game.h"
 #include "input.h"
 #include "Networking.h"
 #include "NetPlayer.h"
 #include "chat.h"
 #include <stdio.h>
-using namespace Graphics;
-using namespace Sprites;
+#include "graphics/Renderer.h"
+
+using namespace NXE::Graphics;
 
 FILE* chatlogfile;
 
@@ -103,7 +103,7 @@ void Chat_ReceiveMessage(unsigned char* msg, int node) {
 	Chat_WriteToLog(formatmsg);
 
 	chatstate.timer = (60 * 5);
-	sound(SND_COMPUTER_BEEP);
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_COMPUTER_BEEP);
 }
 
 void Chat_EnterMessage() {
@@ -193,7 +193,7 @@ void Chat_EnterMessage() {
 	chatstate.msg[0] = 0;
 	chatstate.typing = 0;
 	chatstate.timer = (60 * 5);
-	sound(SND_COMPUTER_BEEP);
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_COMPUTER_BEEP);
 	//Chat_SetMessage((char*)&formatmsg, tempmsgflags);
 	//}
 	//Sleep(16 * 60);
@@ -259,14 +259,14 @@ void Chat_Display() {
 				//font_draw(ctx, cty + (12 * i), chatmsgs[i].msg);
 				//font_draw(ctx, (cty-14*chatstate.typing) - (12 * chatstate.msgamount) + (12 * i), chatmsgs[i].msg, msgcol,true);
 				//font_draw(ctx, (cty - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
-				font_draw(ctx, (cty - (64 * textbox.IsVisible()) - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
+				Renderer::getInstance()->font.draw(ctx, (cty - (64 * textbox.IsVisible()) - 14 * chatstate.typing) - (12 * i), chatmsgs[i].msg, msgcol, true);
 			}
 			i++;
 		}
 	}
 	if (chatstate.typing) {
-		DrawLine(ctx, cty + 12 - chatyoff, ctx + (5 * strlen(chatstate.msg)) + 5, cty + 12 - chatyoff, 0x00000000);//16777215U);
-		font_draw(ctx, cty - chatyoff, (char*)&chatstate.msg, 0xFFFFFF00, true);
+		Renderer::getInstance()->drawLine(ctx, cty + 12 - chatyoff, ctx + (5 * strlen(chatstate.msg)) + 5, cty + 12 - chatyoff, 0x00000000);//16777215U);
+          Renderer::getInstance()->font.draw(ctx, cty - chatyoff, (char *)&chatstate.msg, 0xFFFFFF00, true);
 	}
 
 	/*unsigned char i2 = 0;

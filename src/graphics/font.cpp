@@ -1,161 +1,336 @@
+#include "Font.h"
 
-#include "../config.h"
-#include <SDL.h>
-
-#include "../nx.h"
-#include "font.h"
-#include "graphics.h"
-#include "../game.h"
-#include "../common/stat.h"
-#include "../common/utf8.h"
-
-#include "sprites.h"
+#include "../ResourceManager.h"
+#include "../common/misc.h"
+#include "../Utils/Logger.h"
+#include "Renderer.h"
 #include "../autogen/sprites.h"
+#include "../config.h"
+#include "../game.h"
+#include "../nx.h"
 
-#include "bmfont.h"
+#include <SDL_image.h>
+#include <json.hpp>
+#include <utf8.h>
+#include <fstream>
+#include <iostream>
 
-#define SHADOW_OFFSET		1		// distance of drop shadows
+using namespace NXE::Graphics;
 
-static bool initilized = false;
-static bool rendering = true;
-static bool shrink_spaces = true;
-
-static BMFont whitefnt;
-
-extern SDL_Renderer * renderer;
-
-bool font_init(void)
+namespace NXE
 {
-  whitefnt.load(std::string("font_"+std::to_string(SCALE)+".fnt"));
+namespace Graphics
+{
 
-  initilized = true;
-  return 0;
+Font::Font()
+    : _height(0)
+    , _base(0)
+{
 }
 
-void font_close(void)
+bool Font::load()
 {
-	if (!initilized) return;
-	
-	whitefnt.cleanup();
+  cleanup();
+  std::string font = std::string("font_" + std::to_string(Renderer::getInstance()->scale) + ".fnt");
+  LOG_DEBUG("Loading font file {}", font.c_str());
+
+  // special empty glyph
+  _glyphs[0] = Font::Glyph{0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  std::string path = ResourceManager::getInstance()->getPath(font);
+  if (ResourceManager::getInstance()->fileExists(path))
+  {
+    _upscale = 1;
+  }
+  else
+  {
+    _upscale = Renderer::getInstance()->scale;
+    font = std::string("font_1.fnt");
+    path = ResourceManager::getInstance()->getPath(font);
+  }
+
+  LOG_DEBUG("Loading font file {}", path.c_str());
+
+  std::ifstream fl;
+  fl.open(widen(path), std::ifstream::in | std::ifstream::binary);
+  if (fl.is_open())
+  {
+    nlohmann::json fontdef = nlohmann::json::parse(fl);
+
+    _height = fontdef["common"]["lineHeight"].get<uint32_t>();
+    _base   = fontdef["common"]["base"].get<uint32_t>();
+
+    for (auto glyph : fontdef["chars"])
+    {
+      _glyphs[glyph["id"].get<uint32_t>()] = Font::Glyph{
+          glyph["id"].get<uint32_t>(),       glyph["page"].get<uint32_t>(),    glyph["x"].get<uint32_t>(),
+          glyph["y"].get<uint32_t>(),        glyph["width"].get<uint32_t>(),   glyph["height"].get<uint32_t>(),
+          glyph["xadvance"].get<uint32_t>(), glyph["xoffset"].get<uint32_t>(), glyph["yoffset"].get<uint32_t>()};
+    }
+
+    for (auto atlas : fontdef["pages"])
+    {
+      std::string atlaspath = ResourceManager::getInstance()->getPath(atlas.get<std::string>());
+      SDL_Surface *surf     = IMG_Load(atlaspath.c_str());
+      _atlases.push_back(SDL_CreateTextureFromSurface(Renderer::getInstance()->renderer(), surf));
+      SDL_FreeSurface(surf);
+    }
+  }
+  else
+  {
+    LOG_ERROR("Error opening font file {}", path.c_str());
+    return false;
+  }
+
+  return true;
 }
 
-bool font_reload()
+void Font::cleanup()
 {
-	if (!initilized) return 0;
-	
-	whitefnt.cleanup();
-
-	return font_init();
+  _height = 0;
+  _base   = 0;
+  _glyphs.clear();
+  for (auto atlas : _atlases)
+  {
+    SDL_DestroyTexture(atlas);
+  }
+  _atlases.clear();
+  _upscale = 1;
 }
 
-
-// draw a text string
-int font_draw(int x, int y, const std::string& text, uint32_t color, bool is_shaded)
+Font::~Font()
 {
-	x *= SCALE;
-	y *= SCALE;
-
-	int orgx = x;
-	int i = 0;
-	SDL_Rect dstrect;
-	SDL_Rect shdrect;
-	SDL_Rect srcrect;
-	
-	int r,g,b;
-	
-	r = ((color >> 16) & 0xFF);
-	g = ((color >> 8) & 0xFF);
-	b = ((color) & 0xFF);
-	
-	std::string::const_iterator it = text.begin();
-	while(it != text.end())
-	{
-		char32_t ch = utf8::next(it, text.end());
-		BMFont::Glyph glyph = whitefnt.glyph(ch);
-		SDL_Texture* atlas = whitefnt.atlas(glyph.atlasid);
-
-		if (ch == '=' && game.mode != GM_CREDITS)
-		{
-			if (rendering)
-			{
-				Sprites::draw_sprite((x/SCALE), (y/SCALE)+1, SPR_TEXTBULLET);
-			}
-		}
-		else if (rendering && ch != ' ')
-		{
-			dstrect.x = x+glyph.xoffset;
-			dstrect.y = y+glyph.yoffset;
-			dstrect.w = glyph.w;
-			dstrect.h = glyph.h;
-
-			srcrect.x = glyph.x;
-			srcrect.y = glyph.y;
-			srcrect.w = dstrect.w;
-			srcrect.h = dstrect.h;
-
-#if RESSCALE==1
-			if (Graphics::is_set_clip())
-				Graphics::clip(srcrect, dstrect);
-#endif
-			// TODO: I'm not sure, but it looks like original text is outlined, not shadowed
-			if (is_shaded)
-			{
-				shdrect.x = x+glyph.xoffset+SHADOW_OFFSET;
-				shdrect.y = y+glyph.yoffset+SHADOW_OFFSET;
-				shdrect.w = glyph.w;
-				shdrect.h = glyph.h;
-				SDL_SetTextureColorMod(atlas, 0, 0, 0);
-				SDL_RenderCopy(renderer, atlas, &srcrect, &shdrect);
-				SDL_SetTextureColorMod(atlas, 255, 255, 255);
-			}
-			SDL_SetTextureColorMod(atlas, r, g, b);
-			SDL_RenderCopy(renderer, atlas, &srcrect, &dstrect);
-			SDL_SetTextureColorMod(atlas, 255, 255, 255);
-		}
-		
-		if (ch == ' ' && shrink_spaces)
-		{	// 10.5 px for spaces - make smaller than they really are - the default
-			x += (SCALE == 1) ? 5 : 10;
-			if (i & 1) x++;
-		}
-		else if (ch == '=' && game.mode != GM_CREDITS)
-		{
-			x += 7*SCALE;
-		}
-		else
-		{
-			x += glyph.xadvance;
-		}
-		i++;
-	}
-	
-	// return the final width of the text drawn
-	return (x - orgx) / SCALE;
+  cleanup();
 }
 
-
-int GetFontWidth(const std::string& text, bool is_shaded)
+const Font::Glyph &Font::glyph(uint32_t codepoint)
 {
-int wd;
-
-	rendering = false;
-	shrink_spaces = !is_shaded;
-	
-	wd = font_draw(0, 0, text);
-	
-	rendering = true;
-	shrink_spaces = true;
-	
-	return wd;
+  if (_glyphs.find(codepoint) != _glyphs.end())
+  {
+    return _glyphs.at(codepoint);
+  }
+  else
+  {
+    LOG_WARN("No glyph for codepoint {}", codepoint);
+    return _glyphs.at(0);
+  }
 }
 
-int GetFontHeight()
+SDL_Texture *Font::atlas(uint32_t idx)
 {
-	return whitefnt.height() / SCALE;
+  return _atlases.at(idx);
 }
 
-int GetFontBase()
+uint32_t Font::draw(int x, int y, const std::string &text, uint32_t color, bool isShaded)
 {
-	return whitefnt.base() / SCALE;
+  x *= Renderer::getInstance()->scale;
+  y *= Renderer::getInstance()->scale;
+
+  int orgx = x;
+  int i    = 0;
+  SDL_Rect dstrect;
+  SDL_Rect shdrect;
+  SDL_Rect srcrect;
+
+  int r, g, b;
+
+  r = ((color >> 16) & 0xFF);
+  g = ((color >> 8) & 0xFF);
+  b = ((color)&0xFF);
+
+  std::string::const_iterator it = (rtl() ? text.end() : text.begin());
+  while (it != (rtl() ? text.begin() : text.end()) )
+  {
+    char32_t ch;
+    if (rtl()) ch = utf8::prior(it, text.begin());
+    else ch = utf8::next(it, text.end());
+
+    Glyph glyph = this->glyph(ch);
+    SDL_Texture *atlas  = this->atlas(glyph.atlasid);
+
+    if (ch == '=' && game.mode != GM_CREDITS)
+    {
+      if (_rendering)
+      {
+        int offset = (int)round(((double)_height / (double)Renderer::getInstance()->scale - 6.) / 2.);
+        Renderer::getInstance()->sprites.drawSprite((x / Renderer::getInstance()->scale), (y / Renderer::getInstance()->scale) + offset, SPR_TEXTBULLET);
+      }
+    }
+    else if (_rendering && ch != ' ')
+    {
+      dstrect.x = x + (glyph.xoffset * _upscale);
+      dstrect.y = y + (glyph.yoffset * _upscale);
+      dstrect.w = glyph.w * _upscale;
+      dstrect.h = glyph.h * _upscale;
+
+      srcrect.x = glyph.x;
+      srcrect.y = glyph.y;
+      srcrect.w = glyph.w;
+      srcrect.h = glyph.h;
+
+      if (Renderer::getInstance()->isClipSet())
+      {
+        if (_upscale > 1)
+          Renderer::getInstance()->clip(srcrect, dstrect);
+        else
+          Renderer::getInstance()->clipScaled(srcrect, dstrect);
+      }
+      if (isShaded)
+      {
+        shdrect.x = x + (glyph.xoffset * _upscale);
+        shdrect.y = y + (glyph.yoffset * _upscale + _shadowOffset * Renderer::getInstance()->scale);
+        shdrect.w = glyph.w * _upscale;
+        shdrect.h = glyph.h * _upscale;
+        SDL_SetTextureColorMod(atlas, 0, 0, 0);
+        SDL_RenderCopy(Renderer::getInstance()->renderer(), atlas, &srcrect, &shdrect);
+        SDL_SetTextureColorMod(atlas, 255, 255, 255);
+      }
+      SDL_SetTextureColorMod(atlas, r, g, b);
+      SDL_RenderCopy(Renderer::getInstance()->renderer(), atlas, &srcrect, &dstrect);
+      SDL_SetTextureColorMod(atlas, 255, 255, 255);
+    }
+
+    if (ch == ' ')
+    { // 10.5 px for spaces - make smaller than they really are - the default
+      if (rtl())
+      {
+        x -= (Renderer::getInstance()->scale == 1) ? 5 : 10;
+        if (i & 1)
+          x--;
+      }
+      else
+      {
+        x += (Renderer::getInstance()->scale == 1) ? 5 : 10;
+        if (i & 1)
+          x++;
+      }
+    }
+    else if (ch == '=' && game.mode != GM_CREDITS)
+    {
+      if (rtl()) x -= 7 * Renderer::getInstance()->scale;
+      else x += 7 * Renderer::getInstance()->scale;
+    }
+    else
+    {
+      if (rtl()) x -= glyph.xadvance * _upscale;
+      else x += glyph.xadvance * _upscale;
+    }
+    i++;
+  }
+
+  // return the final width of the text drawn
+  return abs((x - orgx) / Renderer::getInstance()->scale);
 }
 
+uint32_t Font::drawLTR(int x, int y, const std::string &text, uint32_t color, bool isShaded)
+{
+  x *= Renderer::getInstance()->scale;
+  y *= Renderer::getInstance()->scale;
+
+  int orgx = x;
+  int i    = 0;
+  SDL_Rect dstrect;
+  SDL_Rect shdrect;
+  SDL_Rect srcrect;
+
+  int r, g, b;
+
+  r = ((color >> 16) & 0xFF);
+  g = ((color >> 8) & 0xFF);
+  b = ((color)&0xFF);
+
+  std::string::const_iterator it = text.begin();
+  while (it != text.end() )
+  {
+    char32_t ch;
+    ch = utf8::next(it, text.end());
+
+    Glyph glyph = this->glyph(ch);
+    SDL_Texture *atlas  = this->atlas(glyph.atlasid);
+
+    if (ch == '=' && game.mode != GM_CREDITS)
+    {
+      if (_rendering)
+      {
+        int offset = (int)round(((double)_height / (double)Renderer::getInstance()->scale - 6.) / 2.);
+        Renderer::getInstance()->sprites.drawSprite((x / Renderer::getInstance()->scale), (y / Renderer::getInstance()->scale) + offset, SPR_TEXTBULLET);
+      }
+    }
+    else if (_rendering && ch != ' ')
+    {
+      dstrect.x = x + (glyph.xoffset * _upscale);
+      dstrect.y = y + (glyph.yoffset * _upscale);
+      dstrect.w = glyph.w * _upscale;
+      dstrect.h = glyph.h * _upscale;
+
+      srcrect.x = glyph.x;
+      srcrect.y = glyph.y;
+      srcrect.w = glyph.w;
+      srcrect.h = glyph.h;
+
+      if (Renderer::getInstance()->isClipSet())
+      {
+        if (_upscale > 1)
+          Renderer::getInstance()->clip(srcrect, dstrect);
+        else
+          Renderer::getInstance()->clipScaled(srcrect, dstrect);
+      }
+      if (isShaded)
+      {
+        shdrect.x = x + (glyph.xoffset * _upscale);
+        shdrect.y = y + glyph.yoffset * _upscale + _shadowOffset * Renderer::getInstance()->scale;
+        shdrect.w = glyph.w * _upscale;
+        shdrect.h = glyph.h * _upscale;
+        SDL_SetTextureColorMod(atlas, 0, 0, 0);
+        SDL_RenderCopy(Renderer::getInstance()->renderer(), atlas, &srcrect, &shdrect);
+        SDL_SetTextureColorMod(atlas, 255, 255, 255);
+      }
+      SDL_SetTextureColorMod(atlas, r, g, b);
+      SDL_RenderCopy(Renderer::getInstance()->renderer(), atlas, &srcrect, &dstrect);
+      SDL_SetTextureColorMod(atlas, 255, 255, 255);
+    }
+
+    if (ch == ' ')
+    { // 10.5 px for spaces - make smaller than they really are - the default
+      x += (Renderer::getInstance()->scale == 1) ? 5 : 10;
+      if (i & 1)
+        x++;
+    }
+    else if (ch == '=' && game.mode != GM_CREDITS)
+    {
+      x += 7 * Renderer::getInstance()->scale;
+    }
+    else
+    {
+      x += glyph.xadvance * _upscale;
+    }
+    i++;
+  }
+
+  // return the final width of the text drawn
+  return abs((x - orgx) / Renderer::getInstance()->scale);
+}
+
+uint32_t Font::getWidth(const std::string &text)
+{
+  _rendering = false;
+
+  uint32_t wd = draw(0, 0, text);
+
+  _rendering = true;
+
+  return wd;
+}
+
+uint32_t Font::getHeight() const
+{
+  return _height / ((_upscale == 1) ? Renderer::getInstance()->scale : 1);
+}
+
+uint32_t Font::getBase() const
+{
+  return _base / ((_upscale == 1) ? Renderer::getInstance()->scale : 1);
+}
+
+}; // namespace Graphics
+}; // namespace NXE

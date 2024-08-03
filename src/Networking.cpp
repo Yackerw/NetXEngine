@@ -9,7 +9,7 @@
 #include "chat.h"
 #include <sys/timeb.h>
 #include "inventory.h"
-#include "sound\sound.h"
+#include "sound/SoundManager.h"
 #include "ipfuncs.h"
 
 #define tmpmax(X,Y) ((X > Y) ? X : Y)
@@ -30,7 +30,7 @@ int JoinClientSize;
 int ClientID = -1;
 int ClientNode = -1;
 
-char Host = true;
+char Host = -1;
 
 SocketInfo *Sock = NULL;
 
@@ -160,14 +160,14 @@ void CloseConn(ClientInfo_t *info) {
 		if (Host == 1) {
 			sprintf(msg, "%s has disconnected", names[nodenum]);
 			Chat_SetMessage(msg, 1);
-			sound(SND_COMPUTER_BEEP);
+                        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_COMPUTER_BEEP);
 			Chat_WriteToLog(msg);
 			chatstate.timer = (60 * 5);
 		}
 		else {
 			sprintf(msg, "You have disconnected from the server");
 			Chat_SetMessage(msg, 1);
-			sound(SND_COMPUTER_BEEP);
+                        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_COMPUTER_BEEP);
 			Chat_WriteToLog(msg);
 			chatstate.timer = (60 * 5);
 		}
@@ -567,11 +567,20 @@ void Net_ParseBuffs() {
 							// relay data
 							if (Host == true) {
 								int buffsize = sizeof(char)*PlayerEventRecvSizes[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)] + 12;
-								char *temparray = (char*)malloc(buffsize);
-								memcpy(temparray + 4, clients[i].ReceiveStack[arraypos].Stack, buffsize - 4);
-								memcpy(temparray, &i, 4);
-								Packet_Send_Host(temparray, buffsize, 3, PlayerEventImportant[GetIntBuff(clients[i].ReceiveStack[arraypos].Stack, 4)]);
-								free(temparray);
+                                                          if (buffsize > 12)
+                                                          {
+
+                                                            char *temparray = (char *)malloc(buffsize);
+                                                            memcpy(temparray + 4,
+                                                                   clients[i].ReceiveStack[arraypos].Stack,
+                                                                   buffsize - 4);
+                                                            memcpy(temparray, &i, 4);
+                                                            Packet_Send_Host(
+                                                                temparray, buffsize, 3,
+                                                                PlayerEventImportant[GetIntBuff(
+                                                                    clients[i].ReceiveStack[arraypos].Stack, 4)]);
+                                                            free(temparray);
+                                                          }
 							}
 						}
 						arraypos++;
@@ -762,7 +771,7 @@ void Net_ParseBuffs() {
 
 							bool waslocked = (player->inputs_locked || game.frozen);
 
-							stat("******* Executing <TRA to stage %d", parm[0]);
+							LOG_INFO("******* Executing <TRA to stage %d", parm[0]);
 							game.switchstage.mapno = parm[0];
 							game.switchstage.eventonentry = parm[1];
 							game.switchstage.playerx = parm[2];

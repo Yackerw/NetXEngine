@@ -21,19 +21,18 @@
 
 enum BossType
 {
-	BOSS_NONE	= 0x00,
-	
-	BOSS_OMEGA,
-	BOSS_BALFROG,
-	BOSS_MONSTER_X,
-	BOSS_CORE,
-	BOSS_IRONH,
-	BOSS_SISTERS,
-	BOSS_UNDEAD_CORE,
-	BOSS_HEAVY_PRESS,
-	BOSS_BALLOS
-};
+  BOSS_NONE = 0x00,
 
+  BOSS_OMEGA,
+  BOSS_BALFROG,
+  BOSS_MONSTER_X,
+  BOSS_CORE,
+  BOSS_IRONH,
+  BOSS_SISTERS,
+  BOSS_UNDEAD_CORE,
+  BOSS_HEAVY_PRESS,
+  BOSS_BALLOS
+};
 
 class StageBoss
 {
@@ -52,7 +51,6 @@ public:
 	
 	virtual void SetState(int newstate);
 };
-
 
 class StageBossManager
 {
@@ -81,11 +79,8 @@ public:
 	int SyncSize;
 	
 private:
-	StageBoss *fBoss;
-	int fBossType;
+  StageBoss *fBoss;
+  int fBossType;
 };
-
-
-
 
 #endif

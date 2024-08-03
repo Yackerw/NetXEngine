@@ -1,52 +1,54 @@
 #include "sand.h"
 
-#include "../stdai.h"
-#include "../ai.h"
-#include "../sym/smoke.h"
-#include "../sand/puppy.h"
 #include "../../ObjManager.h"
 #include "../../caret.h"
-#include "../../trig.h"
-#include "../../sound/sound.h"
 #include "../../common/misc.h"
-
 #include "../../game.h"
-#include "../../player.h"
+#include "../../graphics/Renderer.h"
 #include "../../map.h"
 #include "../../graphics/sprites.h"
 #include "../../Networking.h"
+#include "../../player.h"
+#include "../../sound/SoundManager.h"
+#include "../../trig.h"
+#include "../ai.h"
+#include "../sand/puppy.h"
+#include "../stdai.h"
+#include "../sym/smoke.h"
+
+using namespace NXE::Graphics;
 
 INITFUNC(AIRoutines)
 {
-	ONTICK(OBJ_BEETLE_BROWN, ai_beetle_horizwait);
-	
-	ONTICK(OBJ_POLISH, ai_polish);
-	ONDEATH(OBJ_POLISH, ondeath_polish);
-	
-	ONTICK(OBJ_POLISHBABY, ai_polishbaby);
-	
-	ONTICK(OBJ_SANDCROC, ai_sandcroc);
-	
-	ONTICK(OBJ_MIMIGAC1, ai_curlys_mimigas);
-	ONTICK(OBJ_MIMIGAC2, ai_curlys_mimigas);
-	ONTICK(OBJ_MIMIGAC_ENEMY, ai_curlys_mimigas);
-	
-	ONTICK(OBJ_SUNSTONE, ai_sunstone);
-	
-	ONTICK(OBJ_ARMADILLO, ai_armadillo);
-	
-	ONTICK(OBJ_CROW, ai_crow);
-	ONTICK(OBJ_CROWWITHSKULL, ai_crowwithskull);
-	
-	ONTICK(OBJ_SKULLHEAD, ai_skullhead);
-	ONTICK(OBJ_SKULLHEAD_CARRIED, ai_skullhead_carried);
-	AFTERMOVE(OBJ_SKULLHEAD_CARRIED, aftermove_skullhead_carried);
-	
-	ONTICK(OBJ_SKULLSTEP, ai_skullstep);
-	ONTICK(OBJ_SKULLSTEP_FOOT, ai_skullstep_foot);
-	
-	ONTICK(OBJ_SKELETON, ai_skeleton);
-	ONTICK(OBJ_SKELETON_SHOT, ai_skeleton_shot);
+  ONTICK(OBJ_BEETLE_BROWN, ai_beetle_horizwait);
+
+  ONTICK(OBJ_POLISH, ai_polish);
+  ONDEATH(OBJ_POLISH, ondeath_polish);
+
+  ONTICK(OBJ_POLISHBABY, ai_polishbaby);
+
+  ONTICK(OBJ_SANDCROC, ai_sandcroc);
+
+  ONTICK(OBJ_MIMIGAC1, ai_curlys_mimigas);
+  ONTICK(OBJ_MIMIGAC2, ai_curlys_mimigas);
+  ONTICK(OBJ_MIMIGAC_ENEMY, ai_curlys_mimigas);
+
+  ONTICK(OBJ_SUNSTONE, ai_sunstone);
+
+  ONTICK(OBJ_ARMADILLO, ai_armadillo);
+
+  ONTICK(OBJ_CROW, ai_crow);
+  ONTICK(OBJ_CROWWITHSKULL, ai_crowwithskull);
+
+  ONTICK(OBJ_SKULLHEAD, ai_skullhead);
+  ONTICK(OBJ_SKULLHEAD_CARRIED, ai_skullhead_carried);
+  AFTERMOVE(OBJ_SKULLHEAD_CARRIED, aftermove_skullhead_carried);
+
+  ONTICK(OBJ_SKULLSTEP, ai_skullstep);
+  ONTICK(OBJ_SKULLSTEP_FOOT, ai_skullstep_foot);
+
+  ONTICK(OBJ_SKELETON, ai_skeleton);
+  ONTICK(OBJ_SKELETON_SHOT, ai_skeleton_shot);
 }
 
 /*
@@ -55,181 +57,197 @@ void c------------------------------() {}
 
 void ai_polish(Object *o)
 {
-	#define POLISH_ACCEL	0x20
-	#define POLISH_SPEED	0x200
-	#define POLISH_BOUNCE	0x100
-	
-	#define POLISH_CCW_LEFT		1
-	#define POLISH_CCW_UP		2
-	#define POLISH_CCW_RIGHT	3
-	#define POLISH_CCW_DOWN		4
-	
-	#define POLISH_CW_LEFT		5
-	#define POLISH_CW_UP		6
-	#define POLISH_CW_RIGHT		7
-	#define POLISH_CW_DOWN		8
-	
-	switch(o->state)
-	{
-		case 0:		// initilization
-		{
-			o->state = (o->dir == LEFT) ? POLISH_CW_RIGHT : POLISH_CCW_LEFT;
-			
-			// reprocess first frame
-			ai_polish(o);
-		}
-		break;
-		
-		// -------------- Traveling around counter-clockwise --------------
-		
-		case POLISH_CCW_LEFT:	// traveling left on ceiling
-		{
-			o->yinertia -= POLISH_ACCEL;
-			if (o->yinertia < 0 && o->blocku)
-			{
-				o->yinertia = POLISH_BOUNCE;
-				o->xinertia -= POLISH_BOUNCE;
-			}
-			
-			if (o->blockl) o->state = POLISH_CCW_DOWN;
-		}
-		break;
-		
-		case POLISH_CCW_UP:	// traveling up right wall
-		{
-			o->xinertia += POLISH_ACCEL;
-			if (o->xinertia > 0 && o->blockr)
-			{
-				o->xinertia = -POLISH_BOUNCE;
-				o->yinertia -= POLISH_BOUNCE;
-			}
-			
-			if (o->blocku) o->state = POLISH_CCW_LEFT;
-		}
-		break;
-		
-		case POLISH_CCW_RIGHT:	// traveling right on floor
-		{
-			o->yinertia += POLISH_ACCEL;
-			if (o->yinertia > 0 && o->blockd)
-			{
-				o->yinertia = -POLISH_BOUNCE;
-				o->xinertia += POLISH_BOUNCE;
-			}
-			
-			if (o->blockr) o->state = POLISH_CCW_UP;
-		}
-		break;
-		
-		case POLISH_CCW_DOWN:	// traveling down left wall
-		{
-			o->xinertia -= POLISH_ACCEL;
-			if (o->xinertia < 0 && o->blockl)
-			{
-				o->xinertia = POLISH_BOUNCE;
-				o->yinertia += POLISH_BOUNCE;
-			}
-			
-			if (o->blockd) o->state = POLISH_CCW_RIGHT;
-		}
-		break;
-		
-		// -------------- Traveling around clockwise --------------
-		
-		case POLISH_CW_LEFT:		// traveling left on floor
-		{
-			o->yinertia += POLISH_ACCEL;
-			if (o->yinertia > 0 && o->blockd)
-			{
-				o->yinertia = -POLISH_BOUNCE;
-				o->xinertia -= POLISH_BOUNCE;
-			}
-			
-			if (o->blockl) o->state = POLISH_CW_UP;
-		}
-		break;
-		
-		case POLISH_CW_UP:		// traveling up left wall
-		{
-			o->xinertia -= POLISH_ACCEL;
-			if (o->xinertia < 0 && o->blockl)
-			{
-				o->xinertia = POLISH_BOUNCE;
-				o->yinertia -= POLISH_BOUNCE;
-			}
-			
-			if (o->blocku) o->state = POLISH_CW_RIGHT;
-		}
-		break;
-		
-		case POLISH_CW_RIGHT:		// traveling right on ceiling
-		{
-			o->yinertia -= POLISH_ACCEL;
-			if (o->yinertia < 0 && o->blocku)
-			{
-				o->yinertia = POLISH_BOUNCE;
-				o->xinertia += POLISH_BOUNCE;
-			}
-			
-			if (o->blockr) o->state = POLISH_CW_DOWN;
-		}
-		break;
-		
-		case POLISH_CW_DOWN:		// traveling down right wall
-		{
-			o->xinertia += POLISH_ACCEL;
-			if (o->xinertia > 0 && o->blockr)
-			{
-				o->xinertia = -POLISH_BOUNCE;
-				o->yinertia += POLISH_BOUNCE;
-			}
-			
-			if (o->blockd) o->state = POLISH_CW_LEFT;
-		}
-		break;
-	}
-	
-	LIMITX(POLISH_SPEED);
-	LIMITY(POLISH_SPEED);
-	
-	// animation
-	o->animframe ^= 1;
-	o->frame = o->animframe + 2;
-	//if (o->state==P_DOWNRIGHT || o->state==P_UPRIGHT) o->frame += 2;
-	o->dir = RIGHT;
+#define POLISH_ACCEL 0x20
+#define POLISH_SPEED 0x200
+#define POLISH_BOUNCE 0x100
+
+#define POLISH_CCW_LEFT 1
+#define POLISH_CCW_UP 2
+#define POLISH_CCW_RIGHT 3
+#define POLISH_CCW_DOWN 4
+
+#define POLISH_CW_LEFT 5
+#define POLISH_CW_UP 6
+#define POLISH_CW_RIGHT 7
+#define POLISH_CW_DOWN 8
+
+  switch (o->state)
+  {
+    case 0: // initilization
+    {
+      o->state = (o->dir == LEFT) ? POLISH_CW_RIGHT : POLISH_CCW_LEFT;
+
+      // reprocess first frame
+      ai_polish(o);
+    }
+    break;
+
+      // -------------- Traveling around counter-clockwise --------------
+
+    case POLISH_CCW_LEFT: // traveling left on ceiling
+    {
+      o->yinertia -= POLISH_ACCEL;
+      if (o->yinertia < 0 && o->blocku)
+      {
+        o->yinertia = POLISH_BOUNCE;
+        o->xinertia -= POLISH_BOUNCE;
+      }
+
+      if (o->blockl)
+        o->state = POLISH_CCW_DOWN;
+    }
+    break;
+
+    case POLISH_CCW_UP: // traveling up right wall
+    {
+      o->xinertia += POLISH_ACCEL;
+      if (o->xinertia > 0 && o->blockr)
+      {
+        o->xinertia = -POLISH_BOUNCE;
+        o->yinertia -= POLISH_BOUNCE;
+      }
+
+      if (o->blocku)
+        o->state = POLISH_CCW_LEFT;
+    }
+    break;
+
+    case POLISH_CCW_RIGHT: // traveling right on floor
+    {
+      o->yinertia += POLISH_ACCEL;
+      if (o->yinertia > 0 && o->blockd)
+      {
+        o->yinertia = -POLISH_BOUNCE;
+        o->xinertia += POLISH_BOUNCE;
+      }
+
+      if (o->blockr)
+        o->state = POLISH_CCW_UP;
+    }
+    break;
+
+    case POLISH_CCW_DOWN: // traveling down left wall
+    {
+      o->xinertia -= POLISH_ACCEL;
+      if (o->xinertia < 0 && o->blockl)
+      {
+        o->xinertia = POLISH_BOUNCE;
+        o->yinertia += POLISH_BOUNCE;
+      }
+
+      if (o->blockd)
+        o->state = POLISH_CCW_RIGHT;
+    }
+    break;
+
+      // -------------- Traveling around clockwise --------------
+
+    case POLISH_CW_LEFT: // traveling left on floor
+    {
+      o->yinertia += POLISH_ACCEL;
+      if (o->yinertia > 0 && o->blockd)
+      {
+        o->yinertia = -POLISH_BOUNCE;
+        o->xinertia -= POLISH_BOUNCE;
+      }
+
+      if (o->blockl)
+        o->state = POLISH_CW_UP;
+    }
+    break;
+
+    case POLISH_CW_UP: // traveling up left wall
+    {
+      o->xinertia -= POLISH_ACCEL;
+      if (o->xinertia < 0 && o->blockl)
+      {
+        o->xinertia = POLISH_BOUNCE;
+        o->yinertia -= POLISH_BOUNCE;
+      }
+
+      if (o->blocku)
+        o->state = POLISH_CW_RIGHT;
+    }
+    break;
+
+    case POLISH_CW_RIGHT: // traveling right on ceiling
+    {
+      o->yinertia -= POLISH_ACCEL;
+      if (o->yinertia < 0 && o->blocku)
+      {
+        o->yinertia = POLISH_BOUNCE;
+        o->xinertia += POLISH_BOUNCE;
+      }
+
+      if (o->blockr)
+        o->state = POLISH_CW_DOWN;
+    }
+    break;
+
+    case POLISH_CW_DOWN: // traveling down right wall
+    {
+      o->xinertia += POLISH_ACCEL;
+      if (o->xinertia > 0 && o->blockr)
+      {
+        o->xinertia = -POLISH_BOUNCE;
+        o->yinertia += POLISH_BOUNCE;
+      }
+
+      if (o->blockd)
+        o->state = POLISH_CW_LEFT;
+    }
+    break;
+  }
+
+  LIMITX(POLISH_SPEED);
+  LIMITY(POLISH_SPEED);
+
+  // animation
+  o->animframe ^= 1;
+  o->frame = o->animframe + 2;
+  // if (o->state==P_DOWNRIGHT || o->state==P_UPRIGHT) o->frame += 2;
+  o->dir = RIGHT;
 }
 
 void ondeath_polish(Object *o)
 {
-int i;
-int x, y;
-	x = o->CenterX();
-	y = o->CenterY();
-	for(i=0;i<10;i++)
-	{
-		CreateObject(x, y, OBJ_POLISHBABY);
-	}
-	o->Delete();
+  int i;
+  int x, y;
+  x = o->CenterX();
+  y = o->CenterY();
+  for (i = 0; i < 10; i++)
+  {
+    CreateObject(x, y, OBJ_POLISHBABY);
+  }
+  o->Delete();
 }
 
 void ai_polishbaby(Object *o)
 {
-	if (!o->state)
-	{
-		o->state = 1;
-		if (!random(0, 1)) o->xinertia = random(0x100, 0x200);
-				  else o->xinertia = random(-0x200, -0x100);
-		
-		if (!random(0, 1)) o->yinertia = random(0x100, 0x200);
-				  else o->yinertia = random(-0x200, -0x100);
-	}
-	
-	if (o->xinertia > 0 && o->blockr) o->xinertia = -o->xinertia;
-	if (o->xinertia < 0 && o->blockl) o->xinertia = -o->xinertia;
-	if (o->yinertia > 0 && o->blockd) o->yinertia = -o->yinertia;
-	if (o->yinertia < 0 && o->blocku) o->yinertia = -o->yinertia;
-	
-	o->frame ^= 1;
+  if (!o->state)
+  {
+    o->state = 1;
+    if (!random(0, 1))
+      o->xinertia = random(0x100, 0x200);
+    else
+      o->xinertia = random(-0x200, -0x100);
+
+    if (!random(0, 1))
+      o->yinertia = random(0x100, 0x200);
+    else
+      o->yinertia = random(-0x200, -0x100);
+  }
+
+  if (o->xinertia > 0 && o->blockr)
+    o->xinertia = -o->xinertia;
+  if (o->xinertia < 0 && o->blockl)
+    o->xinertia = -o->xinertia;
+  if (o->yinertia > 0 && o->blockd)
+    o->yinertia = -o->yinertia;
+  if (o->yinertia < 0 && o->blocku)
+    o->yinertia = -o->yinertia;
+
+  o->frame ^= 1;
 }
 
 /*
@@ -238,130 +256,137 @@ void c------------------------------() {}
 
 void ai_sandcroc(Object *o)
 {
-int pbottom, crocbottom;
-	
-	switch(o->state)
-	{
-		case 0:
-			o->state = 1;
-			o->timer = 0;
-			o->ymark = o->y;
-			o->flags &= ~(FLAG_SOLID_MUSHY | FLAG_SHOOTABLE | FLAG_INVULNERABLE | FLAG_IGNORE_SOLID);
-		case 1:
-			// track player invisibly underground
-			o->xinertia = (o->CenterX() < player->CenterX()) ? 0x400:-0x400;
-			
-			if (pdistlx(19 * CSFI))
-			{
-				// check if bottoms of player and croc are near
-				pbottom = player->y + (sprites[player->sprite].bbox.y2 * CSFI);
-				crocbottom = o->y + (sprites[o->sprite].bbox.y2 * CSFI) + 0x600;
-				
-				if (pbottom <= crocbottom && crocbottom - pbottom < (12 * CSFI))
-				{	// attack!!
-					o->xinertia = 0;
-					o->state = 2;
-					o->timer = 0;
-					sound(SND_JAWS);
-					o->frame = 0;
-				}
-			}
-		break;
-		
-		case 2:		// attacking
-			if (++o->animtimer > 3)
-			{
-				o->animtimer = 0;
-				o->frame++;
-			}
-			
-			if (o->frame==3) o->damage = (o->type==OBJ_SANDCROC_OSIDE) ? 15:10;
-			else if (o->frame==4)
-			{
-				o->flags |= FLAG_SHOOTABLE;
-				o->state = 3;
-				o->timer = 0;
-			}
-		break;
-		
-		case 3:
-			o->flags |= FLAG_SOLID_MUSHY;
-			o->damage = 0;
-			o->timer++;
-			
-			if (o->shaketime)
-			{
-				o->state = 4;
-				o->timer = 0;
-				o->yinertia = 0;
-				o->shaketime += 25;		// delay floattext until after we're underground
-			}
-		break;
-		
-		case 4:		// retreat
-			o->y += 0x280;
-			
-			if (++o->timer == 30)
-			{
-				o->flags &= ~(FLAG_SOLID_MUSHY | FLAG_SHOOTABLE);
-				o->state = 5;
-				o->timer = 0;
-			}
-		break;
-		
-		case 5:
-			o->frame = 0;
-			o->y = o->ymark;
-			
-			if (o->timer < 100)
-			{
-				o->timer++;
-				// have to wait before moving: till floattext goes away
-				// else they can see us jump
-				if (o->timer==98)
-				{
-					o->xinertia = (player->CenterX() - o->CenterX());
-				}
-				else o->xinertia = 0;
-			}
-			else
-			{
-				o->state = 0;
-			}
-		break;
-	}
-	LIMITY(0x100);
-	
-	// these guys (from oside) don't track
-	if (o->type == OBJ_SANDCROC_OSIDE) o->xinertia = 0;
-}
+  int pbottom, crocbottom, xdist;
+  xdist = (o->type == OBJ_SANDCROC_OSIDE) ? 12 : 8;
 
+
+  switch (o->state)
+  {
+    case 0:
+      o->state = 1;
+      o->timer = 0;
+      o->ymark = o->y;
+      o->flags &= ~(FLAG_SOLID_MUSHY | FLAG_SHOOTABLE | FLAG_INVULNERABLE | FLAG_IGNORE_SOLID);
+    case 1:
+      // track player invisibly underground
+      o->xinertia = (o->CenterX() < player->CenterX()) ? 0x400 : -0x400;
+
+      if (pdistlx(xdist * CSFI))
+      {
+        // check if bottoms of player and croc are near
+        pbottom    = player->y + (Renderer::getInstance()->sprites.sprites[player->sprite].bbox[player->dir].y2 * CSFI);
+        crocbottom = o->y + (Renderer::getInstance()->sprites.sprites[o->sprite].bbox[o->dir].y2 * CSFI) + 0x600;
+
+        if (pbottom <= crocbottom && crocbottom - pbottom < (12 * CSFI))
+        { // attack!!
+          o->xinertia = 0;
+          o->state    = 2;
+          o->timer    = 0;
+          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_JAWS);
+          o->frame = 0;
+        }
+      }
+      break;
+
+    case 2: // attacking
+      if (++o->animtimer > 3)
+      {
+        o->animtimer = 0;
+        o->frame++;
+      }
+
+      if (o->frame == 3)
+        o->damage = (o->type == OBJ_SANDCROC_OSIDE) ? 15 : 10;
+      else if (o->frame == 4)
+      {
+        o->flags |= FLAG_SHOOTABLE;
+        o->state = 3;
+        o->timer = 0;
+      }
+      break;
+
+    case 3:
+      o->flags |= FLAG_SOLID_MUSHY;
+      o->damage = 0;
+      o->timer++;
+
+      if (o->shaketime)
+      {
+        o->state    = 4;
+        o->timer    = 0;
+        o->yinertia = 0;
+        o->shaketime += 25; // delay floattext until after we're underground
+      }
+      break;
+
+    case 4: // retreat
+      o->y += 0x280;
+
+      if (++o->timer == 30)
+      {
+        o->flags &= ~(FLAG_SOLID_MUSHY | FLAG_SHOOTABLE);
+        o->state = 5;
+        o->timer = 0;
+      }
+      break;
+
+    case 5:
+      o->frame = 0;
+      o->y     = o->ymark;
+
+      if (o->timer < 100)
+      {
+        o->timer++;
+        // have to wait before moving: till floattext goes away
+        // else they can see us jump
+        if (o->timer == 98)
+        {
+          o->xinertia = (player->CenterX() - o->CenterX());
+        }
+        else
+          o->xinertia = 0;
+      }
+      else
+      {
+        o->state = 0;
+      }
+      break;
+  }
+  LIMITY(0x100);
+
+  // these guys (from oside) don't track
+  if (o->type == OBJ_SANDCROC_OSIDE)
+    o->xinertia = 0;
+}
 
 void ai_sunstone(Object *o)
 {
-	switch(o->state)
-	{
-		case 0:
-			o->flags |= FLAG_IGNORE_SOLID;
-			o->state = 1;
-		break;
-		
-		case 10:	// triggered to move by hvtrigger script
-			o->frame = 1;
-			o->timer = 0;
-			o->state++;
-		case 11:
-			
-			if (o->dir==LEFT) o->x -= 0x80; else o->x += 0x80;
-			
-			if ((o->timer & 7) == 0) sound(SND_QUAKE);
-			o->timer++;
-				
-			game.quaketime = 20;
-		break;
-	}
-}
+  switch (o->state)
+  {
+    case 0:
+      o->flags |= FLAG_IGNORE_SOLID;
+      o->state = 1;
+      break;
 
+    case 10: // triggered to move by hvtrigger script
+      o->frame = 1;
+      o->timer = 0;
+      o->state++;
+    case 11:
+
+      if (o->dir == LEFT)
+        o->x -= 0x80;
+      else
+        o->x += 0x80;
+
+      if ((o->timer & 7) == 0)
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_QUAKE);
+      o->timer++;
+
+      game.quaketime = 20;
+      break;
+  }
+}
 
 void ai_crow(Object *o)
 {
@@ -475,10 +500,9 @@ void ai_crow(Object *o)
 	if (o->shaketime) o->frame = 4;
 }
 
-
 void ai_crowwithskull(Object *o)
 {
-Object *skull;
+  Object *skull;
 
 	// create the skullhead we're carrying
 	skull = CreateObject(0, 0, OBJ_SKULLHEAD_CARRIED);
@@ -507,52 +531,64 @@ Object *skull;
 void c------------------------------() {}
 */
 
-
 void ai_skullhead(Object *o)
 {
-	switch(o->state)
-	{
-		case 0:
-		{
-			o->speed = 0x100;	// skullhead_carried shares ai but moves faster
-			o->state = 1;
-			o->timer = random(-5, 0);
-		}
-		case 1:
-		{
-			if (++o->timer > 3)
-			{
-				o->yinertia = -0x350;
-				o->state = 2;
-				o->frame = 1;
-				XMOVE(o->speed);
-			}
-			else break;
-		}
-		case 2:
-		{
-			if (o->blockd)
-			{
-				o->xinertia = 0;
-				o->state = 1;
-				o->timer = 0;
-				o->frame = 0;
-			}
-			
-			if (o->blocku && o->yinertia < 0) o->yinertia = 0;
-			if (o->yinertia > 0) o->frame = 0; else o->frame = 1;
-		}
-		break;
-	}
-	
-	if (o->xinertia)
-	{
-		if (o->blockl) { o->dir = RIGHT; o->xinertia = o->speed; }
-		if (o->blockr) { o->dir = LEFT; o->xinertia = -o->speed; }
-	}
-	
-	o->yinertia += 0x40;
-	LIMITY(0x5ff);
+  switch (o->state)
+  {
+    case 0:
+    {
+      o->speed = 0x100; // skullhead_carried shares ai but moves faster
+      o->state = 1;
+      o->timer = random(-5, 0);
+    }
+    case 1:
+    {
+      if (++o->timer > 3)
+      {
+        o->yinertia = -0x350;
+        o->state    = 2;
+        o->frame    = 1;
+        XMOVE(o->speed);
+      }
+      else
+        break;
+    }
+    case 2:
+    {
+      if (o->blockd)
+      {
+        o->xinertia = 0;
+        o->state    = 1;
+        o->timer    = 0;
+        o->frame    = 0;
+      }
+
+      if (o->blocku && o->yinertia < 0)
+        o->yinertia = 0;
+      if (o->yinertia > 0)
+        o->frame = 0;
+      else
+        o->frame = 1;
+    }
+    break;
+  }
+
+  if (o->xinertia)
+  {
+    if (o->blockl)
+    {
+      o->dir      = RIGHT;
+      o->xinertia = o->speed;
+    }
+    if (o->blockr)
+    {
+      o->dir      = LEFT;
+      o->xinertia = -o->speed;
+    }
+  }
+
+  o->yinertia += 0x40;
+  LIMITY(0x5ff);
 }
 
 void ai_skullhead_carried(Object *o)
@@ -605,7 +641,7 @@ void ai_skullhead_carried(Object *o)
 			if ((o->timer==30 || o->timer==35) && o->onscreen)
 			{
 				EmFireAngledShot(o, OBJ_SKELETON_SHOT, 2, 0x300);
-				sound(SND_EM_FIRE);
+                          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_EM_FIRE);
 			}
 			else if (o->timer > 50)
 			{
@@ -620,16 +656,16 @@ void ai_skullhead_carried(Object *o)
 
 void aftermove_skullhead_carried(Object *o)
 {
-Object *crow;
+  Object *crow;
 
-	// keep us in the right spot relative to our crow
-	if (o->linkedobject)
-	{
-		crow = o->linkedobject;
-		o->x = crow->x + (1 * CSFI);
-		o->y = crow->y + (21 * CSFI);
-		o->dir = crow->dir;
-	}
+  // keep us in the right spot relative to our crow
+  if (o->linkedobject)
+  {
+    crow   = o->linkedobject;
+    o->x   = crow->x + (1 * CSFI);
+    o->y   = crow->y + (21 * CSFI);
+    o->dir = crow->dir;
+  }
 }
 
 /*
@@ -638,66 +674,67 @@ void c------------------------------() {}
 
 void ai_skeleton_shot(Object *o)
 {
-	ai_animate2(o);				// animate at 1 frame per 2 ticks
-	
-	// bounce off walls
-	if ((o->blockl && o->xinertia < 0) || (o->blockr && o->xinertia > 0))
-	{
-		o->xinertia = -o->xinertia;
-		o->timer += 5;
-	}
-	
-	// bounce off ceiling
-	if ((o->blocku && o->yinertia < 0))
-	{
-		o->yinertia = -o->yinertia;
-		o->timer += 5;
-	}
-	
-	// if hit floor bounce along it...
-	if (o->blockd)
-	{
-		o->yinertia = -0x180;
-		o->state = 1;	// begin falling
-		o->timer += 4;
-	}
-	
-	if (o->state == 1)
-	{
-		o->yinertia += 0x10;
-		LIMITY(0x5ff);
-	}
-	
-	if (o->timer >= 10)
-	{
-		effect(o->CenterX(), o->CenterY(), EFFECT_FISHY);
-		o->Delete();
-	}
-}
+  ai_animate2(o); // animate at 1 frame per 2 ticks
 
+  // bounce off walls
+  if ((o->blockl && o->xinertia < 0) || (o->blockr && o->xinertia > 0))
+  {
+    o->xinertia = -o->xinertia;
+    o->timer += 5;
+  }
+
+  // bounce off ceiling
+  if ((o->blocku && o->yinertia < 0))
+  {
+    o->yinertia = -o->yinertia;
+    o->timer += 5;
+  }
+
+  // if hit floor bounce along it...
+  if (o->blockd)
+  {
+    o->yinertia = -0x180;
+    o->state    = 1; // begin falling
+    o->timer += 4;
+  }
+
+  if (o->state == 1)
+  {
+    o->yinertia += 0x10;
+    LIMITY(0x5ff);
+  }
+
+  if (o->timer >= 10)
+  {
+    effect(o->CenterX(), o->CenterY(), EFFECT_FISHY);
+    o->Delete();
+  }
+}
 
 void ai_armadillo(Object *o)
 {
-	switch(o->state)
-	{
-		case 0:
-		{
-			FACEPLAYER;
-			o->state = 1;
-		}
-		case 1:
-		{
-			if (o->blockl && o->dir == LEFT) o->dir = RIGHT;
-			if (o->blockr && o->dir == RIGHT) o->dir = LEFT;
-			XMOVE(0x100);
-			
-			ANIMATE(4, 0, 1);
-		}
-		break;
-	}
-	
-	o->yinertia += 0x40;
-	LIMITY(0x5ff);
+  switch (o->state)
+  {
+    case 0:
+    {
+      FACEPLAYER;
+      o->state = 1;
+    }
+    case 1:
+    {
+      if (o->blockl && o->dir == LEFT)
+        o->dir = RIGHT;
+      if (o->blockr && o->dir == RIGHT)
+        o->dir = LEFT;
+      XMOVE(0x100);
+
+      ANIMATE(4, 0, 1);
+    }
+    break;
+  }
+
+  o->yinertia += 0x40;
+  LIMITY(0x5ff);
 }
 
 /*
@@ -766,7 +803,7 @@ Object *foot;
 			if (o->timer > 50)
 			{
 				SmokeClouds(o, 8, 8, 8);
-				sound(SND_FUNNY_EXPLODE);
+                          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_FUNNY_EXPLODE);
 				o->Delete();
 			}
 		}
@@ -779,91 +816,89 @@ Object *foot;
 	LIMITY(0x2ff);
 }
 
-
 void ai_skullstep_foot(Object *o)
 {
-Object *skull = o->linkedobject;
-uint8_t angle;
-int circle_x, circle_y;
-	
-	// skull was destroyed before us?
-	if (!skull || skull->state==2)
-	{
-		o->Delete();
-		return;
-	}
-	
-	angle = skull->angle;
-	angle += o->angleoffset;
-	
-	// handle moving up when stepping on the ground
-	if (o->blockd)
-		skullstep_do_step(o, skull, angle);
-	
-	o->dir = skull->dir;
-	
-	// spin around
-	vector_from_angle(angle, (10 * CSFI), &circle_x, &circle_y);
-	o->x = skull->x + (3 * CSFI) + circle_x;
-	o->y = skull->y + (8 * CSFI) + circle_y;
-	
-	o->frame = (angle >= 20 && angle <= 108) ? 0:1;
-}
+  Object *skull = o->linkedobject;
+  uint8_t angle;
+  int circle_x, circle_y;
 
+  // skull was destroyed before us?
+  if (!skull || skull->state == 2)
+  {
+    o->Delete();
+    return;
+  }
+
+  angle = skull->angle;
+  angle += o->angleoffset;
+
+  // handle moving up when stepping on the ground
+  if (o->blockd)
+    skullstep_do_step(o, skull, angle);
+
+  o->dir = skull->dir;
+
+  // spin around
+  vector_from_angle(angle, (10 * CSFI), &circle_x, &circle_y);
+  o->x = skull->x + (3 * CSFI) + circle_x;
+  o->y = skull->y + (8 * CSFI) + circle_y;
+
+  o->frame = (angle >= 20 && angle <= 108) ? 0 : 1;
+}
 
 // prevent climbing the walls. this didn't seem to be a problem in the original
 // game but to me, the feet tend to spin into walls when they're near them and
 // "falsely" set blockd resulting in skipping up the wall.
 void skullstep_do_step(Object *o, Object *skull, int angle)
 {
-int x, y;
-int i;
+  int x, y;
+  int i;
 
-	// get the coordinates of the tile that's blocking us
-	// we already KNOW we're blockd, so if it returns false, we're standing on a slope
-	if (o->CheckAttribute(&sprites[o->sprite].block_d, TA_SOLID_NPC, &x, &y))
-	{
-		// if the tile above it is also solid, it can't be a floor, it's a wall!
-		if (tileattr[map.tiles[x][y-1]] & TA_SOLID_NPC)
-		{
-			return;
-		}
-		else
-		{
-			// it's also a wall if the tile below is solid and neither of the tiles to
-			// the left or right are solid (top of a wall)
-			if (tileattr[map.tiles[x][y+1]] & TA_SOLID_NPC)
-			{
-				// we have to check TWO tiles to the right and see if EITHER is nonsolid because
-				// of the two-tile wall on the right-lower "arena" slopey part--kind of a hack,
-				// i hate to have to put map-specific code in
-				if (!(tileattr[map.tiles[x+1][y]] & TA_SOLID_NPC) || \
-					!(tileattr[map.tiles[x+2][y]] & TA_SOLID_NPC))
-				{
-					if (!(tileattr[map.tiles[x-1][y]] & TA_SOLID_NPC))
-					{
-						return;
-					}
-				}
-			}
-		}
-	}
-	
-	// move us up until we're no longer in the ground
-	for(i=0;i<10;i++)
-	{
-		o->y -= (1 * CSFI);
-		skull->y -= (1 * CSFI);
-		o->UpdateBlockStates(DOWNMASK);
-		if (!o->blockd) break;
-	}
-	
-	// now move us down so we're just touching the ground
-	o->y += (1 * CSFI);
-	skull->y += (1 * CSFI);
-	
-	// move us in the direction we're facing
-	skull->xinertia += (o->dir==RIGHT) ? 0x80 : -0x80;
+  // get the coordinates of the tile that's blocking us
+  // we already KNOW we're blockd, so if it returns false, we're standing on a slope
+  if (o->CheckAttribute(&Renderer::getInstance()->sprites.sprites[o->sprite].block_d, TA_SOLID_NPC, &x, &y))
+  {
+    // if the tile above it is also solid, it can't be a floor, it's a wall!
+    if (tileattr[map.tiles[x][y - 1]] & TA_SOLID_NPC)
+    {
+      return;
+    }
+    else
+    {
+      // it's also a wall if the tile below is solid and neither of the tiles to
+      // the left or right are solid (top of a wall)
+      if (tileattr[map.tiles[x][y + 1]] & TA_SOLID_NPC)
+      {
+        // we have to check TWO tiles to the right and see if EITHER is nonsolid because
+        // of the two-tile wall on the right-lower "arena" slopey part--kind of a hack,
+        // i hate to have to put map-specific code in
+        if (!(tileattr[map.tiles[x + 1][y]] & TA_SOLID_NPC) || !(tileattr[map.tiles[x + 2][y]] & TA_SOLID_NPC))
+        {
+          if (!(tileattr[map.tiles[x - 1][y]] & TA_SOLID_NPC))
+          {
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // move us up until we're no longer in the ground
+  for (i = 0; i < 10; i++)
+  {
+    o->y -= (1 * CSFI);
+    skull->y -= (1 * CSFI);
+    o->UpdateBlockStates(DOWNMASK);
+    if (!o->blockd)
+      break;
+  }
+
+  // now move us down so we're just touching the ground
+  o->y += (1 * CSFI);
+  skull->y += (1 * CSFI);
+
+  // move us in the direction we're facing
+  skull->xinertia += (o->dir == RIGHT) ? 0x80 : -0x80;
 }
 
 /*
@@ -872,88 +907,97 @@ void c------------------------------() {}
 
 void ai_skeleton(Object *o)
 {
-uint8_t pnear;
-#define SKNEAR_X		(352 * CSFI)
-#define SKNEAR_BELOW	(160 * CSFI)
-#define SKNEAR_ABOVE	(64 * CSFI)
-	
-	pnear = (pdistlx(SKNEAR_X) && pdistly2(SKNEAR_ABOVE, SKNEAR_BELOW));
-	
-	switch(o->state)
-	{
-		case 0:
-		{
-			o->frame = o->blockd ? 0:1;
-			o->xinertia = 0;
-			
-			// if player comes near, enter attack state
-			// also if he shoots us while we're inactive, don't just stand there
-			// like a ninny, jump around!
-			if (o->shaketime) o->state = 20;
-			if (pnear) o->state = 10;
-		}
-		break;
-		
-		case 10:	// prepare for jump
-			o->timer = o->timer2 = o->frame = o->xinertia = 0;
-			o->state = 11;
-		case 11:
-			if (++o->timer > 5 && o->blockd)
-			{
-				// jump if player near, else go to idle
-				o->state = pnear ? 20:0;
-			}
-		if (o->state != 20) break;
-		
-		case 20:
-		{
-			o->state = 21;
-			o->frame = 1;
-			o->timer2 = 0;
-			o->yinertia = -(random(1, 3) * CSFI);
-			
-			// jump towards player, unless we've been hurt; in that case jump away
-			if (!o->shaketime)
-			{
-				o->xinertia += (o->x > player->x) ? -0x100:0x100;
-			}
-			else
-			{
-				o->xinertia += (o->x > player->x) ? 0x100:-0x100;
-			}
-		}
-		case 21:
-		{
-			if (o->yinertia > 0)
-			{
-				if (o->timer2 == 0)
-				{
-					o->timer2++;
-					
-					EmFireAngledShot(o, OBJ_SKELETON_SHOT, 0, 0x300);
-					if (o->onscreen) sound(SND_EM_FIRE);
-				}
-				
-				if (o->blockd)
-				{
-					o->state = 10;
-					o->frame = 0;
-				}
-			}
-			else
-			{
-				if (o->blocku) o->yinertia = 0;
-			}
-		}
-		break;
-	}
-	
-	if (o->state >= 10) FACEPLAYER;
-	o->yinertia += 0x33;
-	LIMITX(0x5ff);
-	LIMITY(0x5ff);
-}
+  uint8_t pnear;
+#define SKNEAR_X (352 * CSFI)
+#define SKNEAR_X2 (320 * CSFI)
+#define SKNEAR_BELOW (64 * CSFI)
+#define SKNEAR_ABOVE (160 * CSFI)
 
+  if (!pdistlx(SKNEAR_X2) || !pdistly2(SKNEAR_ABOVE, SKNEAR_BELOW))
+    o->state = 0;
+
+  pnear = (pdistlx(SKNEAR_X) && pdistly2(SKNEAR_ABOVE, SKNEAR_BELOW));
+
+  switch (o->state)
+  {
+    case 0:
+    {
+      o->frame    = o->blockd ? 0 : 1;
+      o->xinertia = 0;
+
+      // if player comes near, enter attack state
+      // also if he shoots us while we're inactive, don't just stand there
+      // like a ninny, jump around!
+      if (o->shaketime)
+        o->state = 20;
+      if (pnear)
+        o->state = 10;
+    }
+    break;
+
+    case 10: // prepare for jump
+      o->timer = o->timer2 = o->frame = o->xinertia = 0;
+      o->state                                      = 11;
+    case 11:
+      if (++o->timer > 5 && o->blockd)
+      {
+        // jump if player near, else go to idle
+        o->state = 20;
+      }
+      if (o->state != 20)
+        break;
+
+    case 20:
+    {
+      o->state    = 21;
+      o->frame    = 1;
+      o->timer2   = 0;
+      o->yinertia = -(random(1, 3) * CSFI);
+
+      // jump towards player, unless we've been hurt; in that case jump away
+      if (!o->shaketime)
+      {
+        o->xinertia += (o->x > player->x) ? -0x100 : 0x100;
+      }
+      else
+      {
+        o->xinertia += (o->x > player->x) ? 0x100 : -0x100;
+      }
+    }
+    case 21:
+    {
+      if (o->yinertia > 0)
+      {
+        if (o->timer2 == 0)
+        {
+          o->timer2++;
+
+          EmFireAngledShot(o, OBJ_SKELETON_SHOT, 0, 0x300);
+          if (o->onscreen)
+            NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_EM_FIRE);
+        }
+
+        if (o->blockd)
+        {
+          o->state = 10;
+          o->frame = 0;
+        }
+      }
+      else
+      {
+        if (o->blocku)
+          o->yinertia = 0;
+      }
+    }
+    break;
+  }
+
+  if (o->state >= 10)
+    FACEPLAYER;
+  o->yinertia += 0x33;
+  LIMITX(0x5ff);
+  LIMITY(0x5ff);
+}
 
 // curly's mimiga's
 void ai_curlys_mimigas(Object *o)
@@ -1154,4 +1198,3 @@ void ai_beetle_horizwait(Object *o)
 		}
 	}
 }
-

@@ -7,7 +7,7 @@
 // although you will need to add additional copies of the head sprites
 // for it to work properly, just try setting this number to something
 // like 10 and running the fight!
-#define NUM_SISTERS			2
+#define NUM_SISTERS 2
 
 typedef struct {
 	int hp;
@@ -31,21 +31,20 @@ public:
 	int SyncSize;
 
 private:
-	void run_head(int index);
-	void head_set_bbox(int index);
-	void run_body(int index);
-	
-	void SetHeadStates(int newstate);
-	void SetBodyStates(int newstate);
-	
-	void SpawnScreenSmoke(int count);
-	
-	int mainangle;
-	
-	Object *main;
-	Object *head[NUM_SISTERS];
-	Object *body[NUM_SISTERS];
-};
+  void run_head(int index);
+  void head_set_bbox(int index);
+  void run_body(int index);
 
+  void SetHeadStates(int newstate);
+  void SetBodyStates(int newstate);
+
+  void SpawnScreenSmoke(int count);
+
+  int mainangle;
+
+  Object *main;
+  Object *head[NUM_SISTERS];
+  Object *body[NUM_SISTERS];
+};
 
 #endif

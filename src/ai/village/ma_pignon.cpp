@@ -1,38 +1,37 @@
 #include "ma_pignon.h"
-#include "../stdai.h"
-#include "../ai.h"
 
-#include "../../game.h"
 #include "../../ObjManager.h"
 #include "../../caret.h"
-#include "../../sound/sound.h"
 #include "../../common/misc.h"
-
-#include "../../player.h"
+#include "../../game.h"
+#include "../../graphics/Tileset.h"
 #include "../../map.h"
-#include "../../graphics/tileset.h"
+#include "../../player.h"
+#include "../../sound/SoundManager.h"
+#include "../ai.h"
+#include "../stdai.h"
 
 enum
 {
-	MP_Fight_Start		= 100,		// scripted
-	MP_BaseState		= 110,
-	MP_Jump				= 120,
-	MP_In_Air			= 130,
-	MP_Landed			= 140,
-	MP_ChargeAttack		= 200,
-	MP_Hit_Wall			= 220,
-	MP_CloneAttack		= 300,
-	MP_Fly_Up			= 310,
-	MP_Spawn_Clones		= 330,
-	MP_Defeated			= 500		// scripted
+  MP_Fight_Start  = 100, // scripted
+  MP_BaseState    = 110,
+  MP_Jump         = 120,
+  MP_In_Air       = 130,
+  MP_Landed       = 140,
+  MP_ChargeAttack = 200,
+  MP_Hit_Wall     = 220,
+  MP_CloneAttack  = 300,
+  MP_Fly_Up       = 310,
+  MP_Spawn_Clones = 330,
+  MP_Defeated     = 500 // scripted
 };
 
 INITFUNC(AIRoutines)
 {
-	ONTICK(OBJ_MA_PIGNON, ai_ma_pignon);
-	
-	ONTICK(OBJ_MA_PIGNON_ROCK, ai_ma_pignon_rock);
-	ONTICK(OBJ_MA_PIGNON_CLONE, ai_ma_pignon_clone);
+  ONTICK(OBJ_MA_PIGNON, ai_ma_pignon);
+
+  ONTICK(OBJ_MA_PIGNON_ROCK, ai_ma_pignon_rock);
+  ONTICK(OBJ_MA_PIGNON_CLONE, ai_ma_pignon_clone);
 }
 
 /*
@@ -104,7 +103,7 @@ void ai_ma_pignon(Object *o)
 				o->xinertia = random(-0x400, 0x400);
 				o->yinertia = -0x800;
 				
-				sound(SND_ENEMY_JUMP);
+				NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_ENEMY_JUMP);
 				o->timer2++;
 			}
 		}
@@ -184,7 +183,7 @@ void ai_ma_pignon(Object *o)
 				o->frame = 6;
 				
 				XMOVE(0x5ff);
-				sound(SND_FUNNY_EXPLODE);
+                                NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_FUNNY_EXPLODE);
 				
 				o->flags &= ~FLAG_SHOOTABLE;
 				o->flags |= FLAG_INVULNERABLE;
@@ -264,7 +263,7 @@ void ai_ma_pignon(Object *o)
 				o->state++;
 				o->frame = 12;
 				o->yinertia = -0x800;
-				sound(SND_FUNNY_EXPLODE);
+                                NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_FUNNY_EXPLODE);
 				
 				o->flags |= FLAG_IGNORE_SOLID;
 				o->flags &= ~FLAG_SHOOTABLE;
@@ -382,99 +381,88 @@ void ai_ma_pignon(Object *o)
 void c------------------------------() {}
 */
 
-
 void ai_ma_pignon_rock(Object *o)
 {
-	ANIMATE(6, 0, 2);
-	
-	switch(o->state)
-	{
-		case 0:
-		{
-			o->timer3 = 0;
-			o->state = 1;
-			o->flags |= (FLAG_INVULNERABLE | FLAG_IGNORE_SOLID);
-			o->frame = random(0, 2);
-			o->damage = 10;
-		}
-		case 1:
-		{
-			o->yinertia += 0x40;
-			LIMITY(0x700);
-			
-			if (o->y > (8 * TILE_H) * CSFI)
-			{
-				o->flags &= ~FLAG_IGNORE_SOLID;
-				
-				if (o->blockd)
-				{
-					o->yinertia = -0x200;
-					o->state = 2;
-					o->flags |= FLAG_IGNORE_SOLID;
-					
-					sound(SND_BLOCK_DESTROY);
-					game.quaketime = 10;
-					
-					// these smoke clouds appear BEHIND the map tiles
-					for(int i=0;i<2;i++)
-					{
-						Object *smoke = CreateObject(o->CenterX() + random(-12 * CSFI, 12 * CSFI),
-													 o->Bottom()+(16 * CSFI), OBJ_SMOKE_CLOUD);
-						smoke->xinertia = random(-0x155, 0x155);
-						smoke->yinertia = random(-0x600, 0);
-					}
-				}
-			}
-		}
-		break;
-		
-		case 2:
-		{
-			o->yinertia += 0x40;
-			if (o->y > (map.ysize * TILE_H) * CSFI)
-				o->Delete();
-		}
-		break;
-	}
-}
+  ANIMATE(6, 0, 2);
 
+  switch (o->state)
+  {
+    case 0:
+    {
+      o->timer3 = 0;
+      o->state  = 1;
+      o->flags |= (FLAG_INVULNERABLE | FLAG_IGNORE_SOLID);
+      o->frame  = random(0, 2);
+      o->damage = 10;
+    }
+    case 1:
+    {
+      o->yinertia += 0x40;
+      LIMITY(0x700);
+
+      if (o->y > (8 * TILE_H) * CSFI)
+      {
+        o->flags &= ~FLAG_IGNORE_SOLID;
+
+        if (o->blockd)
+        {
+          o->yinertia = -0x200;
+          o->state    = 2;
+          o->flags |= FLAG_IGNORE_SOLID;
+
+          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_BLOCK_DESTROY);
+          game.quaketime = 10;
+
+          // these smoke clouds appear BEHIND the map tiles
+          for (int i = 0; i < 2; i++)
+          {
+            Object *smoke   = CreateObject(o->CenterX() + random(-12, 12) * CSFI, o->Bottom() + (16 * CSFI),
+                                         OBJ_SMOKE_CLOUD);
+            smoke->xinertia = random(-0x155, 0x155);
+            smoke->yinertia = random(-0x600, 0);
+          }
+        }
+      }
+    }
+    break;
+
+    case 2:
+    {
+      o->yinertia += 0x40;
+      if (o->y > (map.ysize * TILE_H) * CSFI)
+        o->Delete();
+    }
+    break;
+  }
+}
 
 void ai_ma_pignon_clone(Object *o)
 {
-	switch(o->state)
-	{
-		case 0:
-		{
-			o->frame = 3;
-			o->yinertia += 0x80;
-			LIMITY(0x5ff);
-			
-			if (o->y > (8 * TILE_H) * CSFI)
-			{
-				o->state = 130;
-				o->flags &= ~FLAG_IGNORE_SOLID;
-			}
-		}
-		break;
-		
-		default:
-			o->timer2 = o->timer3 = 0;
-			ai_ma_pignon(o);
-		break;
-	}
-	
-	if (++o->substate > 300)
-	{
-		effect(o->CenterX(), o->CenterY(), EFFECT_BOOMFLASH);
-		o->Delete();
-	}
+  switch (o->state)
+  {
+    case 0:
+    {
+      o->frame = 3;
+      o->yinertia += 0x80;
+      LIMITY(0x5ff);
+
+      if (o->y > (8 * TILE_H) * CSFI)
+      {
+        o->state = 130;
+        o->flags &= ~FLAG_IGNORE_SOLID;
+      }
+    }
+    break;
+
+    default:
+      o->timer2 = o->timer3 = 0;
+      ai_ma_pignon(o);
+      break;
+  }
+
+  if (++o->substate > 300)
+  {
+    effect(o->CenterX(), o->CenterY(), EFFECT_BOOMFLASH);
+    o->Delete();
+  }
 }
-
-
-
-
-
-
-
-
-

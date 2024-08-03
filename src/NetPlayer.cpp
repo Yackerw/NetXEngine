@@ -7,14 +7,12 @@
 #include "tsc.h"
 #include "input.h"
 #include "game.h"
-#include "sound/sound.h"
 #include "common/misc.h"
 #include "ai/weapons/whimstar.h"
 #include "p_arms.h"
 #include "ai/sym/smoke.h"
 #include "autogen/sprites.h"
 #include "graphics/sprites.h"
-using namespace Sprites;
 #include "settings.h"
 #include "screeneffect.h"
 #include "inventory.h"
@@ -24,6 +22,9 @@ using namespace Sprites;
 //#include "object.h"
 //#include "player.h"
 #include "ipfuncs.h"
+#include "graphics/Renderer.h"
+
+using namespace NXE::Graphics;
 
 int nameevent;
 
@@ -172,7 +173,7 @@ void netHandlePlayer_am(int pl)
 		if (p->yinertia > 0x400 && !p->hide)
 		{
 			rumble(0.3, 100);
-			sound(SND_THUD);
+                  NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_THUD);
 		}
 
 		p->yinertia = 0;
@@ -187,7 +188,7 @@ void netHandlePlayer_am(int pl)
 		if (p->yinertia < -0x200 && !p->hide && \
 			p->blocku == BLOCKED_MAP)
 		{
-			sound(SND_BONK_HEAD);
+                  NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_BONK_HEAD);
 			rumble(0.4, 200);
 			effect(p->CenterX(), p->y, EFFECT_BONKPLUS);
 		}
@@ -275,7 +276,7 @@ void netPHandleAttributes(Player *p)
 					o->yinertia = random(-0x200, 0x80) - (p->yinertia >> 1);
 				}
 
-				sound(SND_SPLASH);
+				NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SPLASH);
 			}
 		}
 
@@ -333,7 +334,7 @@ void netPDoRepel(Player*p)
 	// embed the R or L points further into the block than they should be
 	if (p->CheckAttribute(player->repel_r, player->nrepel_r, TA_SOLID_PLAYER))
 	{
-		if (!p->CheckAttribute(&sprites[p->sprite].block_l, TA_SOLID_PLAYER))
+		if (!p->CheckAttribute(&Renderer::getInstance()->sprites.sprites[p->sprite].block_l, TA_SOLID_PLAYER))
 		{
 			p->x -= REPEL_SPEED;
 			//debug("REPEL [to left]");
@@ -342,7 +343,7 @@ void netPDoRepel(Player*p)
 
 	if (p->CheckAttribute(player->repel_l, player->nrepel_l, TA_SOLID_PLAYER))
 	{
-		if (!p->CheckAttribute(&sprites[p->sprite].block_r, TA_SOLID_PLAYER))
+		if (!p->CheckAttribute(&Renderer::getInstance()->sprites.sprites[p->sprite].block_r, TA_SOLID_PLAYER))
 		{
 			p->x += REPEL_SPEED;
 			//debug("REPEL [to right]");
@@ -365,7 +366,7 @@ void netPDoRepel(Player*p)
 	// do repel up
 	if (p->CheckAttribute(player->repel_d, player->nrepel_d, TA_SOLID_PLAYER))
 	{
-		if (!p->CheckAttribute(&sprites[p->sprite].block_u, TA_SOLID_PLAYER))
+		if (!p->CheckAttribute(&Renderer::getInstance()->sprites.sprites[p->sprite].block_u, TA_SOLID_PLAYER))
 		{
 			p->y -= REPEL_SPEED;
 			//debug("REPEL [up]");
@@ -874,7 +875,7 @@ void netPBoosterSmokePuff(Player *p)
 	Caret *smoke = effect(x, y, EFFECT_SMOKETRAIL_SLOW);
 	smoke->MoveAtDir(smokedir, 0x200);
 
-	sound(SND_BOOSTER);
+	NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_BOOSTER);
 }
 
 // handle some special characteristics of solid-brick objects,
@@ -946,7 +947,7 @@ void netPHandleSolidBrickObjects(Player *p)
 			else if (o->yinertia <= p->yinertia)
 			{
 				// snap his Y right on top if it
-				p->y = o->SolidTop() - (sprites[p->sprite].block_d[0].y * CSFI);
+				p->y = o->SolidTop() - (Renderer::getInstance()->sprites.sprites[p->sprite].block_d[0].y * CSFI);
 			}
 		}
 	}
@@ -975,28 +976,38 @@ void netDrawPlayer(Player *p)
 	scr_y = (p->y / CSFI) - (map.displayed_yscroll / CSFI);
 
 	// draw his gun
-	if (p->curWeapon != WPN_NONE && p->curWeapon != WPN_BLADE)
-	{
-		int spr, frame;
-		GetSpriteForGun(p->curWeapon, p->look, &spr, &frame);
+        if (player->curWeapon != WPN_NONE && player->curWeapon != WPN_BLADE)
+        {
+          int spr, frame;
+          GetSpriteForGun(player->curWeapon, player->look, &spr, &frame);
 
-		// draw the gun at the player's Action Point. Since guns have their Draw Point set
-		// to point at their handle, this places the handle in the player's hand.
-		draw_sprite_at_dp(scr_x + sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.x, \
-			scr_y + sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.y, \
-			spr, frame, p->dir);
-	}
+          // draw the gun at the player's Action Point. Since guns have their Draw Point set
+          // to point at their handle, this places the handle in the player's hand.
+          Renderer::getInstance()->sprites.drawSpriteAtDp(scr_x
+                                                              + Renderer::getInstance()
+                                                                    ->sprites.sprites[player->sprite]
+                                                                    .frame[player->frame]
+                                                                    .dir[player->dir]
+                                                                    .actionpoint.x,
+                                                          scr_y
+                                                              + Renderer::getInstance()
+                                                                    ->sprites.sprites[player->sprite]
+                                                                    .frame[player->frame]
+                                                                    .dir[player->dir]
+                                                                    .actionpoint.y,
+                                                          spr, frame, player->dir);
+        }
 
 	// draw the player sprite
 	if (!p->hurt_flash_state)
 	{
-		draw_sprite(scr_x, scr_y, p->sprite, p->frame, p->dir);
+		Renderer::getInstance()->sprites.drawSprite(scr_x, scr_y, p->sprite, p->frame, p->dir);
 
 		// draw the air bubble shield if we have it on
 		if (((p->touchattr & TA_WATER) && (p->equipmask & EQUIP_AIRTANK)) || \
 			p->movementmode == MOVEMODE_ZEROG)
 		{
-			draw_sprite_at_dp(scr_x, scr_y, SPR_WATER_SHIELD, \
+                  Renderer::getInstance()->sprites.drawSpriteAtDp(scr_x, scr_y, SPR_WATER_SHIELD, \
 				p->water_shield_frame, p->dir);
 
 			if (++p->water_shield_timer > 1)
@@ -1032,7 +1043,8 @@ void netPSelectFrame(Player *p)
 		{
 			p->walkanimtimer = 0;
 			if (++p->walkanimframe >= 4) p->walkanimframe = 0;
-			if (pwalkanimframes[p->walkanimframe] == 0) sound(SND_PLAYER_WALK);
+                        if (pwalkanimframes[p->walkanimframe] == 0)
+                          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_PLAYER_WALK);
 		}
 
 		p->frame = pwalkanimframes[p->walkanimframe];
@@ -1097,13 +1109,14 @@ void netGetPlayerShootPoint(Player *p, int *x_out, int *y_out)
 	// we have to figure out where the gun is being carried, then figure out where the
 	// gun's sprite is drawn relative to that, then finally we can offset in the
 	// shoot point of the gun's sprite.
-	x = p->x + (sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.x * CSFI);
-	x -= sprites[spr].frame[frame].dir[p->dir].drawpoint.x * CSFI;
-	x += sprites[spr].frame[frame].dir[p->dir].actionpoint.x * CSFI;
+	x = p->x + (Renderer::getInstance()->sprites.sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.x * CSFI);
+        x -= Renderer::getInstance()->sprites.sprites[spr].frame[frame].dir[p->dir].drawpoint.x * CSFI;
+        x += Renderer::getInstance()->sprites.sprites[spr].frame[frame].dir[p->dir].actionpoint.x * CSFI;
 
-	y = p->y + (sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.y * CSFI);
-	y -= sprites[spr].frame[frame].dir[p->dir].drawpoint.y * CSFI;
-	y += sprites[spr].frame[frame].dir[p->dir].actionpoint.y * CSFI;
+	y = p->y
+            + (Renderer::getInstance()->sprites.sprites[p->sprite].frame[p->frame].dir[p->dir].actionpoint.y * CSFI);
+        y -= Renderer::getInstance()->sprites.sprites[spr].frame[frame].dir[p->dir].drawpoint.y * CSFI;
+        y += Renderer::getInstance()->sprites.sprites[spr].frame[frame].dir[p->dir].actionpoint.y * CSFI;
 
 	*x_out = x;
 	*y_out = y;
@@ -1446,7 +1459,7 @@ void DiscnnRecv(char *buff) {
 	char msg[128];
 	sprintf(msg, "%s has disconnected", names[pnum]);
 	Chat_SetMessage(msg, 1);
-	sound(SND_COMPUTER_BEEP);
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_COMPUTER_BEEP);
 	Chat_WriteToLog(msg);
 	chatstate.timer = (60 * 5);
 }
@@ -1488,7 +1501,7 @@ void Name_Receive(unsigned char* tempname, int node) {
 	Chat_SetMessage(joingamemsg, 1);
 	Chat_WriteToLog(joingamemsg);
 	chatstate.timer = (60 * 5);
-	sound(SND_GET_MISSILE);
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_GET_MISSILE);
 	if (Host == 1) {
 		char IP[32];
 		InetNtopA(clients[node].info.sin_family, &clients[node].info.sin_addr, IP, 32);

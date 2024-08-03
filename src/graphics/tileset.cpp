@@ -1,122 +1,75 @@
-
 // manages the tileset
+#include "Tileset.h"
+
+#include "../ResourceManager.h"
+#include "../config.h"
+#include "../nx.h"
+#include "Surface.h"
+#include "Renderer.h"
+
 #include <cassert>
 #include <cstdio>
-#include "../nx.h"
-#include "../config.h"
-#include "../ResourceManager.h"
 
-#include "graphics.h"
-#include "tileset.h"
-using namespace Graphics;
+extern const char *tileset_names[]; // from stagedata.cpp
 
-extern const char *tileset_names[];		// from stagedata.cpp
-
-static NXSurface *tileset;
-static int current_tileset = -1;
-
-bool Tileset::Init()
+namespace NXE
 {
-	tileset = NULL;
-	current_tileset = -1;
-	return 0;
-}
-
-void Tileset::Close()
+namespace Graphics
 {
-	delete tileset;
-}
 
-/*
-void c------------------------------() {}
-*/
+Tileset::Tileset() {}
+
+Tileset::~Tileset()
+{
+  delete _tileset;
+}
 
 // load the given tileset into memory, replacing any other tileset.
-bool Tileset::Load(int new_tileset)
+bool Tileset::load(int new_tileset)
 {
-char fname[MAXPATHLEN];
+  char fname[MAXPATHLEN];
 
-	if (new_tileset != current_tileset)
-	{
-		if (tileset)
-		{
-			delete tileset;
-			current_tileset = -1;
-		}
-		
-#if RESSCALE==1
-		sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
-#else
-		sprintf(fname, "Stage/Prt%s.bmp", tileset_names[new_tileset]);
-#endif
-		
-		// always use SDL_DisplayFormat on tilesets; they need to come out of 8-bit
-		// so that we can replace the destroyable star tiles without them palletizing.
-		tileset = NXSurface::FromFile(ResourceManager::getInstance()->getLocalizedPath(fname), true, true);
-		if (!tileset)
-		{
-			return 1;
-		}
-		
-		current_tileset = new_tileset;
-	}
-	
-	return 0;
+  if (new_tileset != _current_tileset)
+  {
+    if (_tileset)
+    {
+      delete _tileset;
+      _current_tileset = -1;
+    }
+
+    sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
+
+    _tileset = Surface::fromFile(ResourceManager::getInstance()->getPath(fname), true);
+    if (!_tileset)
+    {
+      return false;
+    }
+
+    _current_tileset = new_tileset;
+  }
+
+  return true;
 }
 
 // draw the given tile from the current tileset to the screen
-void Tileset::draw_tile(int x, int y, int t)
+void Tileset::drawTile(int x, int y, int t)
 {
-	// 16 tiles per row on all tilesheet
-	int srcx = (t % 16) * TILE_W;
-	int srcy = (t / 16) * TILE_H;
+  // 16 tiles per row on all tilesheet
+  int srcx = (t % 16) * TILE_W;
+  int srcy = (t / 16) * TILE_H;
 
-	DrawSurface(tileset, x, y, srcx, srcy, TILE_W, TILE_H);
+  Renderer::getInstance()->drawSurface(_tileset, x, y, srcx, srcy, TILE_W, TILE_H);
 }
 
-#if defined(CONFIG_FAST_TILEGRID)
-
-void Tileset::draw_tilegrid_begin(size_t max_count)
+void Tileset::reload()
 {
-	DrawBatchBegin(max_count);
+  if (_current_tileset != -1)
+  {
+    int tileset     = _current_tileset;
+    _current_tileset = -1;
+    load(tileset);
+  }
 }
 
-void Tileset::draw_tilegrid_add(int x, int y, int t)
-{
-	// 16 tiles per row on all tilesheet
-	int srcx = (t % 16) * TILE_W;
-	int srcy = (t / 16) * TILE_H;
-
-	DrawBatchAdd(tileset, x, y, srcx, srcy, TILE_W, TILE_H);
-}
-
-void Tileset::draw_tilegrid_end()
-{
-	DrawBatchEnd();
-}
-
-#else
-void Tileset::draw_tilegrid_begin(size_t) {}
-void Tileset::draw_tilegrid_add(int x, int y, int t) { return draw_tile(x, y, t); }
-void Tileset::draw_tilegrid_end() {}
-#endif
-
-void Tileset::Reload()
-{
-	if (current_tileset != -1)
-	{
-		int tileset = current_tileset;
-		current_tileset = -1;
-		Load(tileset);
-	}
-}
-
-/*
-void c------------------------------() {}
-*/
-
-NXSurface *Tileset::GetSurface()
-{
-	return tileset;
-}
-
+}; //namespace Graphics
+}; //namespace NXE

@@ -1,14 +1,14 @@
 #include "balrog_boss_running.h"
-#include "../stdai.h"
-#include "../ai.h"
-#include "../balrog_common.h"
-#include "../maze/balrog_boss_missiles.h"
 
 #include "../../game.h"
 #include "../../player.h"
-#include "../../sound/sound.h"
+#include "../../sound/SoundManager.h"
+#include "../ai.h"
+#include "../balrog_common.h"
+#include "../maze/balrog_boss_missiles.h"
+#include "../stdai.h"
 
-#include "Networking.h"
+#include "../../Networking.h"
 
 #define STATE_CHARGE			10
 #define STATE_JUMP				20
@@ -17,8 +17,8 @@
 
 INITFUNC(AIRoutines)
 {
-	ONTICK(OBJ_BALROG_BOSS_RUNNING, ai_balrog_boss_running);
-	ONDEATH(OBJ_BALROG_BOSS_RUNNING, ondeath_balrog_boss_running);
+  ONTICK(OBJ_BALROG_BOSS_RUNNING, ai_balrog_boss_running);
+  ONDEATH(OBJ_BALROG_BOSS_RUNNING, ondeath_balrog_boss_running);
 }
 
 /*
@@ -27,7 +27,6 @@ void c------------------------------() {}
 
 void ai_balrog_boss_running(Object *o)
 {
-	printf("%i\n",o->dir);
 	// try to catch player
 	if (o->state == STATE_CHARGE+1 || o->state == STATE_JUMP)
 	{
@@ -140,18 +139,18 @@ void ai_balrog_boss_running(Object *o)
 
 static void walking_animation(Object *o)
 {
-	if (++o->animtimer > 3)
-	{
-		o->animtimer = 0;
-		
-		if (++o->frame > 12)
-			o->frame = 9;
-		
-		if (o->frame == 10 || o->frame == 12)
-		{
-			sound(SND_THUD);
-		}
-	}
+  if (++o->animtimer > 3)
+  {
+    o->animtimer = 0;
+
+    if (++o->frame > 12)
+      o->frame = 9;
+
+    if (o->frame == 10 || o->frame == 12)
+    {
+      NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_THUD);
+    }
+  }
 }
 
 /*
@@ -160,8 +159,6 @@ void c------------------------------() {}
 
 void ondeath_balrog_boss_running(Object *o)
 {
-	o->xinertia = 0;
-	o->yinertia = 0;
+  o->xinertia = 0;
+  o->yinertia = 0;
 }
-
-

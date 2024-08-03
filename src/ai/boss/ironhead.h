@@ -16,17 +16,17 @@ typedef struct {
 class IronheadBoss : public StageBoss
 {
 public:
-	void OnMapEntry();
-	void OnMapExit();
-	void Run();
+  void OnMapEntry();
+  void OnMapExit();
+  void Run();
 
 	char *Sync();
 	void SyncRecv(char *buff);
 	int SyncSize;
 
 private:
-	Object *o;
-	int hittimer;
+  Object *o;
+  int hittimer;
 };
 
 void ondeath_ironhead(Object *o);

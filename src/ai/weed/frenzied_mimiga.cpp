@@ -2,18 +2,16 @@
 // frenzied mimiga subboss seen in Grasstown Hut
 #include "frenzied_mimiga.h"
 
-#include "../stdai.h"
-#include "../ai.h"
-#include "../sym/smoke.h"
-#include "../../sound/sound.h"
-
 #include "../../game.h"
 #include "../../player.h"
-
+#include "../../sound/SoundManager.h"
+#include "../ai.h"
+#include "../stdai.h"
+#include "../sym/smoke.h"
 
 INITFUNC(AIRoutines)
 {
-	ONTICK(OBJ_FRENZIED_MIMIGA, ai_frenzied_mimiga);
+  ONTICK(OBJ_FRENZIED_MIMIGA, ai_frenzied_mimiga);
 }
 
 /*
@@ -82,14 +80,14 @@ void ai_frenzied_mimiga(Object *o)
 				{
 					o->timer2 = 0;
 					
-					sound(SND_JAWS);
+					NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_JAWS);
 					o->frame = 4;
 					o->damage = 5;
 					o->xinertia *= 2;
 				}
 				else
 				{
-					sound(SND_ENEMY_JUMP);
+                                  NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_ENEMY_JUMP);
 				}
 				
 				o->state = 21;
@@ -101,7 +99,7 @@ void ai_frenzied_mimiga(Object *o)
 		{
 			if (o->blockd && o->yinertia >= 0)
 			{
-				sound(SND_THUD);
+                          NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_THUD);
 				
 				o->state = 20;
 				o->frame = 1;
@@ -127,7 +125,7 @@ void ai_frenzied_mimiga(Object *o)
 		
 		case 50:		// killed (as boss, in Grasstown Hut) (set by script)
 		{
-			sound(SND_ENEMY_HURT);
+                  NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_ENEMY_HURT);
 			o->frame = 4;
 			o->damage = 0;
 			o->flags &= ~(FLAG_SHOOTABLE | FLAG_SOLID_MUSHY);
@@ -141,7 +139,7 @@ void ai_frenzied_mimiga(Object *o)
 			{
 				o->frame = 5;
 				o->xinertia = 0;
-				sound(SND_THUD);
+                                NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_THUD);
 				
 				o->state = 52;	// falls slower
 			}
@@ -156,6 +154,3 @@ void ai_frenzied_mimiga(Object *o)
 	
 	LIMITY(0x5ff);
 }
-
-
-

@@ -36,14 +36,14 @@ public:
 	int SyncSize;
 
 private:
-	void RunOpenMouth();
-	
-	void StartWaterStream(void);
-	void StopWaterStream(void);
-	
-	Object *o;
-	Object *pieces[8];
-	int hittimer;
+  void RunOpenMouth();
+
+  void StartWaterStream(void);
+  void StopWaterStream(void);
+
+  Object *o;
+  Object *pieces[8];
+  int hittimer;
 };
 
 void ai_core_front(Object *o);
@@ -52,6 +52,5 @@ void ai_minicore(Object *o);
 void ai_minicore_shot(Object *o);
 void ai_core_ghostie(Object *o);
 void ai_core_blast(Object *o);
-
 
 #endif
