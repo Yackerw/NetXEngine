@@ -163,6 +163,15 @@ namespace NXE
 
       _initializeSkinSprites();
 
+      // minor hack for 2x res
+      if (RESSCALE == 2) {
+        sprites[SPR_TITLE].tw = 210;
+        sprites[SPR_TITLE].w = 420;
+        sprites[SPR_TITLE].th = 50;
+        sprites[SPR_TITLE].h = 100;
+        sprites[SPR_NAAMMO].frame[0].dir[0].sheet_offset.y -= 16;
+      }
+
       return true;
     }
 
