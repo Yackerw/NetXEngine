@@ -32,22 +32,22 @@ bool input_init(void)
   memset(mappings, -1, sizeof(mappings));
   for (int i = 0; i < INPUT_COUNT; i++)
   {
-    mappings[i].key   = -1;
-    mappings[i].jbut  = -1;
-    mappings[i].jhat  = -1;
+    mappings[i].key = -1;
+    mappings[i].jbut = -1;
+    mappings[i].jhat = -1;
     mappings[i].jaxis = -1;
   }
 
   // default mappings
-  mappings[LEFTKEY].key      = SDLK_LEFT;
-  mappings[RIGHTKEY].key     = SDLK_RIGHT;
-  mappings[UPKEY].key        = SDLK_UP;
-  mappings[DOWNKEY].key      = SDLK_DOWN;
-  mappings[JUMPKEY].key      = SDLK_z;
-  mappings[FIREKEY].key      = SDLK_x;
-  mappings[STRAFEKEY].key    = SDLK_c;
-  mappings[PREVWPNKEY].key   = SDLK_a;
-  mappings[NEXTWPNKEY].key   = SDLK_s;
+  mappings[LEFTKEY].key = SDLK_LEFT;
+  mappings[RIGHTKEY].key = SDLK_RIGHT;
+  mappings[UPKEY].key = SDLK_UP;
+  mappings[DOWNKEY].key = SDLK_DOWN;
+  mappings[JUMPKEY].key = SDLK_z;
+  mappings[FIREKEY].key = SDLK_x;
+  mappings[STRAFEKEY].key = SDLK_c;
+  mappings[PREVWPNKEY].key = SDLK_a;
+  mappings[NEXTWPNKEY].key = SDLK_s;
   mappings[INVENTORYKEY].key = SDLK_q;
   mappings[MAPSYSTEMKEY].key = SDLK_w;
 
@@ -55,52 +55,52 @@ bool input_init(void)
 
 #if defined(__VITA__)
   mappings[MAPSYSTEMKEY].jbut = 0; // Triangle
-  mappings[FIREKEY].jbut      = 1; // Circle
-  mappings[JUMPKEY].jbut      = 2; // Cross
+  mappings[FIREKEY].jbut = 1; // Circle
+  mappings[JUMPKEY].jbut = 2; // Cross
   mappings[INVENTORYKEY].jbut = 3; // Square
-  mappings[PREVWPNKEY].jbut   = 4; // LTrig
-  mappings[NEXTWPNKEY].jbut   = 5; // Rtrig
+  mappings[PREVWPNKEY].jbut = 4; // LTrig
+  mappings[NEXTWPNKEY].jbut = 5; // Rtrig
 
-  mappings[DOWNKEY].jbut  = 6;
-  mappings[LEFTKEY].jbut  = 7;
-  mappings[UPKEY].jbut    = 8;
+  mappings[DOWNKEY].jbut = 6;
+  mappings[LEFTKEY].jbut = 7;
+  mappings[UPKEY].jbut = 8;
   mappings[RIGHTKEY].jbut = 9;
-  mappings[ESCKEY].jbut   = 11;
+  mappings[ESCKEY].jbut = 11;
 #endif
 
 #if defined(__SWITCH__)
-  mappings[LEFTKEY].jbut      = 16;
-  mappings[UPKEY].jbut        = 17;
-  mappings[RIGHTKEY].jbut     = 18;
-  mappings[DOWNKEY].jbut      = 19;
+  mappings[LEFTKEY].jbut = 16;
+  mappings[UPKEY].jbut = 17;
+  mappings[RIGHTKEY].jbut = 18;
+  mappings[DOWNKEY].jbut = 19;
 
-  mappings[FIREKEY].jbut      = 1;  // A
-  mappings[JUMPKEY].jbut      = 0;  // B
+  mappings[FIREKEY].jbut = 1;  // A
+  mappings[JUMPKEY].jbut = 0;  // B
   mappings[MAPSYSTEMKEY].jbut = 3;  // X
   mappings[INVENTORYKEY].jbut = 2;  // Y
 
-  mappings[PREVWPNKEY].jbut   = 6;  // L
-  mappings[NEXTWPNKEY].jbut   = 7;  // R
+  mappings[PREVWPNKEY].jbut = 6;  // L
+  mappings[NEXTWPNKEY].jbut = 7;  // R
 
-  mappings[ENTERKEY].jbut     = 10; // +
-  mappings[ESCKEY].jbut       = 11; // -
+  mappings[ENTERKEY].jbut = 10; // +
+  mappings[ESCKEY].jbut = 11; // -
 #endif
 
-  mappings[F1KEY].key  = SDLK_F1;
-  mappings[F2KEY].key  = SDLK_F2;
-  mappings[F3KEY].key  = SDLK_F3;
-  mappings[F4KEY].key  = SDLK_F4;
-  mappings[F5KEY].key  = SDLK_F5;
-  mappings[F6KEY].key  = SDLK_F6;
-  mappings[F7KEY].key  = SDLK_F7;
-  mappings[F8KEY].key  = SDLK_F8;
-  mappings[F9KEY].key  = SDLK_F9;
+  mappings[F1KEY].key = SDLK_F1;
+  mappings[F2KEY].key = SDLK_F2;
+  mappings[F3KEY].key = SDLK_F3;
+  mappings[F4KEY].key = SDLK_F4;
+  mappings[F5KEY].key = SDLK_F5;
+  mappings[F6KEY].key = SDLK_F6;
+  mappings[F7KEY].key = SDLK_F7;
+  mappings[F8KEY].key = SDLK_F8;
+  mappings[F9KEY].key = SDLK_F9;
   mappings[F10KEY].key = SDLK_F10;
   mappings[F11KEY].key = SDLK_F11;
   mappings[F12KEY].key = SDLK_F12;
-  mappings[FREEZE_FRAME_KEY].key  = SDLK_SPACE;
+  mappings[FREEZE_FRAME_KEY].key = SDLK_SPACE;
   mappings[FRAME_ADVANCE_KEY].key = SDLK_b;
-  mappings[DEBUG_FLY_KEY].key     = SDLK_v;
+  mappings[DEBUG_FLY_KEY].key = SDLK_v;
   mappings[ENTERKEY].key = SDLK_RETURN;
 
   SDL_InitSubSystem(SDL_INIT_JOYSTICK);
@@ -189,7 +189,7 @@ int input_get_action_axis(int32_t jaxis, int32_t jvalue)
   for (int i = 0; i < INPUT_COUNT; i++)
   {
     if ((mappings[i].jaxis == jaxis)
-        && ((jvalue > 0 && mappings[i].jaxis_value > 0) || (jvalue < 0 && mappings[i].jaxis_value < 0)))
+      && ((jvalue > 0 && mappings[i].jaxis_value > 0) || (jvalue < 0 && mappings[i].jaxis_value < 0)))
     {
       return i;
     }
@@ -199,7 +199,7 @@ int input_get_action_axis(int32_t jaxis, int32_t jvalue)
 
 const std::string input_get_name(int index)
 {
-  static std::array<std::string, 28> input_names = {"Left",         "Right",
+  static std::array<std::string, 28> input_names = { "Left",         "Right",
                                                     "Up",           "Down",
                                                     "Jump",         "Fire",
                                                     "Strafe",       "Wpn Prev",
@@ -212,7 +212,7 @@ const std::string input_get_name(int index)
                                                     "f9",           "f10",
                                                     "f11",          "f12",
                                                     "freeze frame", "frame advance",
-                                                    "debug fly",    "Enter"};
+                                                    "debug fly",    "Enter" };
 
   if (index < 0 || index >= INPUT_COUNT)
     return "invalid";
@@ -236,7 +236,7 @@ void c------------------------------() {}
 // even if the console is up.
 static int IsNonConsoleKey(int key)
 {
-  static const int nosend[] = {SDLK_LEFT, SDLK_RIGHT, 0};
+  static const int nosend[] = { SDLK_LEFT, SDLK_RIGHT, 0 };
 
   for (int i = 0; nosend[i]; i++)
     if (key == nosend[i])
@@ -255,171 +255,171 @@ void input_poll(void)
   {
     switch (evt.type)
     {
-      case SDL_KEYDOWN:
-      case SDL_KEYUP:
+    case SDL_KEYDOWN:
+    case SDL_KEYUP:
+    {
+      key = evt.key.keysym.sym;
+
+      static uint8_t shiftstates = 0;
+
+      if (console.IsVisible() && !IsNonConsoleKey(key) || (chatstate.typing == 1))
       {
-        key = evt.key.keysym.sym;
-
-        static uint8_t shiftstates = 0;
-
-        if (console.IsVisible() && !IsNonConsoleKey(key) || (chatstate.typing == 1))
+        if (key == SDLK_LSHIFT)
         {
-          if (key == SDLK_LSHIFT)
-          {
-            if (evt.type == SDL_KEYDOWN)
-              shiftstates |= LEFTMASK;
-            else
-              shiftstates &= ~LEFTMASK;
-          }
-          else if (key == SDLK_RSHIFT)
-          {
-            if (evt.type == SDL_KEYDOWN)
-              shiftstates |= RIGHTMASK;
-            else
-              shiftstates &= ~RIGHTMASK;
-          }
+          if (evt.type == SDL_KEYDOWN)
+            shiftstates |= LEFTMASK;
           else
-          {
-            int ch = key;
-            if (shiftstates != 0)
-            {
-              ch = toupper(ch);
-              if (ch == '.')
-                ch = '>';
-              if (ch == '-')
-                ch = '_';
-              if (ch == '/')
-                ch = '?';
-              if (ch == '1')
-                ch = '!';
-            }
-
-            if (Host == -1) {
-                if (evt.type == SDL_KEYDOWN)
-                    console.HandleKey(ch);
-                else
-                    console.HandleKeyRelease(ch);
-            }
-            else if (evt.type == SDL_KEYDOWN) {
-                Chat_AddChar(ch);
-            }
-          }
+            shiftstates &= ~LEFTMASK;
+        }
+        else if (key == SDLK_RSHIFT)
+        {
+          if (evt.type == SDL_KEYDOWN)
+            shiftstates |= RIGHTMASK;
+          else
+            shiftstates &= ~RIGHTMASK;
         }
         else
         {
-          ino = input_get_action(key); // mappings[key];
-
-          if (ino != -1)
-            inputs[ino] = (evt.type == SDL_KEYDOWN);
-
-          if (evt.type == SDL_KEYDOWN)
+          int ch = key;
+          if (shiftstates != 0)
           {
-			  if (Host != -1 && !chatstate.typing && key == 116) { //press t to chat
-							chatstate.typing = 1;
-						}
-						// Special case: multiplayer IP input menu
-						if (Multiplayer == 2 && ((key >= 48 && key <= 57) || key == 46) && strlen(IPAddress) < 128) {
-							char *tmp = (char*)&key;
-							strcat(IPAddress, tmp);
-						}
-						if (Multiplayer == 2 && key == 8 && strlen(IPAddress) > 0) {
-							// backspace in IP menu
-							IPAddress[strlen(IPAddress) - 1] = 0;
-						}
-						// and names
-						if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && (key >= 32 && key <= 126) && key != SDLK_LCTRL && key != SDLK_RCTRL && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
-							char *tmp = (char*)&key;
-							if (shiftstates != 0)
-							{
-								key = toupper(key);
-								if (key == '.') key = '>';
-								if (key == '-') key = '_';
-								if (key == '/') key = '?';
-								if (key == '1') key = '!';
-							}
-							strcat(name, tmp);
-						}
-						if (Multiplayer == 4 && key == 8 && strlen(name) > 0) {
-							// backspace in IP menu
-							name[strlen(name)-1] = 0;
-						}
-            if (key == '`') // bring up console
-            {
-#if defined(DEBUG)
-              extern bool freezeframe;
-              if (!freezeframe)
-              {
-                NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
-                console.SetVisible(true);
-              }
-#endif
-            }
+            ch = toupper(ch);
+            if (ch == '.')
+              ch = '>';
+            if (ch == '-')
+              ch = '_';
+            if (ch == '/')
+              ch = '?';
+            if (ch == '1')
+              ch = '!';
+          }
+
+          if (Host == -1) {
+            if (evt.type == SDL_KEYDOWN)
+              console.HandleKey(ch);
             else
-            {
-              last_sdl_action.key = key;
-            }
+              console.HandleKeyRelease(ch);
+          }
+          else if (evt.type == SDL_KEYDOWN) {
+            Chat_AddChar(ch);
           }
         }
       }
-      break;
-
-      case SDL_QUIT:
+      else
       {
-        inputs[ESCKEY] = true;
-        game.running   = false;
-      }
-      break;
-
-      case SDL_JOYBUTTONDOWN:
-      {
-        Uint8 but            = evt.jbutton.button;
-        last_sdl_action.jbut = but;
-        ino                  = input_get_action_but(but); // mappings[key];
-        if (ino != -1)
-          inputs[ino] = (evt.jbutton.state == SDL_PRESSED);
-      }
-      break;
-
-      case SDL_JOYBUTTONUP:
-      {
-        Uint8 but = evt.jbutton.button;
-        ino       = input_get_action_but(but); // mappings[key];
-        if (ino != -1)
-          inputs[ino] = (evt.jbutton.state == SDL_PRESSED);
-      }
-      break;
-
-      case SDL_JOYHATMOTION:
-      {
-        if (evt.jhat.value != SDL_HAT_CENTERED)
-        {
-          last_sdl_action.jhat       = evt.jhat.hat;
-          last_sdl_action.jhat_value = evt.jhat.value;
-        }
-        ino = input_get_action_hat(evt.jhat.hat, evt.jhat.value); // mappings[key];
-        // cleanup all hat-binded states
-        for (int i = 0; i < INPUT_COUNT; i++)
-        {
-          if (mappings[i].jhat != -1)
-            inputs[i] = false;
-        }
+        ino = input_get_action(key); // mappings[key];
 
         if (ino != -1)
-          inputs[ino] = true;
-      }
-      break;
+          inputs[ino] = (evt.type == SDL_KEYDOWN);
 
-      case SDL_JOYAXISMOTION:
-      {
-        // this only used for control remapping.
-        // for actual in-game handling see below.
-        if (evt.jaxis.value > 20000 || evt.jaxis.value < -20000) // dead zone
+        if (evt.type == SDL_KEYDOWN)
         {
-          last_sdl_action.jaxis       = evt.jaxis.axis;
-          last_sdl_action.jaxis_value = evt.jaxis.value;
+          if (Host != -1 && !chatstate.typing && key == 116) { //press t to chat
+            chatstate.typing = 1;
+          }
+          // Special case: multiplayer IP input menu
+          if (Multiplayer == 2 && ((key >= 48 && key <= 57) || key == 46) && strlen(IPAddress) < 128) {
+            char *tmp = (char *)&key;
+            strcat(IPAddress, tmp);
+          }
+          if (Multiplayer == 2 && key == 8 && strlen(IPAddress) > 0) {
+            // backspace in IP menu
+            IPAddress[strlen(IPAddress) - 1] = 0;
+          }
+          // and names
+          if (Multiplayer == 4 && key != 8 && strlen(name) < 14 && (key >= 32 && key <= 126) && key != SDLK_LCTRL && key != SDLK_RCTRL && key != SDLK_LALT && key != SDLK_RALT && key != SDLK_LSHIFT && key != SDLK_RSHIFT && key != SDLK_DOWN && key != SDLK_UP && key != SDLK_LEFT && key != SDLK_RIGHT && key != SDLK_RETURN) {
+            char *tmp = (char *)&key;
+            if (shiftstates != 0)
+            {
+              key = toupper(key);
+              if (key == '.') key = '>';
+              if (key == '-') key = '_';
+              if (key == '/') key = '?';
+              if (key == '1') key = '!';
+            }
+            strcat(name, tmp);
+          }
+          if (Multiplayer == 4 && key == 8 && strlen(name) > 0) {
+            // backspace in IP menu
+            name[strlen(name) - 1] = 0;
+          }
+          if (key == '`') // bring up console
+          {
+#if defined(DEBUG)
+            extern bool freezeframe;
+            if (!freezeframe)
+            {
+              NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
+              console.SetVisible(true);
+            }
+#endif
+          }
+          else
+          {
+            last_sdl_action.key = key;
+          }
         }
       }
-      break;
+    }
+    break;
+
+    case SDL_QUIT:
+    {
+      inputs[ESCKEY] = true;
+      game.running = false;
+    }
+    break;
+
+    case SDL_JOYBUTTONDOWN:
+    {
+      Uint8 but = evt.jbutton.button;
+      last_sdl_action.jbut = but;
+      ino = input_get_action_but(but); // mappings[key];
+      if (ino != -1)
+        inputs[ino] = (evt.jbutton.state == SDL_PRESSED);
+    }
+    break;
+
+    case SDL_JOYBUTTONUP:
+    {
+      Uint8 but = evt.jbutton.button;
+      ino = input_get_action_but(but); // mappings[key];
+      if (ino != -1)
+        inputs[ino] = (evt.jbutton.state == SDL_PRESSED);
+    }
+    break;
+
+    case SDL_JOYHATMOTION:
+    {
+      if (evt.jhat.value != SDL_HAT_CENTERED)
+      {
+        last_sdl_action.jhat = evt.jhat.hat;
+        last_sdl_action.jhat_value = evt.jhat.value;
+      }
+      ino = input_get_action_hat(evt.jhat.hat, evt.jhat.value); // mappings[key];
+      // cleanup all hat-binded states
+      for (int i = 0; i < INPUT_COUNT; i++)
+      {
+        if (mappings[i].jhat != -1)
+          inputs[i] = false;
+      }
+
+      if (ino != -1)
+        inputs[ino] = true;
+    }
+    break;
+
+    case SDL_JOYAXISMOTION:
+    {
+      // this only used for control remapping.
+      // for actual in-game handling see below.
+      if (evt.jaxis.value > 20000 || evt.jaxis.value < -20000) // dead zone
+      {
+        last_sdl_action.jaxis = evt.jaxis.axis;
+        last_sdl_action.jaxis_value = evt.jaxis.value;
+      }
+    }
+    break;
     }
   }
 
@@ -437,7 +437,7 @@ void input_poll(void)
   for (int ax = 0; ax < SDL_JoystickNumAxes(joy); ax++)
   {
     int value = SDL_JoystickGetAxis(joy, ax);
-    ino       = input_get_action_axis(ax, value); // this returns actual mapping for axis direction
+    ino = input_get_action_axis(ax, value); // this returns actual mapping for axis direction
 
     if (ino != -1 && (value > 20000 || value < -20000))
       inputs[ino] = true;
@@ -457,7 +457,7 @@ void input_close(void)
 void c------------------------------() {}
 */
 
-static const int buttons[] = {JUMPKEY, FIREKEY, STRAFEKEY, ACCEPT_BUTTON, DECLINE_BUTTON, 0};
+static const int buttons[] = { JUMPKEY, FIREKEY, STRAFEKEY, ACCEPT_BUTTON, DECLINE_BUTTON, 0 };
 
 bool buttondown(void)
 {

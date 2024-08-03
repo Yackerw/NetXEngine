@@ -1,0 +1,7 @@
+root = true
+
+[*.{c++,cc,cpp,cxx,h,h++,hh,hpp,hxx,inl,ipp,tlh,tli}]
+
+indent_style = space
+indent_size = 2
+cpp_space_pointer_reference_alignment = right
