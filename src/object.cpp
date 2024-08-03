@@ -149,10 +149,7 @@ void Object::Delete(int synced)
 		return;
 	}
 	if (Host == 1 && this->serialization != -1 && synced != 2) {
-		char *outbuff = (char*)malloc(sizeof(int));
-		memcpy(outbuff, &(this->serialization), sizeof(int));
-		Packet_Send_Host(outbuff, 4, 10, 1);
-		free(outbuff);
+		Packet_Send_Host((char*) & this->serialization, sizeof(int), 10, 1);
 	}
   if (o->deleted)
     return;
@@ -287,14 +284,13 @@ if (ObjSyncTickFuncsRecv[type] != NULL && Host == 0 && synced == false) {
 		netobjs[this->serialization].valid = true;
 		netobjs[this->serialization].tickfunc = ObjSyncTickFuncs[type];
 		// This is generally only called by ID2 so determine the ID2 and use that
-		char *outbuff = (char*)malloc(sizeof(int) * 4);
+        char outbuff[16];
 		memcpy(outbuff, &(this->id2), sizeof(short));
 		outbuff[2] = 0;
 		outbuff[3] = 0;
 		memcpy(outbuff + 4, &type, sizeof(int));
 		memcpy(outbuff + 8, &(this->serialization), sizeof(int));
 		Packet_Send_Host(outbuff, sizeof(int) * 3, 12, 1);
-		free(outbuff);
 	}
 	// un-serialize
 	if (ObjSyncTickFuncsRecv[type] == NULL && this->serialization != -1) {
@@ -895,10 +891,7 @@ void Object::Kill(bool synced)
 		return;
 	}
 	if (Host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int));
-		memcpy(outbuff, &(this->serialization), sizeof(int));
-		Packet_Send_Host(outbuff, 8, 11, 1);
-		free(outbuff);
+		Packet_Send_Host((char*) & this->serialization, 4, 11, 1);
 	}
 
   o->hp = 0;
@@ -1226,10 +1219,7 @@ void Object::OnDeath(bool synced)
 		return;
 	}
 	if (Host == 1 && this->serialization != -1) {
-		char *outbuff = (char*)malloc(sizeof(int));
-		memcpy(outbuff, &(this->serialization), sizeof(int));
-		Packet_Send_Host(outbuff, 4, 9, 1);
-		free(outbuff);
+		Packet_Send_Host((char*) & this->serialization, sizeof(int), 9, 1);
 	}
 	if (objprop[this->type].ai_routines.ondeath)
 		(*objprop[this->type].ai_routines.ondeath)(this);
@@ -1237,11 +1227,10 @@ void Object::OnDeath(bool synced)
 
 void UpdateLinkedObject(Object *o) {
 	if (Host != 1 || o->serialization == -1) return;
-	char *buff = (char*)malloc(8);
+    char buff[8];
 	memcpy(&buff[4], &o->linkedobject->serialization, 4);
 	memcpy(buff, &o->serialization, 4);
 	Packet_Send_Host(buff, 8, 18, 1);
-	free(buff);
 }
 
 int *ObjSyncTickSizes;
