@@ -43,6 +43,7 @@ bool SIFSpritesSect::Decode(const uint8_t *data, int datalen, SIFSprite *sprites
     sprites[i].w = sprites[i].tw * RESSCALE;
     sprites[i].h = sprites[i].th * RESSCALE;
     sprites[i].spritesheet = read_U8(&data, data_end);
+    sprites[i].twores = RESSCALE == 2 ? true : false;
 
     sprites[i].nframes = read_U8(&data, data_end);
     sprites[i].ndirs   = read_U8(&data, data_end);

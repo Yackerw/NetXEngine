@@ -78,7 +78,7 @@ static void draw_title()
   Renderer::getInstance()->sprites.drawSprite(tx, 40, SPR_TITLE);
 
   	int cx = (Renderer::getInstance()->screenWidth / 2) + (rtl() ? 32 : -32);
-  int cy = (Renderer::getInstance()->screenHeight / 2) - 8;
+  int cy = (Renderer::getInstance()->screenHeight / 2) - 16;
 
   std::vector<menuitem>* curritems = &_menuitems;
 
@@ -88,7 +88,7 @@ static void draw_title()
 
 	// TODO: change to switch statement
 	if (Multiplayer == 0 || Multiplayer == 1) {
-          TextBox::DrawFrame((Renderer::getInstance()->screenWidth / 2) - 64, cy - 16, 128, 96);
+          TextBox::DrawFrame((Renderer::getInstance()->screenWidth / 2) - 64, cy - 16, 128, 96+8);
 		//show if its hosting
           for (size_t i = 0; i < (*curritems).size(); i++)
           {
