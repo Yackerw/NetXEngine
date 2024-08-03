@@ -751,6 +751,13 @@ void Net_ParseBuffs() {
                   textbox.StageSelect.SetSlot(slotno, scriptno);
                 }
               }
+              // default weapon order for now...
+              player->wpnOrder.clear();
+              for (int i = 0; i < WPN_COUNT; ++i) {
+                if (player->weapons[i].hasWeapon) {
+                  player->wpnOrder.push_back(i);
+                }
+              }
               player->invisible = false;
               player->movementmode = MOVEMODE_NORMAL;
               player->hide = false;
