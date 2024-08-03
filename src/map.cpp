@@ -76,7 +76,7 @@ bool load_stage(int stage_no)
     return 1;
   map_set_backdrop(stages[stage_no].bg_no);
   map.scrolltype = stages[stage_no].scroll_type;
-  map.motionpos  = 0;
+  map.motionpos = 0;
 
   // optional metadata
   sprintf(fname, "StageMeta/%s.json", mapname);
@@ -117,7 +117,7 @@ bool load_map(const std::string &fname)
   if (map.xsize > MAP_MAXSIZEX || map.ysize > MAP_MAXSIZEY)
   {
     LOG_ERROR("load_map: map is too large -- size {}x{} but max is {}x{}", map.xsize, map.ysize, MAP_MAXSIZEX,
-            MAP_MAXSIZEY);
+      MAP_MAXSIZEY);
     fclose(fp);
     return 1;
   }
@@ -250,11 +250,11 @@ bool load_entities(const std::string &fname)
 
   for (i = 0; i < nEntities; i++)
   {
-    int x     = fgeti(fp);
-    int y     = fgeti(fp);
-    int id1   = fgeti(fp);
-    int id2   = fgeti(fp);
-    int type  = fgeti(fp);
+    int x = fgeti(fp);
+    int y = fgeti(fp);
+    int id1 = fgeti(fp);
+    int id2 = fgeti(fp);
+    int type = fgeti(fp);
     int flags = fgeti(fp);
 
     int dir = (flags & FLAG_FACES_RIGHT) ? RIGHT : LEFT;
@@ -331,8 +331,8 @@ bool load_entities(const std::string &fname)
           o->OnSpawn();
 
           LOG_DEBUG("spawning extra motion wall");
-          o      = CreateObject(((x)*TILE_W) * CSFI, ((y - TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
-                           CF_NO_SPAWN_EVENT);
+          o = CreateObject(((x)*TILE_W) * CSFI, ((y - TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
+            CF_NO_SPAWN_EVENT);
           o->id1 = id1;
           o->id2 = id2;
           o->flags |= flags;
@@ -344,8 +344,8 @@ bool load_entities(const std::string &fname)
           o->OnSpawn();
 
           LOG_DEBUG("spawning extra motion wall");
-          o      = CreateObject(((x + 22) * TILE_W) * CSFI, ((y - TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
-                           CF_NO_SPAWN_EVENT);
+          o = CreateObject(((x + 22) * TILE_W) * CSFI, ((y - TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
+            CF_NO_SPAWN_EVENT);
           o->id1 = id1;
           o->id2 = id2;
           o->flags |= flags;
@@ -357,8 +357,8 @@ bool load_entities(const std::string &fname)
           o->OnSpawn();
 
           LOG_DEBUG("spawning extra motion wall");
-          o      = CreateObject(((x)*TILE_W) * CSFI, ((y + TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
-                           CF_NO_SPAWN_EVENT);
+          o = CreateObject(((x)*TILE_W) * CSFI, ((y + TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
+            CF_NO_SPAWN_EVENT);
           o->id1 = id1;
           o->id2 = id2;
           o->flags |= flags;
@@ -370,8 +370,8 @@ bool load_entities(const std::string &fname)
           o->OnSpawn();
 
           LOG_DEBUG("spawning extra motion wall");
-          o      = CreateObject(((x + 22) * TILE_W) * CSFI, ((y + TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
-                           CF_NO_SPAWN_EVENT);
+          o = CreateObject(((x + 22) * TILE_W) * CSFI, ((y + TILE_H) * TILE_H) * CSFI, type, 0, 0, dir, NULL,
+            CF_NO_SPAWN_EVENT);
           o->id1 = id1;
           o->id2 = id2;
           o->flags |= flags;
@@ -423,7 +423,7 @@ bool load_tileattr(const std::string &fname)
 
   for (i = 0; i < 256; i++)
   {
-    tc          = fgetc(fp);
+    tc = fgetc(fp);
     tilecode[i] = tc;
     tileattr[i] = tilekey[tc];
     LOG_TRACE("Tile {:#02x}   TC {:#02x}    Attr {:#08x}   tilekey[{:#02x}] = {:#08x}", i, tc, tileattr[i], tc, tilekey[tc]);
@@ -521,7 +521,7 @@ bool initmapfirsttime(void)
 
   LOG_INFO("Loading tilekey.dat.");
   if (!(fp
-        = myfopen(widen(ResourceManager::getInstance()->getPath("tilekey.dat")).c_str(), widen("rb").c_str())))
+    = myfopen(widen(ResourceManager::getInstance()->getPath("tilekey.dat")).c_str(), widen("rb").c_str())))
   {
     LOG_ERROR("tilekey.dat is missing!");
     return 1;
@@ -547,57 +547,53 @@ void c------------------------------() {}
 // loads a backdrop into memory, if it hasn't already been loaded
 static bool LoadBackdropIfNeeded(int backdrop_no)
 {
-std::string fname;
-	// load backdrop now if it hasn't already been loaded
-	if (!backdrop[backdrop_no])
-	{
-		// use chromakey (transparency) on bkwater, all others don't
-		bool use_chromakey = (backdrop_no == 8);
-                if (Renderer::getInstance()->widescreen)
-		{
-		    if (backdrop_no == 9)
-		    {
-#if RESSCALE==1
-		        fname = "bkMoon480fix.pbm";
-#else
-				fname = "bkMoon480fix.bmp";
-#endif
-		    }
-		    else if (backdrop_no == 10)
-		    {
-#if RESSCALE==1
-		        fname = "bkFog480fix.pbm";
-#else
-				fname = "bkFog480fix.bmp";
-#endif
-		    }
-		    else
-		    {
-#if RESSCALE==1
-		        fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
-#else
-				fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
-#endif
-		    }
-		}
-		else
-		{
-#if RESSCALE==1
-		    fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
-#else
-			fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
-#endif
-		}
-		
-		backdrop[backdrop_no] = Surface::fromFile(ResourceManager::getInstance()->getPath(fname, false), use_chromakey);
-		if (!backdrop[backdrop_no])
-		{
-			LOG_ERROR("Failed to load backdrop '%s'", fname.c_str());
-			return 1;
-		}
-	}
-	
-	return 0;
+  std::string fname;
+  // load backdrop now if it hasn't already been loaded
+  if (!backdrop[backdrop_no])
+  {
+    // use chromakey (transparency) on bkwater, all others don't
+    bool use_chromakey = (backdrop_no == 8);
+    if (Renderer::getInstance()->widescreen)
+    {
+      if (backdrop_no == 9)
+      {
+        if (RESSCALE == 1)
+          fname = "bkMoon480fix.pbm";
+        else
+          fname = "bkMoon480fix.bmp";
+      }
+      else if (backdrop_no == 10)
+      {
+        if (RESSCALE == 1)
+          fname = "bkFog480fix.pbm";
+        else
+          fname = "bkFog480fix.bmp";
+      }
+      else
+      {
+        if (RESSCALE == 1)
+          fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
+        else
+          fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
+      }
+    }
+    else
+    {
+      if (RESSCALE == 1)
+        fname = std::string(backdrop_names[backdrop_no]) + ".pbm";
+      else
+        fname = std::string(backdrop_names[backdrop_no]) + ".bmp";
+    }
+
+    backdrop[backdrop_no] = Surface::fromFile(ResourceManager::getInstance()->getPath(fname, false), use_chromakey);
+    if (!backdrop[backdrop_no])
+    {
+      LOG_ERROR("Failed to load backdrop '%s'", fname.c_str());
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 // backdrop_no 	- backdrop # to switch to
@@ -609,75 +605,75 @@ void map_set_backdrop(int backdrop_no)
 
 void map_draw_backdrop(void)
 {
-int x, y;
-	if (!backdrop[map.backdrop])
-	{
-		LoadBackdropIfNeeded(map.backdrop);
-		if (!backdrop[map.backdrop])
-			return;
-	}
-	
-	switch(map.scrolltype)
-	{
-		case BK_FIXED:
-			map.parscroll_x = 0;
-			map.parscroll_y = 0;
-		break;
-		
-		case BK_FOLLOWFG:
-			map.parscroll_x = (map.displayed_xscroll / CSFI);
-			map.parscroll_y = (map.displayed_yscroll / CSFI);
-		break;
-		
-		case BK_PARALLAX:
-			map.parscroll_y = (map.displayed_yscroll / CSFI) / 2;
-			map.parscroll_x = (map.displayed_xscroll / CSFI) / 2;
-			map.parscroll_x %= backdrop[map.backdrop]->width() / RESSCALE;
-			map.parscroll_y %= backdrop[map.backdrop]->height() / RESSCALE;
-			if (map.parscroll_x < 0 ) map.parscroll_x = map.parscroll_x * 2;
-			if (map.parscroll_y < 0 ) map.parscroll_y = map.parscroll_y * 2;
-		break;
-		
-		case BK_FASTLEFT:		// Ironhead
-			map.parscroll_x += 6;
-			map.parscroll_y = 0;
-		break;
-		
-		case BK_FASTLEFT_LAYERS:
-		case BK_FASTLEFT_LAYERS_NOFALLLEFT:
-		{
-			DrawFastLeftLayered();
-			return;
-		}
-		break;
-		
-		case BK_HIDE:
-		case BK_HIDE2:
-		case BK_HIDE3:
-		{
-			if (game.curmap == STAGE_KINGS)		// intro cutscene
-                    Renderer::getInstance()->clearScreen(BLACK);
-			else
-                          Renderer::getInstance()->clearScreen(DK_BLUE);
-		}
-		return;
-		
-		default:
-			map.parscroll_x = map.parscroll_y = 0;
-			LOG_ERROR("map_draw_backdrop: unhandled map scrolling type %d", map.scrolltype);
-		break;
-	}
-	int w = backdrop[map.backdrop]->width() / RESSCALE;
-	int h = backdrop[map.backdrop]->height() / RESSCALE;
-	
-	int mapx = (map.xsize * TILE_W);
-	int mapy = (map.ysize * TILE_H);
-	// hack for ending Maze map
-    if (game.curmap == 74)
-    {
-        map.parscroll_x-= 16;
-        mapx+=64;
-    }
+  int x, y;
+  if (!backdrop[map.backdrop])
+  {
+    LoadBackdropIfNeeded(map.backdrop);
+    if (!backdrop[map.backdrop])
+      return;
+  }
+
+  switch (map.scrolltype)
+  {
+  case BK_FIXED:
+    map.parscroll_x = 0;
+    map.parscroll_y = 0;
+    break;
+
+  case BK_FOLLOWFG:
+    map.parscroll_x = (map.displayed_xscroll / CSFI);
+    map.parscroll_y = (map.displayed_yscroll / CSFI);
+    break;
+
+  case BK_PARALLAX:
+    map.parscroll_y = (map.displayed_yscroll / CSFI) / 2;
+    map.parscroll_x = (map.displayed_xscroll / CSFI) / 2;
+    map.parscroll_x %= backdrop[map.backdrop]->width() / RESSCALE;
+    map.parscroll_y %= backdrop[map.backdrop]->height() / RESSCALE;
+    if (map.parscroll_x < 0) map.parscroll_x = map.parscroll_x * 2;
+    if (map.parscroll_y < 0) map.parscroll_y = map.parscroll_y * 2;
+    break;
+
+  case BK_FASTLEFT:		// Ironhead
+    map.parscroll_x += 6;
+    map.parscroll_y = 0;
+    break;
+
+  case BK_FASTLEFT_LAYERS:
+  case BK_FASTLEFT_LAYERS_NOFALLLEFT:
+  {
+    DrawFastLeftLayered();
+    return;
+  }
+  break;
+
+  case BK_HIDE:
+  case BK_HIDE2:
+  case BK_HIDE3:
+  {
+    if (game.curmap == STAGE_KINGS)		// intro cutscene
+      Renderer::getInstance()->clearScreen(BLACK);
+    else
+      Renderer::getInstance()->clearScreen(DK_BLUE);
+  }
+  return;
+
+  default:
+    map.parscroll_x = map.parscroll_y = 0;
+    LOG_ERROR("map_draw_backdrop: unhandled map scrolling type %d", map.scrolltype);
+    break;
+  }
+  int w = backdrop[map.backdrop]->width() / RESSCALE;
+  int h = backdrop[map.backdrop]->height() / RESSCALE;
+
+  int mapx = (map.xsize * TILE_W);
+  int mapy = (map.ysize * TILE_H);
+  // hack for ending Maze map
+  if (game.curmap == 74)
+  {
+    map.parscroll_x -= 16;
+    mapx += 64;
+  }
   // hack for ending Maze map
   if (game.curmap == 74)
   {
@@ -704,14 +700,14 @@ int x, y;
 // blit OSide's BK_FASTLEFT_LAYERS
 void DrawFastLeftLayered(void)
 {
-  int layer_ys[] = {87, 122, 145, 176, 240};
+  int layer_ys[] = { 87, 122, 145, 176, 240 };
   if (Renderer::getInstance()->widescreen)
   {
     layer_ys[4] = 272;
   }
 
-  static const int move_spd[] = {0, 1, 2, 4, 8};
-  int nlayers                 = 5;
+  static const int move_spd[] = { 0, 1, 2, 4, 8 };
+  int nlayers = 5;
   int y1, y2;
   int i, x;
 
@@ -811,7 +807,7 @@ void map_draw(uint8_t foreground)
   mapx = (scroll_x / TILE_W);
   mapy = (scroll_y / TILE_H);
 
-  blit_y       = -(scroll_y % TILE_H);
+  blit_y = -(scroll_y % TILE_H);
   blit_x_start = -(scroll_x % TILE_W);
 
   // MAP_DRAW_EXTRA_Y etc is 1 if resolution is changed to
@@ -835,20 +831,20 @@ void map_draw(uint8_t foreground)
           {
             switch (CVTDir(tilecode[t] & 3))
             {
-              case LEFT:
-                Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, map.motionpos, 0);
-                break;
-              case RIGHT:
-                Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, 7-map.motionpos, 0);
-                break;
-              case UP:
-                Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, map.motionpos, 1);
-                break;
-              case DOWN:
-                Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, 7-map.motionpos, 1);
-                break;
-              default:
-                break;
+            case LEFT:
+              Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, map.motionpos, 0);
+              break;
+            case RIGHT:
+              Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, 7 - map.motionpos, 0);
+              break;
+            case UP:
+              Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, map.motionpos, 1);
+              break;
+            case DOWN:
+              Renderer::getInstance()->sprites.drawSprite(blit_x, blit_y, SPR_WATER_CURRENT, 7 - map.motionpos, 1);
+              break;
+            default:
+              break;
             }
           }
           else if (tilecode[t] == 0x43)
@@ -881,7 +877,7 @@ void map_draw_oob()
   mapx = (scroll_x / TILE_W);
   mapy = (scroll_y / TILE_H);
 
-  blit_y       = ((-scroll_y) % TILE_H) - TILE_H;
+  blit_y = ((-scroll_y) % TILE_H) - TILE_H;
   blit_x_start = ((-scroll_x) % TILE_W) - TILE_W;
 
   for (y = 0; y <= (Renderer::getInstance()->screenHeight / TILE_H) + 2; y++)
@@ -913,9 +909,9 @@ void scroll_normal(void)
 {
   const int scroll_adj_rate = ((double)0x2000 / (double)map.scrollspeed);
 
-// how many pixels to let player stray from the center of the screen
-// before we start scrolling. high numbers let him reach closer to the edges,
-// low numbers keep him real close to the center.
+  // how many pixels to let player stray from the center of the screen
+  // before we start scrolling. high numbers let him reach closer to the edges,
+  // low numbers keep him real close to the center.
 #define P_VARY_FROM_CENTER (64 * CSFI)
 
   if (player->dir == LEFT)
@@ -1029,37 +1025,37 @@ void map_scroll_do(void)
   // custom xscroll on ending "maps"
   switch (game.curmap)
   {
-    case 74:
-    case 75:
-    case 76:
-    case 77:
-    case 89:
-    case 93:
-      if (rtl())
-      {
-        map.displayed_xscroll = ((Renderer::getInstance()->screenWidth / 2) * CSFI);
-      }
-      else
-      {
-        map.displayed_xscroll = -(((Renderer::getInstance()->screenWidth - (map.xsize*TILE_W)) / 2) * CSFI);
-      }
-      map.displayed_yscroll = 0;
-      break;
-    case 78:
-      // carefully crafted magic number
-      if (rtl())
-      {
-        map.displayed_xscroll = ((Renderer::getInstance()->screenWidth - 160) * CSFI);
-      }
-      else
-      {
-        map.displayed_xscroll = -((Renderer::getInstance()->screenWidth/2 - 208) * CSFI);
-      }
-      map.displayed_yscroll = 0;
-      break;
-    default:
-      map_sanitycheck();
-      break;
+  case 74:
+  case 75:
+  case 76:
+  case 77:
+  case 89:
+  case 93:
+    if (rtl())
+    {
+      map.displayed_xscroll = ((Renderer::getInstance()->screenWidth / 2) * CSFI);
+    }
+    else
+    {
+      map.displayed_xscroll = -(((Renderer::getInstance()->screenWidth - (map.xsize * TILE_W)) / 2) * CSFI);
+    }
+    map.displayed_yscroll = 0;
+    break;
+  case 78:
+    // carefully crafted magic number
+    if (rtl())
+    {
+      map.displayed_xscroll = ((Renderer::getInstance()->screenWidth - 160) * CSFI);
+    }
+    else
+    {
+      map.displayed_xscroll = -((Renderer::getInstance()->screenWidth / 2 - 208) * CSFI);
+    }
+    map.displayed_yscroll = 0;
+    break;
+  default:
+    map_sanitycheck();
+    break;
   }
 
   // do quaketime after sanity check so quake works in
@@ -1146,7 +1142,7 @@ void run_phase_compensator(void)
 // debug function
 void dump_phase_data()
 {
-  int phase_offs  = abs(map.real_xscroll - player->x) % 512;
+  int phase_offs = abs(map.real_xscroll - player->x) % 512;
   int final_phase = abs(map.displayed_xscroll - player->x) % 512;
   debug("phase_offs: %d", phase_offs);
   debug("");
@@ -1187,14 +1183,14 @@ void map_sanitycheck(void)
 
 void map_scroll_jump(int x, int y)
 {
-  map.target_x     = x - ((Renderer::getInstance()->screenWidth / 2) * CSFI);
-  map.target_y     = y - ((Renderer::getInstance()->screenHeight / 2) * CSFI);
+  map.target_x = x - ((Renderer::getInstance()->screenWidth / 2) * CSFI);
+  map.target_y = y - ((Renderer::getInstance()->screenHeight / 2) * CSFI);
   map.real_xscroll = map.target_x;
   map.real_yscroll = map.target_y;
 
   map.displayed_xscroll = map.real_xscroll;
   map.displayed_yscroll = map.real_yscroll;
-  map.phase_adj         = 0;
+  map.phase_adj = 0;
 
   map.scrollcenter_x = map.scrollcenter_y = 0;
   map_sanitycheck();
@@ -1218,10 +1214,10 @@ void map_scroll_lock(bool lockstate)
 // if o is NULL, focuses on the player.
 void map_focus(Object *o, int spd)
 {
-  map.focus.target     = o;
+  map.focus.target = o;
   map.focus.has_target = (o != NULL);
 
-  map.scrollspeed   = spd;
+  map.scrollspeed = spd;
   map.scroll_locked = false;
 }
 
@@ -1248,7 +1244,7 @@ void map_ChangeTileWithSmoke(int x, int y, int newtile, int nclouds, bool boomfl
 const std::string &map_get_stage_name(int mapno)
 {
   static std::string stagename;
-  stagename = (std::string) "stage_" + stages[mapno].filename;
+  stagename = (std::string)"stage_" + stages[mapno].filename;
   if (_(stagename) == stagename)
   {
     stagename = stages[mapno].stagename;
@@ -1265,11 +1261,11 @@ void map_show_map_name()
 {
   if (rtl())
   {
-    game.mapname_x       = (Renderer::getInstance()->screenWidth / 2) + (Renderer::getInstance()->font.getWidth(map_get_stage_name(game.curmap)) / 2);
+    game.mapname_x = (Renderer::getInstance()->screenWidth / 2) + (Renderer::getInstance()->font.getWidth(map_get_stage_name(game.curmap)) / 2);
   }
   else
   {
-    game.mapname_x       = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->font.getWidth(map_get_stage_name(game.curmap)) / 2);
+    game.mapname_x = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->font.getWidth(map_get_stage_name(game.curmap)) / 2);
   }
   game.showmapnametime = 120;
 }
@@ -1286,7 +1282,7 @@ void map_draw_map_name(void)
 // animate all motion tiles
 void AnimateMotionTiles(void)
 {
-  map.motionpos ++;
+  map.motionpos++;
   if (map.motionpos >= TILE_W / 2)
     map.motionpos = 0;
 }
@@ -1299,7 +1295,7 @@ Object *FindObjectByID2(int id2)
   if (result)
   {
     LOG_DEBUG("FindObjectByID2: ID2 {:#04d} found: type {}; coords: ({}, {})", id2, DescribeObjectType(ID2Lookup[id2]->type),
-         ID2Lookup[id2]->x / CSFI, ID2Lookup[id2]->y / CSFI);
+      ID2Lookup[id2]->x / CSFI, ID2Lookup[id2]->y / CSFI);
   }
   else
   {

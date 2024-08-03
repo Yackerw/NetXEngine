@@ -276,10 +276,20 @@ void InitNewGame(bool with_intro)
   fade.set_full(FADE_OUT);
 }
 
+void HandleArgs(int argc, char *argv[]) {
+  for (int i = 1; i < argc; ++i) {
+    if (strcmp(argv[i], "2x") == 0) {
+      RESSCALE = 2;
+    }
+  }
+}
+
 int main(int argc, char *argv[])
 {
   bool error            = false;
   bool freshstart;
+
+  HandleArgs(argc, argv);
 
 #if defined(UNIX_LIKE)
   // On platforms where SDL may use Wayland (Linux and BSD), setting the icon from a surface doesn't work and

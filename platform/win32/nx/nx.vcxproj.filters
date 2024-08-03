@@ -871,4 +871,7 @@
       <Filter>Resources</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\.editorconfig" />
+  </ItemGroup>
 </Project>

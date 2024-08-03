@@ -10,7 +10,7 @@
 
 #include <SDL.h>
 
-#define RESSCALE 2
+extern int RESSCALE;
 
 
 namespace NXE

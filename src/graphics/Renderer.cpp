@@ -19,6 +19,8 @@
 #include <sstream>
 #include <iomanip>
 
+int RESSCALE = 1;
+
 namespace NXE
 {
 namespace Graphics

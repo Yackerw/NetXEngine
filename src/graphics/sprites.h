@@ -2,8 +2,8 @@
 #ifndef _SPRITES_H
 #define _SPRITES_H
 
-#define MAX_SPRITESHEETS 128
-#define MAX_SPRITES 512
+#define MAX_SPRITESHEETS 256
+#define MAX_SPRITES 1024
 
 #include "../siflib/sif.h"
 #include "Surface.h"
@@ -51,6 +51,7 @@ private:
   void _create_slope_boxes();
   bool _load_sif(const std::string &fname);
   void _loadSheetIfNeeded(int sheetno);
+  void _initializeSkinSprites();
 };
 }; // namespace Graphics
 }; // namespace NXE
