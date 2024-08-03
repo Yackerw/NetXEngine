@@ -177,7 +177,7 @@ void ResourceManager::findLanguages()
   _languages.push_back("english");
   for (auto &l : langs)
   {
-    std::ifstream ifs(widen(l + "/system.json"));
+    std::ifstream ifs(widen(l + "/system.json").c_str());
     if (ifs.is_open())
     {
       ifs.close();
@@ -197,7 +197,7 @@ void ResourceManager::findMods()
   for (auto &l: mods)
   {
 //    std::cout << l << std::endl;
-    std::ifstream ifs(widen(l+"/mod.json"), std::ifstream::in | std::ifstream::binary);
+    std::ifstream ifs(widen(l+"/mod.json").c_str(), std::ifstream::in | std::ifstream::binary);
     if (ifs.is_open())
     {
       nlohmann::json modfile = nlohmann::json::parse(ifs);

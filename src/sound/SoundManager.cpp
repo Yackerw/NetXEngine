@@ -65,7 +65,7 @@ bool SoundManager::init()
 
   std::ifstream fl;
 
-  fl.open(widen(path), std::ifstream::in | std::ifstream::binary);
+  fl.open(widen(path).c_str(), std::ifstream::in | std::ifstream::binary);
   if (fl.is_open())
   {
     nlohmann::json dirlist = nlohmann::json::parse(fl);
@@ -419,7 +419,7 @@ void SoundManager::_reloadTrackList()
   _music_loop.clear();
   _music_loop.push_back(false);
 
-  fl.open(widen(path), std::ifstream::in | std::ifstream::binary);
+  fl.open(widen(path).c_str(), std::ifstream::in | std::ifstream::binary);
   if (fl.is_open())
   {
     nlohmann::json tracklist = nlohmann::json::parse(fl);

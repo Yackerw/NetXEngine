@@ -52,7 +52,7 @@ bool Font::load()
   LOG_DEBUG("Loading font file {}", path.c_str());
 
   std::ifstream fl;
-  fl.open(widen(path), std::ifstream::in | std::ifstream::binary);
+  fl.open(widen(path).c_str(), std::ifstream::in | std::ifstream::binary);
   if (fl.is_open())
   {
     nlohmann::json fontdef = nlohmann::json::parse(fl);

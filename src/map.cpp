@@ -442,7 +442,7 @@ void load_meta(const std::string &fname)
 
   oob_tile_count = 0;
 
-  fl.open(widen(fname), std::ifstream::in | std::ifstream::binary);
+  fl.open(widen(fname).c_str(), std::ifstream::in | std::ifstream::binary);
   if (fl.is_open())
   {
     try

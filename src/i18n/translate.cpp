@@ -21,7 +21,7 @@ bool I18N::load()
   std::string path = ResourceManager::getInstance()->getPath("system.json");
   std::ifstream fl;
   _strings.clear();
-  fl.open(widen(path), std::ifstream::in | std::ifstream::binary);
+  fl.open(widen(path).c_str(), std::ifstream::in | std::ifstream::binary);
   if (fl.is_open())
   {
     nlohmann::json langfile = nlohmann::json::parse(fl);
