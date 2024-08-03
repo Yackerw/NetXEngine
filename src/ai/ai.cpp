@@ -14,6 +14,7 @@
 #include "sym/smoke.h"
 #include "../Networking.h"
 #include "../NetPlayer.h"
+#include <math.h>
 
 using namespace NXE::Graphics;
 

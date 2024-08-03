@@ -4,6 +4,7 @@
 #include "../../common/misc.h"
 #include "../../game.h"
 #include "weapons.h"
+#include <math.h>
 
 INITFUNC(AIRoutines)
 {
