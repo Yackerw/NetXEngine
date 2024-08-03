@@ -9,3 +9,5 @@ platform/win32/nx/Win32/Release/
 platform/win32/nx/x64/Debug/
 platform/win32/nx/x64/Release/
 .vs/
+platform/win32/nx/playerconfig.dat
+platform/win32/nx/chatlog.txt

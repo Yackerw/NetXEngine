@@ -262,7 +262,7 @@ void input_poll(void)
 
         static uint8_t shiftstates = 0;
 
-        if (console.IsVisible() && !IsNonConsoleKey(key))
+        if (console.IsVisible() && !IsNonConsoleKey(key) || (chatstate.typing == 1))
         {
           if (key == SDLK_LSHIFT)
           {
@@ -294,10 +294,15 @@ void input_poll(void)
                 ch = '!';
             }
 
-            if (evt.type == SDL_KEYDOWN)
-              console.HandleKey(ch);
-            else
-              console.HandleKeyRelease(ch);
+            if (Host == -1) {
+                if (evt.type == SDL_KEYDOWN)
+                    console.HandleKey(ch);
+                else
+                    console.HandleKeyRelease(ch);
+            }
+            else if (evt.type == SDL_KEYDOWN) {
+                Chat_AddChar(ch);
+            }
           }
         }
         else
