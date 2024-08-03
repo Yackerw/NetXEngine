@@ -966,11 +966,6 @@ void netDrawPlayer(Player *p)
   if (p->hide || p->disabled)
     return;
 
-  // keep his floattext position linked--do NOT update this if he is hidden
-  // so that floattext doesn't follow him after he dies.
-  //p->DamageText->UpdatePos(player);
-  //p->XPText->UpdatePos(player);
-
   // get screen position to draw him at
   scr_x = (p->x / CSFI) - (map.displayed_xscroll / CSFI);
   scr_y = (p->y / CSFI) - (map.displayed_yscroll / CSFI);
