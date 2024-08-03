@@ -64,11 +64,11 @@ class Renderer
 
     void showLoadingScreen();
 
-    void drawSurface(Surface *src, int x, int y);
-    void drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht);
-    void drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht);
+    void drawSurface(Surface *src, int x, int y, int divisor, int multiplier);
+    void drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht, int tw, int th);
+    void drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht, int tw, int th);
 
-    void blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, int height);
+    void blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, int height, int divisor, int multiplier);
 
     void clearScreen(NXColor color);
     void clearScreen(uint8_t r, uint8_t g, uint8_t b);
@@ -124,9 +124,9 @@ class Renderer
     Renderer &operator=(const Renderer &) = delete;
 };
 
-void inline Renderer::drawSurface(Surface *src, int dstx, int dsty)
+void inline Renderer::drawSurface(Surface *src, int dstx, int dsty, int divisor, int multiplier)
 {
-  drawSurface(src, dstx, dsty, 0, 0, src->width(), src->height());
+  drawSurface(src, dstx, dsty, 0, 0, src->width(), src->height(), (src->width() * multiplier) / divisor, (src->height() * multiplier) / divisor);
 }
 
 void inline Renderer::drawRect(int x1, int y1, int x2, int y2, NXColor color)

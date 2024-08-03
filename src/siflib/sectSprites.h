@@ -20,6 +20,7 @@ public:
 private:
   static void LoadRect(SIFRect *rect, const uint8_t **data, const uint8_t *data_end);
   static void LoadPoint(SIFPoint *pt, const uint8_t **data, const uint8_t *data_end);
+  static void LoadPointRaw(SIFPoint *pt, const uint8_t **data, const uint8_t *data_end);
   static void LoadPointList(SIFPointList *lst, const uint8_t **data, const uint8_t *data_end);
   static bool LoadFrame(SIFFrame *frame, int ndirs, const uint8_t **data, const uint8_t *data_end);
 };

@@ -282,7 +282,7 @@ void Renderer::showLoadingScreen()
   int y = (screenHeight / 2) - loading.height();
 
   clearScreen(BLACK);
-  drawSurface(&loading, x, y);
+  drawSurface(&loading, x, y, 1, 1);
   flip();
 }
 
@@ -304,7 +304,7 @@ void Renderer::flip()
 }
 
 // blit the specified portion of the surface to the screen
-void Renderer::drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht)
+void Renderer::drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht, int tw, int th)
 {
   assert(_renderer);
   assert(src->texture());
@@ -318,8 +318,8 @@ void Renderer::drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy,
 
   dstrect.x = dstx * scale;
   dstrect.y = dsty * scale;
-  dstrect.w = srcrect.w;
-  dstrect.h = srcrect.h;
+  dstrect.w = tw * scale;
+  dstrect.h = th * scale;
 
   if (_need_clip)
     clipScaled(srcrect, dstrect);
@@ -332,7 +332,7 @@ void Renderer::drawSurface(Surface *src, int dstx, int dsty, int srcx, int srcy,
 }
 
 // blit the specified portion of the surface to the screen
-void Renderer::drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht)
+void Renderer::drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, int srcy, int wd, int ht, int tw, int th)
 {
   assert(_renderer);
   assert(src->texture());
@@ -346,8 +346,8 @@ void Renderer::drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, i
 
   dstrect.x = dstx * scale;
   dstrect.y = dsty * scale;
-  dstrect.w = srcrect.w;
-  dstrect.h = srcrect.h;
+  dstrect.w = tw;
+  dstrect.h = th;
 
   if (_need_clip)
     clipScaled(srcrect, dstrect);
@@ -360,7 +360,7 @@ void Renderer::drawSurfaceMirrored(Surface *src, int dstx, int dsty, int srcx, i
 }
 
 // blit the specified surface across the screen in a repeating pattern
-void Renderer::blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, int height)
+void Renderer::blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, int height, int divisor, int multiplier)
 {
   SDL_Rect srcrect, dstrect;
 
@@ -369,8 +369,8 @@ void Renderer::blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, 
   srcrect.y = (y_src * scale);
   srcrect.h = (height * scale);
 
-  dstrect.w = srcrect.w;
-  dstrect.h = srcrect.h;
+  dstrect.w = (srcrect.w * multiplier) / divisor;
+  dstrect.h = (srcrect.h * multiplier) / divisor;
 
   int x      = (x_dst * scale);
   int y      = (y_dst * scale);
@@ -383,7 +383,7 @@ void Renderer::blitPatternAcross(Surface *sfc, int x_dst, int y_dst, int y_src, 
     dstrect.x = x;
     dstrect.y = y;
     SDL_RenderCopy(_renderer, sfc->texture(), &srcrect, &dstrect);
-    x += sfc->width()  * scale;
+    x += (sfc->width()  * scale * multiplier) / divisor;
   } while (x < destwd);
 }
 
@@ -497,6 +497,8 @@ void Renderer::clipScaled(SDL_Rect &srcrect, SDL_Rect &dstrect)
 
   w = dstrect.w;
   h = dstrect.h;
+  double wScale = srcrect.w / dstrect.w;
+  double hScale = srcrect.h / dstrect.h;
 
   dx = _clip_rect.x - dstrect.x;
   if (dx > 0)
@@ -520,8 +522,10 @@ void Renderer::clipScaled(SDL_Rect &srcrect, SDL_Rect &dstrect)
   if (dy > 0)
     h -= dy;
 
-  dstrect.w = srcrect.w = w;
-  dstrect.h = srcrect.h = h;
+  dstrect.w = w;
+  dstrect.h = h;
+  srcrect.w = w * wScale;
+  srcrect.h = h * wScale;
 }
 
 void Renderer::saveScreenshot()

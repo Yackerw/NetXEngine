@@ -195,6 +195,8 @@ struct SIFSprite
   // ---------------------------------------
 
   int w, h;
+  int tw, th;
+  bool twores;
   uint8_t spritesheet; // # of spritesheet sprite is located on
 
   int nframes;

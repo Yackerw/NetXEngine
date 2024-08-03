@@ -403,7 +403,7 @@ void BigImage::Draw()
   }
 
   if (state != BI_CLEAR)
-    Renderer::getInstance()->drawSurface(images[imgno], imagex, 0);
+    Renderer::getInstance()->drawSurface(images[imgno], imagex, 0, RESSCALE, 1);
 }
 
 /*

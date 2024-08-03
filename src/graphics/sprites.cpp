@@ -137,6 +137,17 @@ bool Sprites::_load_sif(const std::string &fname)
   if (SIFStringArraySect::Decode(sheetdata, sheetdatalength, &_sheetfiles))
     return false;
 
+  // replace .pbm with .bmp
+  if (RESSCALE == 2) {
+      for (int i = 0; i < _sheetfiles.size(); ++i) {
+          int pbmOffs = _sheetfiles[i].find(".pbm", 0);
+          if (pbmOffs != std::string::npos) {
+              _sheetfiles[i].erase(pbmOffs, 4);
+              _sheetfiles[i].append(".bmp");
+          }
+      }
+  }
+
   // decode sprites
   if (SIFSpritesSect::Decode(spritesdata, spritesdatalength, &sprites[0], &_num_sprites, MAX_SPRITES))
   {
@@ -200,7 +211,7 @@ void Sprites::_loadSheetIfNeeded(int sheetno)
 }
 
 // master sprite drawing function
-void Sprites::blitSprite(int x, int y, int s, int frame, uint8_t dir, int xoff, int yoff, int wd, int ht, int alpha)
+void Sprites::blitSprite(int x, int y, int s, int frame, uint8_t dir, int xoff, int yoff, int wd, int ht, int tw, int th, int alpha)
 {
   _loadSheetIfNeeded(sprites[s].spritesheet);
 
@@ -210,12 +221,12 @@ void Sprites::blitSprite(int x, int y, int s, int frame, uint8_t dir, int xoff, 
   _spritesheets[sprites[s].spritesheet]->alpha = alpha;
 
   Renderer::getInstance()->drawSurface(_spritesheets[sprites[s].spritesheet], x, y, (sprdir->sheet_offset.x + xoff),
-                (sprdir->sheet_offset.y + yoff), wd, ht);
+                (sprdir->sheet_offset.y + yoff), wd, ht, tw, th);
   _spritesheets[sprites[s].spritesheet]->alpha = 255;
 }
 
 // master sprite drawing function
-void Sprites::blitSpriteMirrored(int x, int y, int s, int frame, uint8_t dir, int xoff, int yoff, int wd, int ht, int alpha)
+void Sprites::blitSpriteMirrored(int x, int y, int s, int frame, uint8_t dir, int xoff, int yoff, int wd, int ht, int tw, int th, int alpha)
 {
   _loadSheetIfNeeded(sprites[s].spritesheet);
 
@@ -225,20 +236,20 @@ void Sprites::blitSpriteMirrored(int x, int y, int s, int frame, uint8_t dir, in
   _spritesheets[sprites[s].spritesheet]->alpha = alpha;
 
   Renderer::getInstance()->drawSurfaceMirrored(_spritesheets[sprites[s].spritesheet], x, y, (sprdir->sheet_offset.x + xoff),
-                (sprdir->sheet_offset.y + yoff), wd, ht);
+                (sprdir->sheet_offset.y + yoff), wd, ht, tw, th);
   _spritesheets[sprites[s].spritesheet]->alpha = 255;
 }
 
 // draw sprite "s" at [x,y]. drawing frame "frame" and dir "dir".
 void Sprites::drawSprite(int x, int y, int s, int frame, uint8_t dir)
 {
-  blitSprite(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h);
+  blitSprite(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h, sprites[s].tw, sprites[s].th);
 }
 
 // draw sprite "s" at [x,y]. drawing frame "frame" and dir "dir".
 void Sprites::drawSpriteMirrored(int x, int y, int s, int frame, uint8_t dir)
 {
-  blitSpriteMirrored(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h);
+  blitSpriteMirrored(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h, sprites[s].tw, sprites[s].th);
 }
 
 // draw sprite "s", place it's draw point at [x,y] instead of it's upper-left corner.
@@ -246,7 +257,7 @@ void Sprites::drawSpriteAtDp(int x, int y, int s, int frame, uint8_t dir)
 {
   x -= sprites[s].frame[frame].dir[dir].drawpoint.x;
   y -= sprites[s].frame[frame].dir[dir].drawpoint.y;
-  blitSprite(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h);
+  blitSprite(x, y, s, frame, dir, 0, 0, sprites[s].w, sprites[s].h, sprites[s].tw, sprites[s].th);
 }
 
 // draw a portion of a sprite, such as a sprite in the middle of "teleporting".
@@ -254,14 +265,22 @@ void Sprites::drawSpriteAtDp(int x, int y, int s, int frame, uint8_t dir)
 void Sprites::drawSpriteClipped(int x, int y, int s, int frame, uint8_t dir, int clipx1, int clipx2, int clipy1,
                                   int clipy2)
 {
-  blitSprite(x + clipx1, y + clipy1, s, frame, dir, clipx1, clipy1, (clipx2 - clipx1), (clipy2 - clipy1));
+    int w = clipx2 - clipx1;
+    int h = clipy2 - clipy1;
+    int tw = w;
+    int th = h;
+    if (sprites[s].twores) {
+        w *= 2;
+        h *= 2;
+    }
+  blitSprite(x + clipx1, y + clipy1, s, frame, dir, clipx1, clipy1, w, h, tw, th);
 }
 
 // draw a clipped sprite while clipping only the width.
 // used for drawing percentage bars, etc.
 void Sprites::drawSpriteClipWidth(int x, int y, int s, int frame, int wd)
 {
-  blitSprite(x, y, s, frame, 0, 0, 0, wd, sprites[s].h);
+  blitSprite(x, y, s, frame, 0, 0, 0, sprites[s].twores ? wd * 2 : wd, sprites[s].h, wd, sprites[s].th);
 }
 
 // draws a sprite at less than it's actual width by chopping it into two chunks.
@@ -274,19 +293,19 @@ void Sprites::drawSpriteChopped(int x, int y, int s, int frame, int wd, int repe
 
   if (wd >= sprites[s].w)
   {
-    blitSprite(x, y, s, frame, 0, 0, 0, sprites[s].w, sprites[s].h, alpha);
+    blitSprite(x, y, s, frame, 0, 0, 0, sprites[s].w, sprites[s].h, sprites[s].tw, sprites[s].th, alpha);
     return;
   }
 
   // draw the left part
-  blitSprite(x, y, s, frame, 0, 0, 0, repeat_at, sprites[s].h, alpha);
+  blitSprite(x, y, s, frame, 0, 0, 0, sprites[s].twores ? repeat_at * 2 : repeat_at, sprites[s].h, repeat_at, sprites[s].th, alpha);
   x += repeat_at;
   wd -= repeat_at;
 
   // draw the rest of it
   xoff = (sprites[s].w - wd);
 
-  blitSprite(x, y, s, frame, 0, xoff, 0, wd, sprites[s].h, alpha);
+  blitSprite(x, y, s, frame, 0, xoff, 0, sprites[s].twores ? wd * 2 : wd, sprites[s].h, wd, sprites[s].th, alpha);
 }
 
 // draws a sprite to any arbitrary width by repeating it over the given distance.
@@ -297,10 +316,10 @@ void Sprites::drawSpriteRepeatingX(int x, int y, int s, int frame, int wd)
   while (wdleft > 0)
   {
     int blitwd = wdleft;
-    if (blitwd > sprites[s].w)
-      blitwd = sprites[s].w;
+    if (blitwd > sprites[s].tw)
+      blitwd = sprites[s].tw;
 
-    blitSprite(x, y, s, frame, 0, 0, 0, blitwd, sprites[s].h);
+    blitSprite(x, y, s, frame, 0, 0, 0, sprites[s].twores ? blitwd * 2 : blitwd, sprites[s].h, blitwd, sprites[s].th);
     x += blitwd;
     wdleft -= blitwd;
   }

@@ -52,7 +52,7 @@ void TB_ItemImage::Draw(void)
     return;
 
   // animate moving item downwards into box
-  int desty = (ITEMBOX_H / 2) - (Renderer::getInstance()->sprites.sprites[fSprite].h / 2);
+  int desty = (ITEMBOX_H / 2) - (Renderer::getInstance()->sprites.sprites[fSprite].th / 2);
   if (++fYOffset > desty)
     fYOffset = desty;
 
@@ -60,8 +60,8 @@ void TB_ItemImage::Draw(void)
   TextBox::DrawFrame(ITEMBOX_X, ITEMBOX_Y, ITEMBOX_W, ITEMBOX_H);
 
   // draw the item
-  int x = ITEMBOX_X + ((ITEMBOX_W / 2) - (Renderer::getInstance()->sprites.sprites[fSprite].w / 2));
-  if (Renderer::getInstance()->sprites.sprites[fSprite].w == 14)
+  int x = ITEMBOX_X + ((ITEMBOX_W / 2) - (Renderer::getInstance()->sprites.sprites[fSprite].tw / 2));
+  if (Renderer::getInstance()->sprites.sprites[fSprite].tw == 14)
     x--; // hack for ArmsIcons
 
   Renderer::getInstance()->sprites.drawSprite(x, ITEMBOX_Y + fYOffset, fSprite, fFrame);

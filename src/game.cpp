@@ -466,8 +466,8 @@ void DrawScene(void)
     // (+26 so floattext won't suddenly disappear on object near bottom of screen)
     if (scr_x <= Renderer::getInstance()->screenWidth
         && scr_y <= Renderer::getInstance()->screenHeight + 26
-        && scr_x >= -Renderer::getInstance()->sprites.sprites[o->sprite].w
-        && scr_y >= -Renderer::getInstance()->sprites.sprites[o->sprite].h)
+        && scr_x >= -Renderer::getInstance()->sprites.sprites[o->sprite].tw
+        && scr_y >= -Renderer::getInstance()->sprites.sprites[o->sprite].th)
     {
       if (nOnscreenObjects < MAX_OBJECTS - 1)
       {

@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include "../graphics/Renderer.h"
 
 int SIFSpritesSect::GetSpriteCount(const uint8_t *data, int datalen)
 {
@@ -37,8 +38,10 @@ bool SIFSpritesSect::Decode(const uint8_t *data, int datalen, SIFSprite *sprites
     }
 
     // read sprite-level fields
-    sprites[i].w           = read_U8(&data, data_end);
-    sprites[i].h           = read_U8(&data, data_end);
+    sprites[i].tw = read_U8(&data, data_end);
+    sprites[i].th = read_U8(&data, data_end);
+    sprites[i].w = sprites[i].tw * RESSCALE;
+    sprites[i].h = sprites[i].th * RESSCALE;
     sprites[i].spritesheet = read_U8(&data, data_end);
 
     sprites[i].nframes = read_U8(&data, data_end);
@@ -55,7 +58,7 @@ bool SIFSpritesSect::Decode(const uint8_t *data, int datalen, SIFSprite *sprites
       LoadRect(&sprites[i].bbox[f], &data, data_end);
     LoadRect(&sprites[i].solidbox, &data, data_end);
 
-    LoadPoint(&sprites[i].spawn_point, &data, data_end);
+    LoadPointRaw(&sprites[i].spawn_point, &data, data_end);
 
     LoadPointList(&sprites[i].block_l, &data, data_end);
     LoadPointList(&sprites[i].block_r, &data, data_end);
@@ -97,13 +100,13 @@ bool SIFSpritesSect::LoadFrame(SIFFrame *frame, int ndirs, const uint8_t **data,
       switch (t)
       {
         case S_DIR_DRAW_POINT:
-          LoadPoint(&dir->drawpoint, data, data_end);
+          LoadPointRaw(&dir->drawpoint, data, data_end);
           break;
         case S_DIR_ACTION_POINT:
-          LoadPoint(&dir->actionpoint, data, data_end);
+          LoadPointRaw(&dir->actionpoint, data, data_end);
           break;
         case S_DIR_ACTION_POINT_2:
-          LoadPoint(&dir->actionpoint2, data, data_end);
+          LoadPointRaw(&dir->actionpoint2, data, data_end);
           break;
 
         case S_DIR_PF_BBOX:
@@ -134,8 +137,14 @@ void SIFSpritesSect::LoadRect(SIFRect *rect, const uint8_t **data, const uint8_t
 
 void SIFSpritesSect::LoadPoint(SIFPoint *pt, const uint8_t **data, const uint8_t *data_end)
 {
-  pt->x = (int16_t)read_U16(data, data_end);
-  pt->y = (int16_t)read_U16(data, data_end);
+  pt->x = (int16_t)read_U16(data, data_end) * RESSCALE;
+  pt->y = (int16_t)read_U16(data, data_end) * RESSCALE;
+}
+
+void SIFSpritesSect::LoadPointRaw(SIFPoint* pt, const uint8_t** data, const uint8_t* data_end)
+{
+    pt->x = (int16_t)read_U16(data, data_end);
+    pt->y = (int16_t)read_U16(data, data_end);
 }
 
 void SIFSpritesSect::LoadPointList(SIFPointList *lst, const uint8_t **data, const uint8_t *data_end)

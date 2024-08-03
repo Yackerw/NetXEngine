@@ -632,8 +632,8 @@ int x, y;
 		case BK_PARALLAX:
 			map.parscroll_y = (map.displayed_yscroll / CSFI) / 2;
 			map.parscroll_x = (map.displayed_xscroll / CSFI) / 2;
-			map.parscroll_x %= backdrop[map.backdrop]->width();
-			map.parscroll_y %= backdrop[map.backdrop]->height();
+			map.parscroll_x %= backdrop[map.backdrop]->width() / RESSCALE;
+			map.parscroll_y %= backdrop[map.backdrop]->height() / RESSCALE;
 			if (map.parscroll_x < 0 ) map.parscroll_x = map.parscroll_x * 2;
 			if (map.parscroll_y < 0 ) map.parscroll_y = map.parscroll_y * 2;
 		break;
@@ -696,7 +696,7 @@ int x, y;
     for (x = 0; x < Renderer::getInstance()->screenWidth + map.parscroll_x; x += w)
     {
       //		    if ( ((x - map.parscroll_x) < mapx) && ((y - map.parscroll_y) < mapy))
-      Renderer::getInstance()->drawSurface(backdrop[map.backdrop], x - map.parscroll_x, y - map.parscroll_y);
+      Renderer::getInstance()->drawSurface(backdrop[map.backdrop], x - map.parscroll_x, y - map.parscroll_y, RESSCALE, 1);
     }
   }
 }
@@ -741,7 +741,7 @@ void DrawFastLeftLayered(void)
       x = (map.parscroll_x * move_spd[i]) >> 1;
       //			x %= Renderer::getInstance()->screenWidth;
     }
-    Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], x, y1, y1, (y2 - y1) + 1);
+    Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], x, y1, y1 * RESSCALE, ((y2 - y1) + 1) * RESSCALE, RESSCALE, 1);
     y1 = (y2 + 1);
   }
   int mapy = map.displayed_yscroll / CSFI;
@@ -781,16 +781,16 @@ void map_drawwaterlevel(void)
   water_y = (map.waterlevelobject->y / CSFI) - (map.displayed_yscroll / CSFI);
 
   // draw the surface and just under the surface
-  Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 0, 16);
+  Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 0, 16 * RESSCALE, RESSCALE, 1);
   water_y += 16;
 
-  Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 32, 16);
+  Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 32 * RESSCALE, 16 * RESSCALE, RESSCALE, 1);
   water_y += 16;
 
   // draw the rest of the pattern all the way down
   while (water_y < (Renderer::getInstance()->screenHeight - 1))
   {
-    Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 16, 32);
+    Renderer::getInstance()->blitPatternAcross(backdrop[map.backdrop], water_x, water_y, 16 * RESSCALE, 32 * RESSCALE, RESSCALE, 1);
     water_y += 32;
   }
 }

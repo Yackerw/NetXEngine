@@ -64,6 +64,7 @@ typedef struct
 } menuitem;
 
 std::vector<menuitem> _menuitems;
+std::vector<menuitem> _multiplayermenuitems;
 
 static void draw_title()
 {
@@ -73,38 +74,44 @@ static void draw_title()
   //	DrawFastLeftLayered();
 
   // top logo
-  int tx = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->sprites.sprites[SPR_TITLE].w / 2) - 2;
+  int tx = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->sprites.sprites[SPR_TITLE].tw / 2) - 2;
   Renderer::getInstance()->sprites.drawSprite(tx, 40, SPR_TITLE);
 
   	int cx = (Renderer::getInstance()->screenWidth / 2) + (rtl() ? 32 : -32);
   int cy = (Renderer::getInstance()->screenHeight / 2) - 8;
 
+  std::vector<menuitem>* curritems = &_menuitems;
+
+  if (Multiplayer == 1) {
+      curritems = &_multiplayermenuitems;
+  }
+
 	// TODO: change to switch statement
-	if (Multiplayer == 0) {
+	if (Multiplayer == 0 || Multiplayer == 1) {
           TextBox::DrawFrame((Renderer::getInstance()->screenWidth / 2) - 64, cy - 16, 128, 96);
 		//show if its hosting
-          for (size_t i = 0; i < _menuitems.size(); i++)
+          for (size_t i = 0; i < (*curritems).size(); i++)
           {
-            if (_menuitems[i].enabled)
+            if ((*curritems)[i].enabled)
             {
               if (rtl())
               {
-                Renderer::getInstance()->font.draw(cx - 10, cy, _(_menuitems[i].text));
+                Renderer::getInstance()->font.draw(cx - 10, cy, _((*curritems)[i].text));
               }
               else
               {
-                Renderer::getInstance()->font.draw(cx + 10, cy, _(_menuitems[i].text));
+                Renderer::getInstance()->font.draw(cx + 10, cy, _((*curritems)[i].text));
               }
             }
             else
             {
               if (rtl())
               {
-                Renderer::getInstance()->font.draw(cx - 10, cy, _(_menuitems[i].text), 0x666666);
+                Renderer::getInstance()->font.draw(cx - 10, cy, _((*curritems)[i].text), 0x666666);
               }
               else
               {
-                Renderer::getInstance()->font.draw(cx + 10, cy, _(_menuitems[i].text), 0x666666);
+                Renderer::getInstance()->font.draw(cx + 10, cy, _((*curritems)[i].text), 0x666666);
               }
             }
 
@@ -124,22 +131,6 @@ static void draw_title()
 
             cy += 12;
           }
-	}
-	if (Multiplayer == 1) {
-		const char* mymenus[] = { "Host", "Connect", "IP", "Skin", "Name" };
-
-		TextBox::DrawFrame(cx - 32, cy - 16, 128, 80);
-
-		for (int i = 0; i <= 4; i++)
-		{
-			Renderer::getInstance()->font.draw(cx + 10, cy - 8, (mymenus[i]));
-			if (i == title.cursel)
-			{
-                          Renderer::getInstance()->sprites.drawSprite(cx - 16, cy - 9, title.sprite, title.selframe);
-			}
-
-			cy += 12;
-		}
 	}
 	if (Multiplayer == 2) {
 		const char *mymenu = "Please input IP:";
@@ -220,14 +211,14 @@ static void draw_title()
   }
 
   // accreditation
-  cx        = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->sprites.sprites[SPR_PIXEL_FOREVER].w / 2);
+  cx        = (Renderer::getInstance()->screenWidth / 2) - (Renderer::getInstance()->sprites.sprites[SPR_PIXEL_FOREVER].tw / 2);
   int acc_y = Renderer::getInstance()->screenHeight - 48;
   Renderer::getInstance()->sprites.drawSprite(cx, acc_y, SPR_PIXEL_FOREVER);
 
   // version
   int wd = Renderer::getInstance()->font.getWidth(NXVERSION);
   cx     = (Renderer::getInstance()->screenWidth / 2) + (rtl() ? (wd / 2) : -(wd / 2));
-  Renderer::getInstance()->font.draw(cx, acc_y + Renderer::getInstance()->sprites.sprites[SPR_PIXEL_FOREVER].h + 4, NXVERSION, 0xf3e298);
+  Renderer::getInstance()->font.draw(cx, acc_y + Renderer::getInstance()->sprites.sprites[SPR_PIXEL_FOREVER].th + 4, NXVERSION, 0xf3e298);
 
   // draw Nikumaru display
   if (title.besttime != 0xffffffff)
@@ -259,14 +250,19 @@ void run_konami_code()
 
 static void handle_input()
 {
+    std::vector<menuitem>* curritems = &_menuitems;
+
+    if (Multiplayer == 1) {
+        curritems = &_multiplayermenuitems;
+    }
   if (justpushed(DOWNKEY))
   {
     NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_MENU_MOVE);
     do
     {
-      if (++title.cursel >= (int)_menuitems.size())
+      if (++title.cursel >= (int)(*curritems).size())
         title.cursel = 0;
-    } while (!_menuitems.at(title.cursel).enabled);
+    } while (!(*curritems).at(title.cursel).enabled);
   }
   else if (justpushed(UPKEY))
   {
@@ -274,8 +270,8 @@ static void handle_input()
     do
     {
       if (--title.cursel < 0)
-        title.cursel = _menuitems.size()-1;
-    } while (!_menuitems.at(title.cursel).enabled);
+        title.cursel = (*curritems).size()-1;
+    } while (!(*curritems).at(title.cursel).enabled);
   } else if (justpushed(LEFTKEY)) { //skin select
 		/*if (Multiplayer == 3 && player->skin == 0) {
 			sound(SND_MENU_MOVE);
@@ -304,21 +300,24 @@ static void handle_input()
 		}
 	}
 
+  if (Multiplayer == 1) {
+      // Go back if it was the shoot key
+      if (justpushed(FIREKEY)) {
+          Multiplayer = 0;
+          title.cursel = 4;
+          title.selchoice = 60;
+          title.seldelay = 1;
+      }
+  }
+
   if (justpushed(ACCEPT_BUTTON) || justpushed(ENTERKEY))
   {
     NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_MENU_SELECT);
     int choice = title.cursel;
-	
-	if (Multiplayer == 1) {
-			// Go back if it was the shoot key
-			if (justpushed(FIREKEY)) {
-				Multiplayer = 0;
-				choice = 40;
-				title.cursel = 3;
-			}
-			choice += 20;
-		}
 
+    if (Multiplayer == 1) {
+        choice += 20;
+        }
 		if (Multiplayer == 2) {
 			// If we're in the IP Menu, then return
 			Multiplayer = 1;
@@ -425,7 +424,14 @@ static void selectoption(int index)
       game.pause(GP_MODS);
     }
     break;
-    case 4: // Quit
+    case 4: {
+        if (Host == -1) {
+            Multiplayer = 1;
+            title.cursel = 0;
+        }
+    }
+          break;
+    case 5: // Quit
     {
       NXE::Sound::SoundManager::getInstance()->music(0);
       game.running = false;
@@ -521,7 +527,16 @@ bool title_init(int param)
   else
     _menuitems.push_back({"Mods",false});
 
+  _menuitems.push_back({ "Multiplayer",true });
+
   _menuitems.push_back({"Quit",true});
+
+  _multiplayermenuitems.clear();
+  _multiplayermenuitems.push_back({ "Host", true });
+  _multiplayermenuitems.push_back({ "Connect", true });
+  _multiplayermenuitems.push_back({ "IP", true });
+  _multiplayermenuitems.push_back({ "Skin", true });
+  _multiplayermenuitems.push_back({ "Name", true });
 
   return 0;
 }

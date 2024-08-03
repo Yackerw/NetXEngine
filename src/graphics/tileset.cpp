@@ -37,7 +37,12 @@ bool Tileset::load(int new_tileset)
       _current_tileset = -1;
     }
 
-    sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
+    if (RESSCALE == 1) {
+        sprintf(fname, "Stage/Prt%s.pbm", tileset_names[new_tileset]);
+    }
+    else {
+        sprintf(fname, "Stage/Prt%s.bmp", tileset_names[new_tileset]);
+    }
 
     _tileset = Surface::fromFile(ResourceManager::getInstance()->getPath(fname), true);
     if (!_tileset)
@@ -58,7 +63,7 @@ void Tileset::drawTile(int x, int y, int t)
   int srcx = (t % 16) * TILE_W;
   int srcy = (t / 16) * TILE_H;
 
-  Renderer::getInstance()->drawSurface(_tileset, x, y, srcx, srcy, TILE_W, TILE_H);
+  Renderer::getInstance()->drawSurface(_tileset, x, y, srcx * RESSCALE, srcy * RESSCALE, TILE_W * RESSCALE, TILE_H * RESSCALE, TILE_W, TILE_H);
 }
 
 void Tileset::reload()
