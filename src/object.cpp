@@ -26,11 +26,11 @@ void(**ObjSyncTickFuncsRecv)(char *buff, int id);
 
 int Object::Width()
 {
-  return (Renderer::getInstance()->sprites.sprites[this->sprite].w * CSFI);
+  return (Renderer::getInstance()->sprites.sprites[this->sprite].tw * CSFI);
 }
 int Object::Height()
 {
-  return (Renderer::getInstance()->sprites.sprites[this->sprite].h * CSFI);
+  return (Renderer::getInstance()->sprites.sprites[this->sprite].th * CSFI);
 }
 
 int Object::BBoxWidth()
