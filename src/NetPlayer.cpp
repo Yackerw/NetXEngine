@@ -980,17 +980,17 @@ void netDrawPlayer(Player *p)
     // to point at their handle, this places the handle in the player's hand.
     Renderer::getInstance()->sprites.drawSpriteAtDp(scr_x
       + Renderer::getInstance()
-      ->sprites.sprites[player->sprite]
-      .frame[player->frame]
-      .dir[player->dir]
+      ->sprites.sprites[p->sprite]
+      .frame[p->frame]
+      .dir[p->dir]
       .actionpoint.x,
       scr_y
       + Renderer::getInstance()
-      ->sprites.sprites[player->sprite]
-      .frame[player->frame]
-      .dir[player->dir]
+      ->sprites.sprites[p->sprite]
+      .frame[p->frame]
+      .dir[p->dir]
       .actionpoint.y,
-      spr, frame, player->dir);
+      spr, frame, p->dir);
   }
 
   // draw the player sprite
