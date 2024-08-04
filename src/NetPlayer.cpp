@@ -1296,8 +1296,13 @@ void ConnectRecv(char *buff) {
   memcpy(&(player->ninventory), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
   memcpy(&(player->weapons), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
   player->wpnOrder.clear();
+  bool firstWpn = false;
   for (int i = 0; i < WPN_COUNT; ++i) {
     if (player->weapons[i].hasWeapon) {
+      if (!firstWpn) {
+        player->curWeapon = i;
+        firstWpn = true;
+      }
       player->wpnOrder.push_back(i);
     }
   }

@@ -753,8 +753,13 @@ void Net_ParseBuffs() {
               }
               // default weapon order for now...
               player->wpnOrder.clear();
+              bool firstWeapon = false;
               for (int i = 0; i < WPN_COUNT; ++i) {
                 if (player->weapons[i].hasWeapon) {
+                  if (!firstWeapon) {
+                    player->curWeapon = i;
+                    firstWeapon = true;
+                  }
                   player->wpnOrder.push_back(i);
                 }
               }
