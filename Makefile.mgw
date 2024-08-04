@@ -25,7 +25,7 @@ OBJS_ENDGAME = src/endgame/credits.cpp src/endgame/CredReader.cpp src/endgame/is
 
 OBJS_INTRO = src/intro/intro.cpp src/intro/title.cpp
 
-OBJS_RESOURCE = platform\win32\nx\nx_mgw.res
+OBJS_RESOURCE = platform\win32\nx\nx_mgw_built.res
 
 
 OBJS = $(OBJS_BASE) $(OBJS_COMMON) $(OBJS_AUTOGEN) $(OBJS_GRAPHICS) $(OBJS_SOUND) $(OBJS_TEXTBOX) $(OBJS_UTILS) $(OBJS_I18N) $(OBJS_PAUSE) $(OBJS_SIFLIB) $(OBJS_AI) $(OBJS_ENDGAME) $(OBJS_INTRO) $(OBJS_RESOURCE)

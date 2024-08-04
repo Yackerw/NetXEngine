@@ -1,0 +1,1 @@
+windres platform\win32\nx\nx.rc --target=pe-i386 -O coff -o platform\win32\nx\nx_mgw_built.res

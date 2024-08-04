@@ -18,8 +18,7 @@ MinGW-w64 (tested with TDM-GCC version 10.3.0), and MinGW32.
 Follow the instructions on [nxengine-evo's wiki.](https://github.com/nxengine/nxengine-evo/wiki/Building-on-Windows)
 
 ### TDM-GCC / MinGW-w64
-Enter the base directory in command line, run `windres platform\win32\nx\nx.rc --target=pe-i386 -O coff -o platform\win32\nx\nx_mgw.res` to build resources (you only need to do this once),  
-then `mingw32-make --file=Makefile.mgw` to build the exe. Add DEBUG=1 to create a debug build for use with gdb.
+Enter the base directory in command line, then run `mingw32-make --file=Makefile.mgw` to build. Add DEBUG=1 to create a debug build for use with gdb.
 ### MinGW32
 Follow the instructions for w64, but add USE_MINGW32=1 onto the mingw32-make command.  
 * Builds using 32 will lack debug logging.
