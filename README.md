@@ -11,8 +11,7 @@ Currently only for Windows, XP and up.
 * Support for Cave Story Switch music
 
 ## Compiling
-NetXEngine can be compiled on Visual Studio 2017 and up (or according to base nxengine-evo, 2010 and up),  
-MinGW-w64 (tested with TDM-GCC version 10.3.0), and MinGW32.
+NetXEngine can be compiled on Visual Studio 2017 and up, MinGW-w64 (tested with TDM-GCC version 10.3.0), and MinGW32.
 
 ### Visual Studio
 Follow the instructions on [nxengine-evo's wiki.](https://github.com/nxengine/nxengine-evo/wiki/Building-on-Windows)
