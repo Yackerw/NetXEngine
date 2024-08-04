@@ -766,6 +766,9 @@ void PDoLooking(void)
           if (!PTryActivateScript()) {
             effect(player->CenterX(), player->CenterY(), EFFECT_QMARK);
           }
+          else {
+            player->scriptactivated = true;
+          }
         }
       }
     }
