@@ -212,7 +212,7 @@ void netHandlePlayer_am(int pl)
 
   p->lastwalking = p->walking;
   p->lastriding = p->riding;
-  p->riding = false;
+  p->riding = NULL;
   p->inputs_locked_lasttime = p->inputs_locked;
   memcpy(netlastpinputs[pl], netpinputs[pl], sizeof(netlastpinputs[pl]));
 }
