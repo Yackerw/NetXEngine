@@ -762,8 +762,10 @@ void PDoLooking(void)
 #endif
         {
           player->lookaway = true;
-          player->xinertia = 0;
-          PTryActivateScript();
+          //player->xinertia = 0;
+          if (!PTryActivateScript()) {
+            effect(player->CenterX(), player->CenterY(), EFFECT_QMARK);
+          }
         }
       }
     }
@@ -802,6 +804,11 @@ void PDoLooking(void)
     // keys which deactivate lookaway when you are facing away from player
     static const char actionkeys[] = {LEFTKEY, RIGHTKEY, UPKEY, JUMPKEY, FIREKEY, STRAFEKEY, INPUT_COUNT};
 
+    // continue activating scripts until we activate one
+    if (!player->scriptactivated) {
+      player->scriptactivated = PTryActivateScript();
+    }
+
     // stop looking away if any keys are pushed
     for (i = 0;; i++)
     {
@@ -820,6 +827,9 @@ void PDoLooking(void)
 
     if (!player->blockd)
       player->lookaway = false;
+  }
+  else {
+    player->scriptactivated = false;
   }
 }
 
@@ -1594,8 +1604,6 @@ bool PTryActivateScript()
     game.tsc->StartScript(player->riding->id2);
     return true;
   }
-
-  effect(player->CenterX(), player->CenterY(), EFFECT_QMARK);
   return false;
 }
 
