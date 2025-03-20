@@ -434,20 +434,21 @@ const uint8_t *TSC::FindScriptData(int scriptno, ScriptPages pageno, ScriptPages
 
 bool TSC::StartScript(int scriptno, ScriptPages pageno)
 {
-	// Don't execute if we're the host and haven't been told to by the server (or are in the entry script)
-	if (Host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
-		return false;
-	}
-	// Set it back to false again
-	TscExec = false;
 	// don't re-execute the on entry event
 	// If we're the server, tell everyone to execute!
-	if (Host == 1 && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED) {
+  // additionally; !TscExec prevents you from trying to synchronize one that's already been synchronized
+	if ((Host == 1 || strcmp(name,"mikey") == 0) && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED && (!TscExec || Host == 1)) {
 		char *buff = (char*)malloc(sizeof(int));
 		memcpy(buff, &scriptno, sizeof(int));
 		Packet_Send_Host(buff,sizeof(int), 6, 1);
 		free(buff);
 	}
+  // Don't execute if we're the host and haven't been told to by the server (or are in the entry script)
+  if (Host == 0 && scriptno != game.switchstage.eventonentry && TscExec == false) {
+    return false;
+  }
+  // Set it back to false again
+  TscExec = false;
 const uint8_t *program;
 ScriptPages found_pageno;
 
