@@ -51,9 +51,9 @@ void randblink(Object *o, int blinkframe = 1, int blinktime = 8, int prob = 120)
       o->yinertia = -K;                                                                                                \
   }
 
-#define pdistlx(K) (abs(player->CenterX() - o->CenterX()) <= (K))
-#define pdistly(K) (abs(player->CenterY() - o->CenterY()) <= (K))
-#define pdistly2(ABOVE, BELOW) (pdistly(((player->CenterY() > o->CenterY()) ? (BELOW) : (ABOVE))))
+#define pdistlx(K) (abs(FindPlayer(o)->CenterX() - o->CenterX()) <= (K))
+#define pdistly(K) (abs(FindPlayer(o)->CenterY() - o->CenterY()) <= (K))
+#define pdistly2(ABOVE, BELOW) (pdistly(((FindPlayer(o)->CenterY() > o->CenterY()) ? (BELOW) : (ABOVE))))
 #define pdistl(K) (pdistlx((K)) && pdistly((K)))
 
 #define XMOVE(SPD)                                                                                                     \
@@ -90,8 +90,8 @@ void randblink(Object *o, int blinkframe = 1, int blinktime = 8, int prob = 120)
 
 #define FACEPLAYERIFNEARBY                                                                                             \
   {                                                                                                                    \
-    if (!player->hide && pdistlx(0x4000) && pdistly2(0x4000, 0x2000))                                                  \
-      o->dir = (o->CenterX() > player->CenterX()) ? LEFT : RIGHT;                                                      \
+    if (!FindPlayer(o)->hide && pdistlx(0x4000) && pdistly2(0x4000, 0x2000))                                                  \
+      o->dir = (o->CenterX() > FindPlayer(o)->CenterX()) ? LEFT : RIGHT;                                                      \
   }
 
 Object *SpawnObjectAtActionPoint(Object *o, int otype);

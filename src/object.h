@@ -742,6 +742,7 @@ typedef struct {
 	int state;
 	int substate;
 	int hp;
+  int timers[3];
 	char dir;
 } BasicSyncStruct;
 

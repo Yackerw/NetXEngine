@@ -225,6 +225,7 @@ bool load_entities(const std::string &fname)
   FILE *fp;
   int i;
   int nEntities;
+  bool sllo = false;
 
   // gotta destroy all objects before creating new ones
   Objects::DestroyAll(false);
@@ -301,11 +302,16 @@ bool load_entities(const std::string &fname)
         if (type == OBJ_SKY_DRAGON && id2 == 230)
           y++;
 
+        if (ObjSyncTickFuncsRecv[type] != NULL) {
+          // We have loaded new level, be sure to note this
+          sllo = true;
+        }
+
         // hack for Curly in Almond
         if (game.curmap == 47 && id2 == 301 && !game.flags[822])
           y++;
 
-        Object *o = CreateObject((x * TILE_W) * CSFI, (y * TILE_H) * CSFI, type, 0, 0, dir, NULL, CF_NO_SPAWN_EVENT);
+        Object *o = CreateObject((x * TILE_W) * CSFI, (y * TILE_H) * CSFI, type, 0, 0, dir, NULL, CF_NO_SPAWN_EVENT, false, true);
 
         o->id1 = id1;
         o->id2 = id2;
@@ -384,6 +390,13 @@ bool load_entities(const std::string &fname)
         }
       }
     }
+  }
+
+  if (sllo == true) {
+    shouldloadlevelobjs = true;
+  }
+  else {
+    shouldloadlevelobjs = false;
   }
 
   LOG_DEBUG("load_entities: loaded {} objects", nEntities);

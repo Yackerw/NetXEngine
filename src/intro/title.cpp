@@ -471,7 +471,6 @@ static void selectoption(int index)
 		break;
 		case 24: {	//name
 			Multiplayer = 4;
-			//Renderer::getInstance()->font.draw(0, 0, "xXCritterSlayah69Xx");
 		}
 				 break;
   }

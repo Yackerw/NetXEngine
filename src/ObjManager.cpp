@@ -42,6 +42,19 @@ Object *CreateObject(int x, int y, int type, int xinertia, int yinertia,
 {
   Object *o;
 ++NumObjects;
+
+// return if we're client and spawning something supposed to be serialized
+if (Host == 0 && ObjSyncTickFuncsRecv[type] != NULL && synced == false) {
+  o = new Object;
+  *o = ZERO_OBJECT;
+  o->deleted = true;
+  o->DamageText = new FloatText(SPR_REDNUMBERS);
+  // add into list
+  LL_ADD_END(o, prev, next, firstobject, lastobject);
+  LL_ADD_END(o, lower, higher, lowestobject, highestobject);
+  return o;
+}
+
   // create the structure
   if (type != OBJ_PLAYER)
   {

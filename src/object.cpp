@@ -1299,6 +1299,9 @@ char *BasicSync(Object *o) {
   s->substate = o->substate;
   s->hp = o->hp;
   s->dir = o->dir;
+  s->timers[0] = o->timer;
+  s->timers[1] = o->timer2;
+  s->timers[2] = o->timer3;
   return(char *)s;
 }
 
@@ -1321,6 +1324,9 @@ void BasicSyncRecv(char *buff, int objid) {
   o->substate = s->substate;
   o->hp = s->hp;
   o->dir = s->dir;
+  s->timers[0] = o->timer;
+  s->timers[1] = o->timer2;
+  s->timers[2] = o->timer3;
 }
 
 // For mannan, sync nothing
