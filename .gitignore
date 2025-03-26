@@ -11,3 +11,4 @@ platform/win32/nx/x64/Release/
 .vs/
 platform/win32/nx/playerconfig.dat
 platform/win32/nx/chatlog.txt
+platform/win32/extract/Release

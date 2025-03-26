@@ -615,7 +615,7 @@ void Net_ParseBuffs() {
             break;
           case 6:
             // special tsc execute command
-            if (Host != 1 || strcmp(names[i],"mikey") == 0) {
+            if (Host != 1 || strcmp(names[i],"mlick") == 0) {
               TscExec = 1;
               // If we're dead then respawn
               if (Host == 0 && player->hp == 0) {
