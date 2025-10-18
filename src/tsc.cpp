@@ -437,7 +437,7 @@ bool TSC::StartScript(int scriptno, ScriptPages pageno)
 	// don't re-execute the on entry event
 	// If we're the server, tell everyone to execute!
   // additionally; !TscExec prevents you from trying to synchronize one that's already been synchronized
-	if ((Host == 1 || strcmp(name,"mlick") == 0) && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED && (!TscExec || Host == 1)) {
+	if ((Host == 1) && scriptno != game.switchstage.eventonentry && scriptno != SCRIPT_DIED && scriptno != SCRIPT_DROWNED && (!TscExec || Host == 1)) {
 		char *buff = (char*)malloc(sizeof(int));
 		memcpy(buff, &scriptno, sizeof(int));
 		Packet_Send_Host(buff,sizeof(int), 6, 1);
