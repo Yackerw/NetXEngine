@@ -109,7 +109,7 @@ void PResetWeapons()
 
 bool Spur::canFire(void)
 {
-  if (CountObjectsOfType(OBJ_SPUR_TRAIL) && Host == -1)
+  if (Objects::CountLocalBullets(OBJ_SPUR_SHOT))
     return false;
 
   return true;
@@ -141,7 +141,7 @@ void Weapon::initializeWeapons() {
 }
 
 // fire a basic, single bullet
-static Object *FireSimpleBullet(int otype, int btype, int xoff = 0, int yoff = 0)
+static WeaponBullet *FireSimpleBullet(int otype, int btype, int xoff = 0, int yoff = 0)
 {
   int x, y, dir;
 
@@ -151,7 +151,7 @@ static Object *FireSimpleBullet(int otype, int btype, int xoff = 0, int yoff = 0
   y += yoff;
 
   // create the shot
-  Object *shot = CreateBullet(0, 0, otype);
+  WeaponBullet *shot = CreateBullet(0, 0, otype);
 
   // set up the shot
   if (player->look)
@@ -164,12 +164,12 @@ static Object *FireSimpleBullet(int otype, int btype, int xoff = 0, int yoff = 0
 }
 
 // fires a missile type bullet at an offset from the exact center of the player
-static Object *FireMissileBullet(int otype, int btype, int xoff = 0, int yoff = 0, int accel = 0, bool wiggle = false)
+static WeaponBullet *FireMissileBullet(int otype, int btype, int xoff = 0, int yoff = 0, int accel = 0, bool wiggle = false)
 {
   int x, y, dir;
 
   // create the shot
-  Object *shot = CreateBullet(0, 0, otype);
+  WeaponBullet *shot = CreateBullet(0, 0, otype);
 
   // set up the shot
   if (player->look)
@@ -218,7 +218,7 @@ static Object *FireMissileBullet(int otype, int btype, int xoff = 0, int yoff = 
 // takes a parameter for when you are shooting right and extrapolates out the other
 // directions from that. ALSO, xoff/yoff on FireSimpleBullet moves the star;
 // this function does not.
-static Object *FireSimpleBulletOffset(int otype, int btype, int xoff, int yoff)
+static WeaponBullet *FireSimpleBulletOffset(int otype, int btype, int xoff, int yoff)
 {
   int dir;
   if (player->look)
@@ -242,7 +242,7 @@ static Object *FireSimpleBulletOffset(int otype, int btype, int xoff, int yoff)
       break;
   }
 
-  Object *shot = FireSimpleBullet(otype, btype);
+  WeaponBullet *shot = FireSimpleBullet(otype, btype);
   shot->x += xoff;
   shot->y += yoff;
   	SyncBull.x = shot->x;
@@ -383,7 +383,7 @@ WeaponBullet* MissileLauncher::fire()
   // can only fire one missile at once on L1,
   // two missiles on L2, and two sets of three missiles on L3.
   static const uint8_t max_missiles_at_once[] = {1, 2, 6};
-  if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && Host == -1)
+  if (Objects::CountLocalBullets(object_type) >= max_missiles_at_once[level])
   {
     // give back the previously-decremented ammo so they don't lose it (hack)
     player->FindWeapon(player->curWeapon)->ammo++;
@@ -426,6 +426,7 @@ WeaponBullet* MissileLauncher::fire()
 // this kinda sucks but i'll fix it l8r
 WeaponBullet *SuperMissileLauncher::fire()
 {
+  WeaponBullet *ret = NULL;
   int xoff, yoff;
 
   bool is_super = true;
@@ -435,7 +436,7 @@ WeaponBullet *SuperMissileLauncher::fire()
   // can only fire one missile at once on L1,
   // two missiles on L2, and two sets of three missiles on L3.
   static const uint8_t max_missiles_at_once[] = { 1, 2, 6 };
-  if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && Host == -1)
+  if (Objects::CountLocalBullets(object_type) >= max_missiles_at_once[level])
   {
     // give back the previously-decremented ammo so they don't lose it (hack)
     player->FindWeapon(player->curWeapon)->ammo++;
@@ -451,11 +452,11 @@ WeaponBullet *SuperMissileLauncher::fire()
   if (player->look)
   {
     yoff = (player->look == UP) ? -1 : 1;
-    FireMissileBullet(object_type, bullet_type, CSFI * xoff, 8 * CSFI * yoff, (is_super) ? 512 : 128, (level == 2));
+    ret = FireMissileBullet(object_type, bullet_type, CSFI * xoff, 8 * CSFI * yoff, (is_super) ? 512 : 128, (level == 2));
   }
   else
   {
-    FireMissileBullet(object_type, bullet_type, 6 * CSFI * xoff, (level == 2) ? CSFI : 0, (is_super) ? 512 : 128,
+    ret = FireMissileBullet(object_type, bullet_type, 6 * CSFI * xoff, (level == 2) ? CSFI : 0, (is_super) ? 512 : 128,
       (level == 2));
   }
   // lv3 fires 3 missiles that wiggle
@@ -464,15 +465,16 @@ WeaponBullet *SuperMissileLauncher::fire()
     if (player->look)
     {
       yoff = (player->look == UP) ? -1 : 1;
-      FireMissileBullet(object_type, bullet_type, 3 * CSFI * xoff, 0, (is_super) ? 256 : 64, true);
-      FireMissileBullet(object_type, bullet_type, -3 * CSFI * xoff, 0, (is_super) ? 170 : 51, true);
+      ret = FireMissileBullet(object_type, bullet_type, 3 * CSFI * xoff, 0, (is_super) ? 256 : 64, true);
+      ret = FireMissileBullet(object_type, bullet_type, -3 * CSFI * xoff, 0, (is_super) ? 170 : 51, true);
     }
     else
     {
-      FireMissileBullet(object_type, bullet_type, 0, -8 * CSFI, (is_super) ? 256 : 64, true);
-      FireMissileBullet(object_type, bullet_type, -4 * CSFI * xoff, -CSFI, (is_super) ? 170 : 51, true);
+      ret = FireMissileBullet(object_type, bullet_type, 0, -8 * CSFI, (is_super) ? 256 : 64, true);
+      ret = FireMissileBullet(object_type, bullet_type, -4 * CSFI * xoff, -CSFI, (is_super) ? 170 : 51, true);
     }
   }
+  return ret;
 }
 
 /*
@@ -485,15 +487,15 @@ WeaponBullet *Fireball::fire()
   static uint8_t max_fireballs[]  = {2, 3, 4};
   int count;
 
-  count = (CountObjectsOfType(OBJ_FIREBALL1) + CountObjectsOfType(OBJ_FIREBALL23));
-  if (count >= max_fireballs[level] && Host == -1)
+  count = (Objects::CountLocalBullets(OBJ_FIREBALL1) + Objects::CountLocalBullets(OBJ_FIREBALL23));
+  if (count >= max_fireballs[level])
     return NULL;
 
   // the 8px offset fires the shot just a tiny bit behind the player--
   // you can't see the difference but it makes the shot correctly bounce if
   // you shoot while flat up against a wall, instead of embedding the fireball
   // in the wall.
-  Object *fb = FireSimpleBulletOffset(object_types[level], B_FIREBALL1 + level, -6 * CSFI, 0);
+  WeaponBullet *fb = FireSimpleBulletOffset(object_types[level], B_FIREBALL1 + level, -6 * CSFI, 0);
   fb->dir    = player->dir;
   fb->nxflags &= ~NXFLAG_NO_RESET_YINERTIA;
 
@@ -520,13 +522,13 @@ WeaponBullet *Fireball::fire()
       fb->yinertia = 0x5ff;
       break;
   }
-  return NULL;
+  return fb;
 }
 
 WeaponBullet* Blade::fire()
 {
-  int numblades = CountObjectsOfType(OBJ_BLADE12_SHOT) + CountObjectsOfType(OBJ_BLADE3_SHOT);
-  if (numblades >= 1 && Host == -1)
+  int numblades = Objects::CountLocalBullets(OBJ_BLADE12_SHOT) + Objects::CountLocalBullets(OBJ_BLADE3_SHOT);
+  if (numblades >= 1)
     return NULL;
 
   int dir = (player->look) ? player->look : player->dir;
@@ -563,9 +565,11 @@ WeaponBullet* Blade::fire()
     }
   }
 
-  Object *shot = CreateObject(x, y, (level != 2) ? OBJ_BLADE12_SHOT : OBJ_BLADE3_SHOT);
+  //Object *shot = CreateObject(x, y, (level != 2) ? OBJ_BLADE12_SHOT : OBJ_BLADE3_SHOT);
+  WeaponBullet *shot = CreateBullet(x, y, (level != 2) ? OBJ_BLADE12_SHOT : OBJ_BLADE3_SHOT);
   Net_FirePlayerEvent(PlayerBladeEvent);
   SetupBullet(shot, x, y, B_BLADE_L1 + level, dir);
+  return NULL;
 }
 
 /*
@@ -576,31 +580,31 @@ WeaponBullet *Snake::fire()
 {
   if (level == 2)
   {
-    int count = (CountObjectsOfType(OBJ_SNAKE1_SHOT) + CountObjectsOfType(OBJ_SNAKE23_SHOT));
+    int count = (Objects::CountLocalBullets(OBJ_SNAKE1_SHOT) + Objects::CountLocalBullets(OBJ_SNAKE23_SHOT));
 
-    if (count >= 4 && Host == -1)
+    if (count >= 4)
       return NULL;
   }
 
   int object_type = (level == 0) ? OBJ_SNAKE1_SHOT : OBJ_SNAKE23_SHOT;
-  FireSimpleBulletOffset(object_type, B_SNAKE_L1 + level, -5 * CSFI, 0);
+  return FireSimpleBulletOffset(object_type, B_SNAKE_L1 + level, -5 * CSFI, 0);
 }
 
 WeaponBullet *Nemesis::fire()
 {
-  if (CountObjectsOfType(OBJ_NEMESIS_SHOT) >= 2 && Host == -1)
+  if (Objects::CountLocalBullets(OBJ_NEMESIS_SHOT) >= 2)
     return NULL;
 
-  FireSimpleBullet(OBJ_NEMESIS_SHOT, B_NEMESIS_L1 + level);
+  return FireSimpleBullet(OBJ_NEMESIS_SHOT, B_NEMESIS_L1 + level);
 }
 
 WeaponBullet *Bubbler::fire()
 {
   static const int max_bubbles[] = {4, 16, 16};
 
-  int count = CountObjectsOfType(OBJ_BUBBLER12_SHOT) + CountObjectsOfType(OBJ_BUBBLER3_SHOT);
+  int count = Objects::CountLocalBullets(OBJ_BUBBLER12_SHOT) + Objects::CountLocalBullets(OBJ_BUBBLER3_SHOT);
 
-  if (count >= max_bubbles[level] && Host == -1)
+  if (count >= max_bubbles[level])
   {
     // give back the previously-decremented ammo so they don't lose it (hack)
     player->FindWeapon(player->curWeapon)->ammo++;
@@ -608,7 +612,7 @@ WeaponBullet *Bubbler::fire()
   }
 
   int objtype = (level != 2) ? OBJ_BUBBLER12_SHOT : OBJ_BUBBLER3_SHOT;
-  FireSimpleBulletOffset(objtype, B_BUBBLER_L1 + level, -4 * CSFI, 0);
+  return FireSimpleBulletOffset(objtype, B_BUBBLER_L1 + level, -4 * CSFI, 0);
 }
 
 /*
@@ -629,14 +633,14 @@ void c------------------------------() {}
 WeaponBullet *Spur::fire(void)
 {
   if (canFire())
-    FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L3, -4 * CSFI, 0);
+    return FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L3, -4 * CSFI, 0);
   // TODO: return bullet
   return NULL;
 }
 
 WeaponBullet *PolarStar::fire()
 {
-  if (CountObjectsOfType(OBJ_POLAR_SHOT) < 2 || Host != -1)
+  if (Objects::CountLocalBullets(OBJ_POLAR_SHOT) < 2 || Host != -1)
   {
     int xoff;
     if (level == 2)
@@ -645,7 +649,7 @@ WeaponBullet *PolarStar::fire()
       xoff = -4 * CSFI;
 
     // TODO: return bullet
-    FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L1 + level, xoff, 0);
+    return FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L1 + level, xoff, 0);
     rumble(0.2, 200);
   }
   return NULL;
@@ -658,7 +662,7 @@ void c------------------------------() {}
 // handles firing the Machine Gun
 WeaponBullet *MachineGun::fire()
 {
-  Object *shot;
+  WeaponBullet *shot;
   int x, y;
   
   int dir = (player->look) ? player->look : player->dir;
@@ -691,7 +695,7 @@ WeaponBullet *MachineGun::fire()
     else if (player->look == UP)
       PMgunFly(false);
   }
-  return NULL;
+  return shot;
   // TODO: return a value
 }
 

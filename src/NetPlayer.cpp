@@ -33,9 +33,9 @@ char pskin;
 char name[15]; //player name
 char names[MAXCLIENTS][15]; //player names
 
-Player *players = (Player *)calloc(32, sizeof(Player));
-bool netpinputs[32][INPUT_COUNT];
-bool netlastpinputs[32][INPUT_COUNT];
+Player *players = (Player *)calloc(MAXCLIENTS, sizeof(Player));
+bool netpinputs[MAXCLIENTS][INPUT_COUNT];
+bool netlastpinputs[MAXCLIENTS][INPUT_COUNT];
 
 char plskins[MAXCLIENTS];
 
@@ -1120,7 +1120,7 @@ void netGetPlayerShootPoint(Player *p, int *x_out, int *y_out)
 
 // Bullet related stuff. So you can fire bullets online
 // fire a basic, single bullet
-static Object *netFireSimpleBullet(Player *p, int otype, int btype, int dir, int xoff = 0, int yoff = 0)
+static WeaponBullet *netFireSimpleBullet(Player *p, int otype, int btype, int dir, int pnum, int xoff = 0, int yoff = 0)
 {
   int x, y;
 
@@ -1130,17 +1130,17 @@ static Object *netFireSimpleBullet(Player *p, int otype, int btype, int dir, int
   y += yoff;
 
   // create the shot
-  Object *shot = CreateBullet(0, 0, otype);
+  WeaponBullet *shot = CreateBullet(0, 0, otype, pnum);
 
   SetupBullet(shot, x, y, btype, dir);
   return shot;
 }
 
 // Call this to spawn bullet
-static Object *netFireSimpleBulletOffset(int otype, int btype, int xoff, int yoff, int dir, Player *p)
+static WeaponBullet *netFireSimpleBulletOffset(int otype, int btype, int xoff, int yoff, int dir, Player *p, int pnum)
 {
 
-  Object *shot = netFireSimpleBullet(p, otype, btype, dir);
+  WeaponBullet *shot = netFireSimpleBullet(p, otype, btype, dir, pnum);
   shot->x = xoff;
   shot->y = yoff;
 
@@ -1447,7 +1447,7 @@ void BulletSpawnRecv(unsigned char *buff, int pnum) {
   if (b->btype >= B_CURLYS_NEMESIS || b->btype < 0 || b->otype < OBJ_SHOTS_START || b->otype > OBJ_SPUR_TRAIL) {
     return;
   }
-  netFireSimpleBulletOffset(b->otype, b->btype, b->x, b->y, b->dir, p);
+  netFireSimpleBulletOffset(b->otype, b->btype, b->x, b->y, b->dir, p, pnum);
 }
 
 char *MissileSpawnSend() {

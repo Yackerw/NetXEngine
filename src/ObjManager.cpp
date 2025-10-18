@@ -17,12 +17,13 @@
 using namespace NXE::Graphics;
 
 static Object ZERO_OBJECT;
+static WeaponBullet ZERO_BULLET;
 static Player ZERO_PLAYER;
 
 Object *firstobject = NULL, *lastobject = NULL;
 Object *lowestobject = NULL, *highestobject = NULL;
 
-Object *bullets[64];
+WeaponBullet *bullets[MAX_BULLETS];
 
 serobj *netobjs;
 
@@ -137,11 +138,13 @@ o->serialization = -1;
 }
 
 // bullets are stored in separate array
-Object *CreateBullet(int x, int y, int type)
+WeaponBullet *CreateBullet(int x, int y, int type, int nodeOwner)
 {
-  Object *o;
-  o  = new Object;
-  *o = ZERO_OBJECT; // safely clears all members
+  WeaponBullet *o;
+  o  = new WeaponBullet;
+  *o = ZERO_BULLET; // safely clears all members
+
+  o->playerOwner = nodeOwner;
 
   // initialize
   o->SetType(type);
@@ -158,12 +161,18 @@ Object *CreateBullet(int x, int y, int type)
   o->serialization = -1;
 
   // add into list
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < MAX_BULLETS; i++)
   {
     if (bullets[i] == NULL)
     {
       bullets[i] = o;
       break;
+    }
+    if (i == MAX_BULLETS - 1) {
+      // don't fire bugged bullets!
+      delete o->DamageText;
+      delete o;
+      return NULL;
     }
   }
   LL_ADD_END(o, lower, higher, lowestobject, highestobject);
@@ -581,9 +590,21 @@ int Objects::CountType(int objtype)
       count++;
   }
 
-  for (int i = 0; i < 64; i++)
+  for (int i = 0; i < MAX_BULLETS; i++)
   {
     if (bullets[i] != NULL && bullets[i]->type == objtype)
+      count++;
+  }
+
+  return count;
+}
+
+int Objects::CountLocalBullets(int objtype)
+{
+  int count = 0;
+  for (int i = 0; i < MAX_BULLETS; i++)
+  {
+    if (bullets[i] != NULL && bullets[i]->type == objtype && bullets[i]->playerOwner == 0)
       count++;
   }
 

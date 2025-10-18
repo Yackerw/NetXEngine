@@ -32,6 +32,7 @@ namespace Objects
 {
 void UpdateBlockStates(void);
 int CountType(int objtype);
+int CountLocalBullets(int objtype);
 
 void RunAI(void);
 void PhysicsSim(void);
@@ -62,7 +63,7 @@ enum CreateObjectFlags
 };
 
 Object *CreateObject(int x, int y, int type, bool onLoad = false);
-Object *CreateBullet(int x, int y, int type);
+WeaponBullet *CreateBullet(int x, int y, int type, int nodeOwner = 0);
 Object *CreateObject(int x, int y, int type, int xinertia, int yinertia, \
 					int dir=0, Object *linkedobject=NULL, uint32_t createflags=CF_DEFAULT, bool synced = false, bool onLoad = false);
 
@@ -106,7 +107,8 @@ struct ObjProp
 extern ObjProp objprop[OBJ_LAST];
 extern Object *firstobject, *lastobject;
 extern Object *lowestobject, *highestobject;
-extern Object *bullets[64];
+#define MAX_BULLETS 128
+extern WeaponBullet *bullets[MAX_BULLETS];
 
 extern objargs nextloadobjs[MAX_OBJECTS];
 extern int nextloadobjsser[MAX_OBJECTS];

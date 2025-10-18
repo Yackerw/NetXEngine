@@ -116,8 +116,6 @@ void DrawDebug(void)
 #endif
 }
 
-extern Object* bullets[64];
-
 void DrawBoundingBoxes()
 {
   Object *o;

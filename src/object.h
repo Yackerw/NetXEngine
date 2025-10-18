@@ -293,6 +293,11 @@ public:
 	};
 };
 
+class WeaponBullet : public Object {
+public:
+  int playerOwner;
+};
+
 // game objects
 
 #define OBJ_NULL 0

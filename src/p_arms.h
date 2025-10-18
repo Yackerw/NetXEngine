@@ -36,10 +36,6 @@ enum
 
 extern IntRegistry weaponRegistry;
 
-class WeaponBullet : Object {
-  int playerOwner;
-};
-
 // stored inside player structure
 class Weapon
 {

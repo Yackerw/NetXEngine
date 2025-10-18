@@ -50,8 +50,8 @@ int RefreshInventoryScreen(void)
   // find current weapon and count # items for armssel selector
   inv.armssel.items[0] = 0; // show "no weapon" in case of no weapon
   inv.armssel.nitems   = 0;
-  for (i = 0; i < WPN_COUNT; ++i) {
-    Weapon *wep = player->FindWeapon(i);
+  for (i = 0; i < player->weapons.size(); ++i) {
+    Weapon *wep = player->weapons[i];
     if (wep == NULL) continue;
     inv.armssel.items[inv.armssel.nitems++] = wep->getWeaponID();
     if (wep->getWeaponID() == player->curWeapon) {
