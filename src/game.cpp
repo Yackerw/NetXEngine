@@ -714,6 +714,10 @@ bool game_load(Profile *p)
   player->wpnOrder.clear();
   for (auto &idx:p->wpnOrder)
     player->wpnOrder.push_back(idx);*/
+  for (int i = 0; i < player->weapons.size(); ++i) {
+    delete player->weapons[i];
+  }
+  player->weapons.clear();
   for (auto &idx : p->wpnOrder) {
     if (p->weapons[idx].hasWeapon) {
       Weapon *weap = (Weapon *)weaponRegistry.getType(idx, NULL, 0);

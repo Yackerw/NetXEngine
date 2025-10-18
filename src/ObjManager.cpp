@@ -604,7 +604,7 @@ int Objects::CountLocalBullets(int objtype)
   int count = 0;
   for (int i = 0; i < MAX_BULLETS; i++)
   {
-    if (bullets[i] != NULL && bullets[i]->type == objtype && bullets[i]->playerOwner == 0)
+    if (bullets[i] != NULL && bullets[i]->type == objtype && bullets[i]->playerOwner == -1)
       count++;
   }
 

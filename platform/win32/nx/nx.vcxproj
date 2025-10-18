@@ -104,7 +104,7 @@
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>..\ext\lib\x86\SDL2main.lib;Ws2_32.lib;..\ext\lib\x86\SDL2.lib;..\ext\lib\x86\SDL2_mixer.lib;..\ext\lib\x86\libpng16.lib;..\ext\lib\x86\SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>

@@ -268,6 +268,11 @@ void InitNewGame(bool with_intro)
   player->maxHealth = 3;
   player->hp        = player->maxHealth;
 
+  for (int i = 0; i < player->weapons.size(); ++i) {
+    delete player->weapons[i];
+  }
+  player->weapons.clear();
+
   game.switchstage.mapno        = STAGE_START_POINT;
   game.switchstage.playerx      = 10;
   game.switchstage.playery      = 8;
@@ -442,7 +447,7 @@ int main(int argc, char *argv[])
 				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
 				//memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
 
-        int *wepBuff = (int*)(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons));
+        int *wepBuff = (int*)(buff + (sizeof(int) * (MAX_INVENTORY + 2)));
 
         for (int i = 0; i < player->weapons.size(); ++i) {
           wepBuff[i * 2] = player->weapons[i]->getWeaponID();

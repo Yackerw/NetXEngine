@@ -63,7 +63,7 @@ enum CreateObjectFlags
 };
 
 Object *CreateObject(int x, int y, int type, bool onLoad = false);
-WeaponBullet *CreateBullet(int x, int y, int type, int nodeOwner = 0);
+WeaponBullet *CreateBullet(int x, int y, int type, int nodeOwner = -1);
 Object *CreateObject(int x, int y, int type, int xinertia, int yinertia, \
 					int dir=0, Object *linkedobject=NULL, uint32_t createflags=CF_DEFAULT, bool synced = false, bool onLoad = false);
 

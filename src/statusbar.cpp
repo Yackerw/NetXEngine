@@ -498,7 +498,7 @@ void DrawStatusBar(void)
     // draw other weapons
     x = STATUS_X + 64 + slide.wpn_offset + 1;
 
-    int idx = player->FindWeaponSlot(player->curWeapon);
+    int idx = player->FindWeaponSlot(slide.firstWeapon);
 
     if (player->weapons.size() > 0)
       for (;;)
