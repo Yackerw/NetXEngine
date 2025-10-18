@@ -2,6 +2,7 @@
 #ifndef _P_ARMS_H
 #define _P_ARMS_H
 #include "object.h"
+#include "registry.h"
 // Bullet struct because frick
 typedef struct {
 	int x;
@@ -33,11 +34,17 @@ enum
   WPN_COUNT = 14
 };
 
+extern IntRegistry weaponRegistry;
+
+class WeaponBullet : Object {
+  int playerOwner;
+};
+
 // stored inside player structure
-struct Weapon
+class Weapon
 {
-  bool hasWeapon;    // true if player has this weapon
-  int xp, max_xp[3]; // current XP, & max XP per level
+public:
+  int xp;            // current XP
   uint8_t level;     // current level (0=L1 1=L2 2=L3)
   int ammo;          // current ammo (0 = n/a)
   int maxammo;       // max ammo (0 = unlimited)
@@ -54,18 +61,218 @@ struct Weapon
   int chargetimer;
   bool resetSpur;
 
-  void SetFireRate(int l1, int l2, int l3)
-  {
-    firerate[0] = l1;
-    firerate[1] = l2;
-    firerate[2] = l3;
+  virtual int getMaxXP(int lvl) {
+    return 1;
   }
 
-  void SetRechargeRate(int l1, int l2, int l3)
-  {
-    rechargerate[0] = l1;
-    rechargerate[1] = l2;
-    rechargerate[2] = l3;
+  virtual int getXP() {
+    return xp;
+  }
+
+  virtual int getMaxAmmo() {
+    return maxammo;
+  }
+
+  virtual WeaponBullet *fire() {
+    return NULL;
+  }
+
+  virtual int getWeaponID() {
+    return -1;
+  }
+
+  virtual int getMaxLevel() {
+    return 2;
+  }
+
+  virtual bool canFire() {
+    return true;
+  }
+
+  // primarily meant for spur tbh
+  virtual void updateWeapon() {
+    return;
+  }
+
+  bool isWeaponMaxed();
+
+  void handleFiring();
+
+  virtual void addXP(int xp, bool quiet = false);
+
+  virtual void subXP(int xp, bool quiet = false);
+
+  virtual void addAmmo(int ammo);
+
+  static void initializeWeapons();
+
+  Weapon() {
+    xp = 0;
+    level = 0;
+    ammo = 0;
+    maxammo = 0;
+    firetimer = 0;
+    firerate[0] = 0;
+    firerate[1] = 0;
+    firerate[2] = 0;
+    rechargetimer = 0;
+    rechargerate[0] = 0;
+    rechargerate[1] = 0;
+    rechargerate[2] = 0;
+    chargetimer = 0;
+    resetSpur = false;
+  }
+  void runWeapon(bool firing);
+private:
+};
+
+class PolarStar : public Weapon {
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static PolarStar *create(uintptr_t unused, int id) {
+    return new PolarStar();
+  }
+  int getWeaponID() override {
+    return WPN_POLARSTAR;
+  }
+};
+
+class MissileLauncher : public Weapon {
+private:
+  MissileLauncher():Weapon() {
+    maxammo = 10;
+  }
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static MissileLauncher *create(uintptr_t unused, int id) {
+    return new MissileLauncher();
+  }
+  int getWeaponID() override {
+    return WPN_MISSILE;
+  }
+};
+
+class Fireball : public Weapon {
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Fireball *create(uintptr_t unused, int id) {
+    return new Fireball();
+  }
+  int getWeaponID() override {
+    return WPN_FIREBALL;
+  }
+};
+
+class MachineGun : public Weapon {
+private:
+  MachineGun():Weapon() {
+    maxammo = 100;
+    firerate[0] = 6;
+    firerate[1] = 6;
+    firerate[2] = 6;
+    rechargerate[0] = 5;
+    rechargerate[1] = 5;
+    rechargerate[2] = 5;
+  }
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static MachineGun *create(uintptr_t unused, int id) {
+    return new MachineGun();
+  }
+  int getWeaponID() override {
+    return WPN_MGUN;
+  }
+};
+
+class Bubbler : public Weapon {
+private:
+  Bubbler() :Weapon() {
+    // maxammo not set here?
+    firerate[0] = 0;
+    firerate[1] = 7;
+    firerate[2] = 7;
+    rechargerate[0] = 20;
+    rechargerate[1] = 2;
+    rechargerate[2] = 2;
+  }
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Bubbler *create(uintptr_t unused, int id) {
+    return new Bubbler();
+  }
+  int getWeaponID() override {
+    return WPN_BUBBLER;
+  }
+};
+
+class Blade : public Weapon {
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Blade *create(uintptr_t unused, int id) {
+    return new Blade();
+  }
+  int getWeaponID() override {
+    return WPN_BLADE;
+  }
+};
+
+class Snake : public Weapon {
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Snake *create(uintptr_t unused, int id) {
+    return new Snake();
+  }
+  int getWeaponID() override {
+    return WPN_SNAKE;
+  }
+};
+
+class SuperMissileLauncher : public Weapon {
+private:
+  SuperMissileLauncher():Weapon() {
+    maxammo = 10;
+  }
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static SuperMissileLauncher *create(uintptr_t unused, int id) {
+    return new SuperMissileLauncher();
+  }
+  int getWeaponID() override {
+    return WPN_SUPER_MISSILE;
+  }
+};
+
+class Nemesis : public Weapon {
+public:
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Nemesis *create(uintptr_t unused, int id) {
+    return new Nemesis();
+  }
+  int getWeaponID() override {
+    return WPN_NEMESIS;
+  }
+};
+
+class Spur : public Weapon {
+public:
+  bool canFire() override;
+  void updateWeapon() override;
+  WeaponBullet *fire() override;
+  int getMaxXP(int lvl) override;
+  static Spur *create(uintptr_t unused, int id) {
+    return new Spur();
+  }
+  int getWeaponID() override {
+    return WPN_SPUR;
   }
 };
 
@@ -127,8 +334,6 @@ enum
 
 void PResetWeapons();
 void PDoWeapons(void);
-void FireWeapon(void);
-void RunWeapon(bool firing);
 void SetupBullet(Object *shot, int x, int y, int btype, int dir);
 void FireLevel23MGun(int x, int y, int level, int dir);
 void PMgunFly(bool up);

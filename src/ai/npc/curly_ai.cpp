@@ -90,7 +90,7 @@ void ai_curly_ai(Object *o)
       gun->linkedobject = o;
       gun->PushBehind(o);
 
-      if (player->weapons[WPN_MGUN].hasWeapon)
+      if (player->FindWeapon(WPN_MGUN) != NULL)
         o->curly.gunsprite = SPR_PSTAR;
       else
         o->curly.gunsprite = SPR_MGUN;

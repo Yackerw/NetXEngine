@@ -843,15 +843,17 @@ void TSC::ExecScript(ScriptInstance *s)
         TradeWeapon(parm[0], parm[1], parm[2]);
         break;
       case OP_AMJ:
-        JUMP_IF(player->weapons[parm[0]].hasWeapon);
+        JUMP_IF(player->FindWeapon(parm[0]) != NULL);
         break;
 
       case OP_ZAM: // drop all weapons to level 1
       {
         for (int i = 0; i < WPN_COUNT; i++)
         {
-          player->weapons[i].xp    = 0;
-          player->weapons[i].level = 0;
+          Weapon* wep = player->FindWeapon(i);
+          if (wep == NULL) continue;
+          wep->xp    = 0;
+          wep->level = 0;
         }
       }
       break;

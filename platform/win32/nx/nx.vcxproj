@@ -283,6 +283,7 @@
     <ClCompile Include="..\..\..\src\playerstats.cpp" />
     <ClCompile Include="..\..\..\src\profile.cpp" />
     <ClCompile Include="..\..\..\src\p_arms.cpp" />
+    <ClCompile Include="..\..\..\src\registry.cpp" />
     <ClCompile Include="..\..\..\src\ResourceManager.cpp" />
     <ClCompile Include="..\..\..\src\screeneffect.cpp" />
     <ClCompile Include="..\..\..\src\settings.cpp" />
@@ -429,6 +430,7 @@
     <ClInclude Include="..\..\..\src\playerstats.h" />
     <ClInclude Include="..\..\..\src\profile.h" />
     <ClInclude Include="..\..\..\src\p_arms.h" />
+    <ClInclude Include="..\..\..\src\registry.h" />
     <ClInclude Include="..\..\..\src\ResourceManager.h" />
     <ClInclude Include="..\..\..\src\screeneffect.h" />
     <ClInclude Include="..\..\..\src\settings.h" />

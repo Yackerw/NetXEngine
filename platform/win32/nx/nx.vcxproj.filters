@@ -417,6 +417,9 @@
     <ClCompile Include="..\..\..\src\ipfuncs.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\registry.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -858,6 +861,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\ipfuncs.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\registry.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

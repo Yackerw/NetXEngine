@@ -79,7 +79,7 @@ void DrawAirLeft(int x, int y)
   }
 }
 
-void DrawWeaponAmmo(int x, int y, int wpn)
+void DrawWeaponAmmo(int x, int y, Weapon* wpn)
 {
   // draw slash
   if (!player->hurt_flash_state || game.mode != GM_NORMAL)
@@ -87,7 +87,7 @@ void DrawWeaponAmmo(int x, int y, int wpn)
     Renderer::getInstance()->sprites.drawSprite(x, y + 8, SPR_WHITENUMBERS, 11, 0);
   }
 
-  if (!player->weapons[wpn].maxammo)
+  if (!wpn->maxammo)
   { // ammo is "not applicable"
     x += 16;
     Renderer::getInstance()->sprites.drawSprite(x, y, SPR_NAAMMO, 0, 0);
@@ -95,16 +95,18 @@ void DrawWeaponAmmo(int x, int y, int wpn)
   }
   else
   {
-    DrawNumber(x, y, player->weapons[wpn].ammo);
-    DrawNumber(x, y + 8, player->weapons[wpn].maxammo);
+    DrawNumber(x, y, wpn->ammo);
+    DrawNumber(x, y + 8, wpn->maxammo);
   }
 }
 
-void DrawWeaponLevel(int x, int y, int wpn)
+void DrawWeaponLevel(int x, int y, Weapon* wpn)
 {
-  int level = (player->weapons[wpn].level + 1);
-  if (wpn == WPN_NONE)
+  int level = 0;
+  if (wpn == NULL)
     level = 0;
+  else
+    level = (wpn->level + 1);
 
   Renderer::getInstance()->sprites.drawSprite(x, y, SPR_XPLEVELICON, 0, 0);
   Renderer::getInstance()->sprites.drawSprite(x + 16, y, SPR_WHITENUMBERS, level, 0);
@@ -148,7 +150,7 @@ static void RunStatusBar(void)
 
 // start the slide effect. if dir = LEFT, slides left (next weapon), if RIGHT does "prev weapon"
 // newwpn = the weapon to change to
-void weapon_slide(int dir, int newwpn)
+void weapon_slide(int dir, Weapon* newwpn)
 {
   int sign;
   if (slide.lv_offset)
@@ -162,7 +164,12 @@ void weapon_slide(int dir, int newwpn)
   slide.timer       = SLIDE_TIMER_START;
   slide.ammo_offset = 16 * sign;
   slide.move_dir    = -2 * sign;
-  player->curWeapon = newwpn;
+  if (newwpn == NULL) {
+    player->curWeapon = WPN_NONE;
+  }
+  else {
+    player->curWeapon = newwpn->getWeaponID();
+  }
 }
 
 // the opening slide effect on load/new game
@@ -170,7 +177,7 @@ void weapon_introslide()
 {
   if (player->curWeapon == WPN_NONE)
   {
-    weapon_slide(LEFT, player->curWeapon);
+    weapon_slide(LEFT, player->FindWeapon(player->curWeapon));
     return;
   }
 
@@ -185,26 +192,17 @@ void stat_NextWeapon(bool quiet)
   if (player->curWeapon == WPN_NONE)
     return;
 
-  int idx;
+  int idx = player->FindWeaponSlot(player->curWeapon);
 
-  for (idx = 0; idx < (int)player->wpnOrder.size(); idx++)
+  if (player->weapons.size() > 0)
   {
-    if (player->wpnOrder[idx] == player->curWeapon)
-      break;
-  }
-
-  if (player->wpnOrder.size() > 0)
-  {
-    if (++idx >= (int)player->wpnOrder.size())
+    if (++idx >= (int)player->weapons.size())
       idx = 0;
 
-    if (player->weapons[player->wpnOrder[idx]].hasWeapon || player->wpnOrder[idx] == player->curWeapon)
-    {
-      if (!quiet)
-        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
-      weapon_slide(LEFT, player->wpnOrder[idx]);
-      return;
-    }
+    if (!quiet)
+      NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
+    weapon_slide(LEFT, player->weapons[idx]);
+    return;
   }
 }
 
@@ -214,26 +212,17 @@ void stat_PrevWeapon(bool quiet)
   if (player->curWeapon == WPN_NONE)
     return;
 
-  int idx;
+  int idx = player->FindWeaponSlot(player->curWeapon);
 
-  for (idx = 0; idx < (int)player->wpnOrder.size(); idx++)
-  {
-    if (player->wpnOrder[idx] == player->curWeapon)
-      break;
-  }
-
-  if (player->wpnOrder.size() > 0)
+  if (player->weapons.size() > 0)
   {
     if (--idx < 0)
-      idx = player->wpnOrder.size() - 1;
+      idx = player->weapons.size() - 1;
 
-    if (player->weapons[player->wpnOrder[idx]].hasWeapon || player->wpnOrder[idx] == player->curWeapon)
-    {
-      if (!quiet)
-        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
-      weapon_slide(RIGHT, player->wpnOrder[idx]);
-      return;
-    }
+    if (!quiet)
+      NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SWITCH_WEAPON);
+    weapon_slide(RIGHT, player->weapons[idx]);
+    return;
   }
 }
 
@@ -406,6 +395,8 @@ void DrawStatusBar(void)
   int x;
   bool maxed_out;
 
+  Weapon *wep = player->FindWeapon(player->curWeapon);
+
   // debug("%08x", game.bossbar.object);
   // debug("%s", game.bossbar.defeated ? "true" : "false");
 
@@ -453,9 +444,11 @@ void DrawStatusBar(void)
       }
 
       // -- draw the XP bar ---------------------------------
-      level = player->weapons[player->curWeapon].level;
-      curxp = player->weapons[player->curWeapon].xp;
-      maxxp = player->weapons[player->curWeapon].max_xp[level];
+      if (wep != NULL) {
+        level = wep->level;
+        curxp = wep->xp;
+        maxxp = wep->getMaxXP(level);
+      }
 
       if (player->curWeapon == WPN_NONE)
       {
@@ -491,7 +484,7 @@ void DrawStatusBar(void)
         Renderer::getInstance()->sprites.drawSprite(XPBAR_X + slide.lv_offset, XPBAR_Y, SPR_XPBAR, FRAME_XP_MAX, 0);
 
       // Level Number
-      DrawWeaponLevel(HEALTH_X + slide.lv_offset, XPBAR_Y, player->curWeapon);
+      DrawWeaponLevel(HEALTH_X + slide.lv_offset, XPBAR_Y, wep);
     }
 
     // -- draw the weapon bar -----------------------------
@@ -500,32 +493,23 @@ void DrawStatusBar(void)
       Renderer::getInstance()->sprites.drawSprite(CURWEAPON_X + slide.wpn_offset, WEAPONBAR_Y, SPR_ARMSICONS, slide.firstWeapon, 0);
 
     // draw ammo, note we draw ammo of firstweapon NOT current weapon, for slide effect
-    DrawWeaponAmmo((AMMO_X + slide.wpn_offset + slide.ammo_offset), AMMO_Y, slide.firstWeapon);
+    DrawWeaponAmmo((AMMO_X + slide.wpn_offset + slide.ammo_offset), AMMO_Y, player->FindWeapon(slide.firstWeapon));
 
     // draw other weapons
     x = STATUS_X + 64 + slide.wpn_offset + 1;
 
-    int idx;
+    int idx = player->FindWeaponSlot(player->curWeapon);
 
-    for (idx = 0; idx < (int)player->wpnOrder.size(); idx++)
-    {
-      if (player->wpnOrder[idx] == slide.firstWeapon)
-        break;
-    }
-
-    if (player->wpnOrder.size() > 0)
+    if (player->weapons.size() > 0)
       for (;;)
       {
-        if (++idx >= (int)player->wpnOrder.size())
+        if (++idx >= (int)player->weapons.size())
           idx = 0;
-        if (player->wpnOrder[idx] == slide.firstWeapon)
+        if (player->weapons[idx]->getWeaponID() == slide.firstWeapon)
           break;
 
-        if (player->weapons[player->wpnOrder[idx]].hasWeapon)
-        {
-          Renderer::getInstance()->sprites.drawSprite(x, WEAPONBAR_Y, SPR_ARMSICONS, player->wpnOrder[idx], RIGHT);
-          x += 16;
-        }
+        Renderer::getInstance()->sprites.drawSprite(x, WEAPONBAR_Y, SPR_ARMSICONS, player->weapons[idx]->getWeaponID(), RIGHT);
+        x += 16;
       }
 
     DrawAirLeft((Renderer::getInstance()->screenWidth / 2) - (5 * 8), ((Renderer::getInstance()->screenHeight) / 2) - 16);

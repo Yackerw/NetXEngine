@@ -1,7 +1,7 @@
 #OBJS specifies which files to compile as part of the project
 OBJS_BASE = src/tsc.cpp src/trig.cpp src/statusbar.cpp src/stagedata.cpp src/stageboss.cpp src/slope.cpp src/settings.cpp src/screeneffect.cpp src/profile.cpp src/playerstats.cpp src/player.cpp src/p_arms.cpp src/object.cpp src/niku.cpp src/map_system.cpp src/map.cpp src/main.cpp src/ipfuncs.cpp src/inventory.cpp src/input.cpp src/game.cpp src/floattext.cpp src/debug.cpp src/console.cpp src/chat.cpp src/caret.cpp src/ResourceManager.cpp src/ObjManager.cpp src/Networking.cpp src/NetPlayer.cpp
 
-OBJS_COMMON = src/common/glob.cpp src/common/InitList.cpp src/common/misc.cpp src/common/myfnmatch.cpp
+OBJS_COMMON = src/common/glob.cpp src/common/InitList.cpp src/common/misc.cpp src/common/myfnmatch.cpp src/registry.cpp
 
 OBJS_AUTOGEN = src/autogen/AssignSprites.cpp
 

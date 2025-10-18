@@ -297,8 +297,9 @@ void TB_SaveSelect::DrawExtendedInfo()
     int yb = ((Renderer::getInstance()->screenHeight - MSG_H) - 2) + 26;
 
     int level = p->weapons[p->curWeapon].level;
-    int curxp = p->weapons[p->curWeapon].xp;
-    int maxxp = player->weapons[p->curWeapon].max_xp[level];
+    int curxp = 0;//p->weapons[p->curWeapon].xp;
+    int maxxp = 100;//p->weapons[p->curWeapon]
+    // TODO: needs to be changed to account for new weapon system
 
     Renderer::getInstance()->sprites.drawSprite(xb, yb, SPR_XPLEVELICON);
     xb += 16;

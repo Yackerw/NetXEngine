@@ -76,8 +76,7 @@ public:
   // controls "+xx" floattext numbers when you gain XP
   FloatText *XPText;
 
-  Weapon weapons[WPN_COUNT];
-  std::vector<int> wpnOrder;
+  std::vector<Weapon*> weapons;
   int curWeapon;
 
   int maxHealth;					// max health
@@ -106,6 +105,9 @@ public:
   int8_t skin;
   int8_t fire_limit;
   int8_t auto_fire_limit;
+
+  Weapon *FindWeapon(int wpnId);
+  int FindWeaponSlot(int wpnId);
 };
 
 extern Player *player;

@@ -703,7 +703,7 @@ bool game_load(Profile *p)
   player->equipmask       = p->equipmask;
 
   // load weapons
-  for (i = 0; i < WPN_COUNT; i++)
+  /*for (i = 0; i < WPN_COUNT; i++)
   {
     player->weapons[i].hasWeapon = p->weapons[i].hasWeapon;
     player->weapons[i].level     = p->weapons[i].level;
@@ -713,7 +713,17 @@ bool game_load(Profile *p)
   }
   player->wpnOrder.clear();
   for (auto &idx:p->wpnOrder)
-    player->wpnOrder.push_back(idx);
+    player->wpnOrder.push_back(idx);*/
+  for (auto &idx : p->wpnOrder) {
+    if (p->weapons[idx].hasWeapon) {
+      Weapon *weap = (Weapon *)weaponRegistry.getType(idx, NULL, 0);
+      weap->level = p->weapons[idx].level;
+      weap->xp = p->weapons[idx].xp;
+      weap->ammo = p->weapons[idx].ammo;
+      weap->maxammo = p->weapons[idx].maxammo;
+      player->weapons.push_back(weap);
+    }
+  }
 
   player->curWeapon = p->curWeapon;
 
@@ -795,14 +805,37 @@ bool game_save(Profile *p)
 
   for (i = 0; i < WPN_COUNT; i++)
   {
-    p->weapons[i].hasWeapon = player->weapons[i].hasWeapon;
+    /*p->weapons[i].hasWeapon = player->weapons[i].hasWeapon;
     p->weapons[i].level     = player->weapons[i].level;
     p->weapons[i].xp        = player->weapons[i].xp;
     p->weapons[i].ammo      = player->weapons[i].ammo;
-    p->weapons[i].maxammo   = player->weapons[i].maxammo;
+    p->weapons[i].maxammo   = player->weapons[i].maxammo;*/
+    Weapon *weap = player->FindWeapon(i);
+    if (weap == NULL) {
+      p->weapons[i].hasWeapon = false;
+      p->weapons[i].level = 0;
+      p->weapons[i].xp = 0;
+      p->weapons[i].ammo = 0;
+      p->weapons[i].maxammo = 0;
+    }
+    else {
+      p->weapons[i].hasWeapon = true;
+      p->weapons[i].level = weap->level;
+      p->weapons[i].xp = weap->xp;
+      p->weapons[i].ammo = weap->ammo;
+      p->weapons[i].maxammo = weap->maxammo;
+    }
   }
-  for (auto &idx: player->wpnOrder)
-    p->wpnOrder.push_back(idx);
+  for (i = 0; i < WPN_COUNT; i++) {
+    if (i < player->weapons.size()) {
+      p->wpnOrder.push_back(player->weapons[i]->getWeaponID());
+    }
+    else {
+      p->wpnOrder.push_back(-1);
+    }
+  }
+  //for (auto &idx: player->wpnOrder)
+  //  p->wpnOrder.push_back(idx);
 
 
   // save inventory

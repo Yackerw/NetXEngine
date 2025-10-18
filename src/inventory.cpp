@@ -50,14 +50,13 @@ int RefreshInventoryScreen(void)
   // find current weapon and count # items for armssel selector
   inv.armssel.items[0] = 0; // show "no weapon" in case of no weapon
   inv.armssel.nitems   = 0;
-  for (auto &i : player->wpnOrder)
-  {
-    if (!player->weapons[i].hasWeapon)
-      continue;
-
-    if (player->curWeapon == i)
-      curwpn = inv.armssel.nitems;
-    inv.armssel.items[inv.armssel.nitems++] = i;
+  for (i = 0; i < WPN_COUNT; ++i) {
+    Weapon *wep = player->FindWeapon(i);
+    if (wep == NULL) continue;
+    inv.armssel.items[inv.armssel.nitems++] = wep->getWeaponID();
+    if (wep->getWeaponID() == player->curWeapon) {
+      curwpn = inv.armssel.nitems-1;
+    }
   }
 
   inv.armssel.spacing_x  = 40;
@@ -146,14 +145,16 @@ void DrawInventory(void)
   DrawSelector(&inv.armssel, x, y);
 
   // draw the arms
-  for (auto &w : player->wpnOrder)
+  //for (auto &w : player->wpnOrder)
+  for (auto &weap : player->weapons)
   {
-    if (!player->weapons[w].hasWeapon)
-      continue;
+    //if (!player->weapons[w].hasWeapon)
+    //  continue;
 
-    Renderer::getInstance()->sprites.drawSprite(x + 1, y + 1, SPR_ARMSICONS, w, 0);
-    DrawWeaponLevel(x + 1, y + 16, w);
-    DrawWeaponAmmo(x + 1, y + 16 + 8, w);
+    // TODO: change this to a function to draw it so modded weapons can exist...
+    Renderer::getInstance()->sprites.drawSprite(x + 1, y + 1, SPR_ARMSICONS, weap->getWeaponID(), 0);
+    DrawWeaponLevel(x + 1, y + 16, weap);
+    DrawWeaponAmmo(x + 1, y + 16 + 8, weap);
 
     x += inv.armssel.spacing_x;
   }
@@ -302,7 +303,7 @@ static void RunSelector(stSelector *selector)
   {
     if (buttonjustpushed() || justpushed(INVENTORYKEY))
     { // select the new weapon
-      weapon_slide(LEFT, selector->items[selector->cursel]);
+      weapon_slide(LEFT, player->FindWeapon(selector->items[selector->cursel]));
       ExitInventory();
     }
   }
@@ -317,7 +318,7 @@ static void RunSelector(stSelector *selector)
 
     if (justpushed(INVENTORYKEY) || justpushed(DECLINE_BUTTON))
     {
-      weapon_slide(LEFT, inv.armssel.items[inv.armssel.cursel]);
+      weapon_slide(LEFT, player->FindWeapon(inv.armssel.items[inv.armssel.cursel]));
       ExitInventory();
     }
   }

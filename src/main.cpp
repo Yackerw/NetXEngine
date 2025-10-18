@@ -401,6 +401,8 @@ int main(int argc, char *argv[])
   game.running = true;
   freshstart   = true;
 
+  Weapon::initializeWeapons();
+
   LOG_INFO("Entering main loop...");
 
   while (game.running)
@@ -429,18 +431,30 @@ int main(int argc, char *argv[])
         goto ingame_error;
       }
 	  
-	  synced = true;
+	    synced = true;
 			// Loaded, inform everyone to drop everything and revert to this gamestate
 			if (Host == 1) {
-				int buffsize = (sizeof(int) * (2 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS);
+				int buffsize = (sizeof(int) * (2 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS);
 				char *buff = (char*)malloc(buffsize);
 				// also give us the current level
 				memcpy(buff, &game.curmap, sizeof(int));
 				memcpy(buff + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
 				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
-				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
+				//memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
+
+        int *wepBuff = (int*)(buff + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons));
+
+        for (int i = 0; i < player->weapons.size(); ++i) {
+          wepBuff[i * 2] = player->weapons[i]->getWeaponID();
+          unsigned char *wepData = (unsigned char *)&wepBuff[(i * 2) + 1];
+          wepData[0] = player->weapons[i]->level;
+          wepData[1] = player->weapons[i]->xp;
+          wepData[2] = player->weapons[i]->ammo;
+          wepData[3] = player->weapons[i]->maxammo;
+        }
+
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
+				memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
 
 
 				int i = 0;
@@ -450,8 +464,8 @@ int main(int argc, char *argv[])
 					if (!textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno))
 						//textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno);
 					{
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
-						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
+						memcpy(buff + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
 					}
 				}
 				Packet_Send_Host(buff, buffsize, 13, 1);

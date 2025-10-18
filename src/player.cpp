@@ -29,14 +29,6 @@ Player *player = NULL;
 bool pinputs[INPUT_COUNT];
 bool lastpinputs[INPUT_COUNT];
 
-static void InitWeapon(int wpn, int l1, int l2, int l3, int maxammo = 0)
-{
-  player->weapons[wpn].max_xp[0] = l1;
-  player->weapons[wpn].max_xp[1] = l2;
-  player->weapons[wpn].max_xp[2] = l3;
-  player->weapons[wpn].maxammo   = maxammo;
-}
-
 void PInitFirstTime()
 {
   player->dir  = RIGHT;
@@ -46,26 +38,13 @@ void PInitFirstTime()
 
   player->ninventory = 0;
 
-  memset(player->weapons, 0, sizeof(player->weapons));
+  for (int i = 0; i < player->weapons.size(); ++i) {
+    delete player->weapons[i];
+  }
 
-  InitWeapon(WPN_POLARSTAR, 10, 20, 10);
-  InitWeapon(WPN_MGUN, 30, 40, 10, 100);
-  InitWeapon(WPN_MISSILE, 10, 20, 10, 10);
-  InitWeapon(WPN_FIREBALL, 10, 20, 20);
-  InitWeapon(WPN_BLADE, 15, 18, 0);
-  InitWeapon(WPN_BUBBLER, 10, 20, 5);
-  InitWeapon(WPN_SUPER_MISSILE, 30, 60, 10, 10);
-  InitWeapon(WPN_SNAKE, 30, 40, 16);
-  InitWeapon(WPN_SPUR, 40, 60, 200);
-  InitWeapon(WPN_NEMESIS, 1, 1, 1);
+  player->weapons.clear();
 
-  player->weapons[WPN_MGUN].SetFireRate(6, 6, 6);
-  player->weapons[WPN_MGUN].SetRechargeRate(5, 5, 5);
-
-  player->weapons[WPN_BUBBLER].SetFireRate(0, 7, 7);
-  player->weapons[WPN_BUBBLER].SetRechargeRate(20, 2, 2);
-
-  player->curWeapon = WPN_NONE;
+  player->curWeapon = -1;
 
   if (player->XPText)
     delete player->XPText;
@@ -1333,10 +1312,13 @@ void hurtplayer(int damage)
   }
 
   // decrement weapon XP.
-  if (player->equipmask & EQUIP_ARMS_BARRIER)
-    SubXP(damage);
-  else
-    SubXP(damage * 2);
+  if (player->curWeapon != WPN_NONE) {
+    Weapon *wep = player->FindWeapon(player->curWeapon);
+    if (player->equipmask & EQUIP_ARMS_BARRIER)
+      wep->subXP(damage);
+    else
+      wep->subXP(damage * 2);
+  }
 }
 
 // set the player state to "dead" and execute script "script"
@@ -1821,4 +1803,22 @@ PSelectSprite();
 
   if (player->equipmask & EQUIP_WHIMSTAR)
     draw_whimstars(&player->whimstar);
+}
+
+Weapon *Player::FindWeapon(int wpnId) {
+  for (int i = 0; i < weapons.size(); ++i) {
+    if (weapons[i]->getWeaponID() == wpnId) {
+      return weapons[i];
+    }
+  }
+  return NULL;
+}
+
+int Player::FindWeaponSlot(int wpnId) {
+  for (int i = 0; i < weapons.size(); ++i) {
+    if (weapons[i]->getWeaponID() == wpnId) {
+      return i;
+    }
+  }
+  return -1;
 }

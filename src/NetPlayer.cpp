@@ -1229,7 +1229,7 @@ static void netPFireBlade(Player *p, int level)
   SetupBullet(shot, x, y, B_BLADE_L1 + level, dir);
 }
 
-int cnnbuffsize = (sizeof(char) * (MAXCLIENTS * 2)) + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((MAXCLIENTS + 1) * 15));
+int cnnbuffsize = (sizeof(char) * (MAXCLIENTS * 2)) + (sizeof(int) * (4 + MAX_INVENTORY + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((MAXCLIENTS + 1) * 15));
 
 // Generic on-connect function to let you know number of players in server and what sockets
 char *ConnectSend() {
@@ -1248,9 +1248,20 @@ char *ConnectSend() {
   memcpy(buff + MAXCLIENTS, &game.curmap, sizeof(int));
   memcpy(buff + MAXCLIENTS + sizeof(int), &(player->inventory), MAX_INVENTORY * sizeof(int));
   memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 1)), &(player->ninventory), sizeof(int));
-  memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
-  memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
-  memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
+  //memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)), &(player->weapons), sizeof(Weapon) * WPN_COUNT);
+
+  int *weaponOffs = (int *)(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)));
+  for (int i = 0; i < player->weapons.size(); ++i) {
+    weaponOffs[i*2] = player->weapons[i]->getWeaponID();
+    unsigned char *wepData = (unsigned char *)&weaponOffs[(i * 2) + 1];
+    wepData[0] = player->weapons[i]->level;
+    wepData[1] = player->weapons[i]->xp;
+    wepData[2] = player->weapons[i]->ammo;
+    wepData[3] = player->weapons[i]->maxammo;
+  }
+
+  memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT), &game.flags, NUM_GAMEFLAGS);
+  memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, &(player->maxHealth), sizeof(int));
 
   for (i = 0; i < NUM_TELEPORTER_SLOTS; i++)
   {
@@ -1258,26 +1269,26 @@ char *ConnectSend() {
     if (!textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno))
       //textbox.StageSelect.GetSlotByIndex(i, &slotno, &scriptno);
     {
-      memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
-      memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
+      memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &slotno, sizeof(int));
+      memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), &scriptno, sizeof(int));
     }
   }
   // Copy player skins
   i = 0;
   while (i < MAXCLIENTS) {
-    memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, &players[i].skin, sizeof(char));
+    memcpy(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + i, &players[i].skin, sizeof(char));
     i++;
   }
   // Our skin
-  memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, &(player->skin), sizeof(char));
+  memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, &(player->skin), sizeof(char));
   // Copy player names
   i = 0;
   while (i < MAXCLIENTS) {
-    memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), names[i], sizeof(char) * 15);
+    memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), names[i], sizeof(char) * 15);
     i++;
   }
   // your name
-  memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), name, sizeof(char) * 15);
+  memcpy(buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), name, sizeof(char) * 15);
   return buff;
 }
 
@@ -1295,25 +1306,43 @@ void ConnectRecv(char *buff) {
   memcpy(&game.switchstage.mapno, buff + MAXCLIENTS, sizeof(int));
   memcpy(&(player->inventory), buff + MAXCLIENTS + sizeof(int), sizeof(int) * MAX_INVENTORY);
   memcpy(&(player->ninventory), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-  memcpy(&(player->weapons), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
-  player->wpnOrder.clear();
+  //memcpy(&(player->weapons), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
+  int *wpnOffs = (int*)(buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)));
+  for (int i = 0; i < player->weapons.size(); ++i) {
+    delete player->weapons[i];
+  }
+  player->weapons.clear();
   bool firstWpn = false;
   for (int i = 0; i < WPN_COUNT; ++i) {
-    if (player->weapons[i].hasWeapon) {
-      if (!firstWpn) {
-        player->curWeapon = i;
-        firstWpn = true;
+    unsigned char *curWepOffs = (unsigned char*)&wpnOffs[i * 2];
+    int wpnId = ((int *)curWepOffs)[0];
+    unsigned char wpnLvl = curWepOffs[4];
+    unsigned char wpnXp = curWepOffs[5];
+    unsigned char wpnAmmo = curWepOffs[6];
+    unsigned char wpnMaxAmmo = curWepOffs[7];
+    if (wpnOffs[i] != 0) {
+      Weapon *wep = (Weapon*)weaponRegistry.getType(wpnOffs[i],NULL,0);
+      if (wep != NULL) {
+        wep->level = wpnLvl;
+        wep->xp = wpnXp;
+        wep->ammo = wpnAmmo;
+        wep->maxammo = wpnMaxAmmo;
+        player->weapons.push_back(wep);
+        if (!firstWpn) {
+          firstWpn = true;
+          player->curWeapon = wpnOffs[i];
+        }
       }
-      player->wpnOrder.push_back(i);
     }
   }
-  memcpy(&game.flags, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
-  memcpy(&(player->maxHealth), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
+  // TODO: sync stats...
+  memcpy(&game.flags, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT), NUM_GAMEFLAGS);
+  memcpy(&(player->maxHealth), buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
   for (i = 0; i < NUM_TELEPORTER_SLOTS; i++)
   {
     int slotno, scriptno;
-    memcpy(&slotno, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
-    memcpy(&scriptno, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+    memcpy(&slotno, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
+    memcpy(&scriptno, buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i * 2) * sizeof(int)), sizeof(int));
     if (slotno != 0 && scriptno != 0) {
       textbox.StageSelect.SetSlot(slotno, scriptno);
     }
@@ -1321,18 +1350,18 @@ void ConnectRecv(char *buff) {
   // Skins
   i = 0;
   while (i < MAXCLIENTS) {
-    memcpy(&plskins[i], buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + i, sizeof(char));
+    memcpy(&plskins[i], buff + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + i, sizeof(char));
     i++;
   }
-  memcpy(&plskins[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
-  int tmp = (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS;
+  memcpy(&plskins[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(char));
+  int tmp = (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS;
   // Names
   i = 0;
   while (i < MAXCLIENTS) {
-    memcpy(names[i], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), sizeof(char) * 15);
+    memcpy(names[i], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (i * 15), sizeof(char) * 15);
     i++;
   }
-  memcpy(names[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
+  memcpy(names[ClientNode], buff + (MAXCLIENTS * 2) + (sizeof(int) * (MAX_INVENTORY + 4) + (NUM_TELEPORTER_SLOTS * 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + 1 + (MAXCLIENTS * 15), sizeof(char) * 15);
   player->invisible = false;
   player->movementmode = MOVEMODE_NORMAL;
   player->hide = false;
@@ -1440,7 +1469,7 @@ void MissileSpawnRecv(unsigned char *buff, int pnum) {
 
 char *BladeSpawnSend() {
   char *BulletSpawnSend = (char *)malloc(sizeof(char));
-  memcpy(BulletSpawnSend, &(player->weapons[player->curWeapon].level), sizeof(char));
+  memcpy(BulletSpawnSend, &(player->FindWeapon(player->curWeapon)->level), sizeof(char));
   return BulletSpawnSend;
 }
 

@@ -944,7 +944,7 @@ void Object::SpawnPowerups()
     return;
   }
 
-  if (bonusType == 2 && (player->weapons[WPN_MISSILE].hasWeapon || player->weapons[WPN_SUPER_MISSILE].hasWeapon))
+  if (bonusType == 2 && (player->FindWeapon(WPN_MISSILE) != NULL || player->FindWeapon(WPN_SUPER_MISSILE)))
   {
     objectType = OBJ_MISSILE;
   }

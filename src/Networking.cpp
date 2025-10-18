@@ -739,28 +739,46 @@ void Net_ParseBuffs() {
               memcpy(&game.switchstage.mapno, clients[i].ReceiveStack[arraypos].Stack + 4, sizeof(int));
               memcpy(&(player->inventory), clients[i].ReceiveStack[arraypos].Stack + sizeof(int) + 4, sizeof(int) * MAX_INVENTORY);
               memcpy(&(player->ninventory), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 1)), sizeof(int));
-              memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
-              memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT), NUM_GAMEFLAGS);
-              memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
+              //memcpy(&(player->weapons), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)), sizeof(Weapon) * WPN_COUNT);
+
+              int *wpnOffs = (int *)(clients[i].ReceiveStack[arraypos].Stack + MAXCLIENTS + (sizeof(int) * (MAX_INVENTORY + 2)));
+              for (int i = 0; i < player->weapons.size(); ++i) {
+                delete player->weapons[i];
+              }
+              player->weapons.clear();
+              bool firstWpn = false;
+              for (int i = 0; i < WPN_COUNT; ++i) {
+                char *curWepOffs = (char *)&wpnOffs[i * 2];
+                int wpnId = ((int *)curWepOffs)[0];
+                char wpnLvl = curWepOffs[4];
+                char wpnXp = curWepOffs[5];
+                char wpnAmmo = curWepOffs[6];
+                char wpnMaxAmmo = curWepOffs[7];
+                if (wpnOffs[i] != 0) {
+                  Weapon *wep = (Weapon *)weaponRegistry.getType(wpnOffs[i], NULL, 0);
+                  if (wep != NULL) {
+                    wep->level = wpnLvl;
+                    wep->xp = wpnXp;
+                    wep->ammo = wpnAmmo;
+                    wep->maxammo = wpnMaxAmmo;
+                    player->weapons.push_back(wep);
+                    if (!firstWpn) {
+                      firstWpn = true;
+                      player->curWeapon = wpnOffs[i];
+                    }
+                  }
+                }
+              }
+
+              memcpy(&game.flags, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT), NUM_GAMEFLAGS);
+              memcpy(&(player->maxHealth), clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 2)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS, sizeof(int));
               for (int i2 = 0; i2 < NUM_TELEPORTER_SLOTS; i2++)
               {
                 int slotno, scriptno;
-                memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
-                memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(Weapon) * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
+                memcpy(&slotno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 3)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
+                memcpy(&scriptno, clients[i].ReceiveStack[arraypos].Stack + 4 + (sizeof(int) * (MAX_INVENTORY + 4)) + (sizeof(int) * 2 * WPN_COUNT) + NUM_GAMEFLAGS + ((i2 * 2) * sizeof(int)), sizeof(int));
                 if (slotno != 0 && scriptno != 0) {
                   textbox.StageSelect.SetSlot(slotno, scriptno);
-                }
-              }
-              // default weapon order for now...
-              player->wpnOrder.clear();
-              bool firstWeapon = false;
-              for (int i = 0; i < WPN_COUNT; ++i) {
-                if (player->weapons[i].hasWeapon) {
-                  if (!firstWeapon) {
-                    player->curWeapon = i;
-                    firstWeapon = true;
-                  }
-                  player->wpnOrder.push_back(i);
                 }
               }
               player->invisible = false;

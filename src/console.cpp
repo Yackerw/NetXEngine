@@ -174,9 +174,25 @@ static void __dropweapon(std::vector<std::string> *args, int num)
   if (args->size() == 0)
     num = player->curWeapon;
 
-  player->weapons[num].hasWeapon = 0;
-  player->weapons[num].maxammo   = 0;
-  player->weapons[num].ammo      = 0;
+  int wepId = player->FindWeaponSlot(num);
+  if (wepId == -1) {
+    return;
+  }
+
+  delete player->weapons[wepId];
+  player->weapons.erase(player->weapons.begin() + wepId);
+  wepId -= 1;
+  if (wepId == -1) {
+    wepId = player->weapons.size() - 1;
+  }
+  int newWepId;
+  if (wepId == -1) {
+    newWepId = WPN_NONE;
+  }
+  else {
+    newWepId = player->weapons[wepId]->getWeaponID();
+  }
+  player->curWeapon = newWepId;
 
   if (num == player->curWeapon)
     stat_NextWeapon();
@@ -191,22 +207,27 @@ static void __level(std::vector<std::string> *args, int num)
   if (num > 2)
     num = 2;
 
-  if (player->weapons[player->curWeapon].xp < 5)
-    player->weapons[player->curWeapon].xp = 5;
+  Weapon *wep = player->FindWeapon(player->curWeapon);
+  if (wep == NULL) {
+    return;
+  }
+
+  if (wep->xp < 5)
+    wep->xp = 5;
 
   for (int timeout = 0; timeout < 500; timeout++)
   {
-    if (player->weapons[player->curWeapon].level == num)
+    if (wep->level == num)
     {
       return;
     }
-    else if (player->weapons[player->curWeapon].level < num)
+    else if (wep->level < num)
     {
-      AddXP(1);
+      wep->addXP(1);
     }
     else
     {
-      SubXP(1);
+      wep->subXP(1);
     }
   }
 
@@ -215,16 +236,24 @@ static void __level(std::vector<std::string> *args, int num)
 
 static void __ammo(std::vector<std::string> *args, int num)
 {
-  player->weapons[player->curWeapon].ammo = num;
-  if (player->weapons[player->curWeapon].ammo > player->weapons[player->curWeapon].maxammo)
-    player->weapons[player->curWeapon].maxammo = player->weapons[player->curWeapon].ammo;
+  Weapon *wep = player->FindWeapon(player->curWeapon);
+  if (wep == NULL) {
+    return;
+  }
+  wep->ammo = num;
+  if (wep->ammo > wep->maxammo)
+    wep->maxammo = wep->ammo;
 }
 
 static void __maxammo(std::vector<std::string> *args, int num)
 {
-  player->weapons[player->curWeapon].maxammo = num;
-  if (player->weapons[player->curWeapon].ammo > player->weapons[player->curWeapon].maxammo)
-    player->weapons[player->curWeapon].ammo = player->weapons[player->curWeapon].maxammo;
+  Weapon *wep = player->FindWeapon(player->curWeapon);
+  if (wep == NULL) {
+    return;
+  }
+  wep->maxammo = num;
+  if (wep->ammo > wep->maxammo)
+    wep->ammo = wep->maxammo;
 }
 
 static void __hp(std::vector<std::string> *args, int num)
@@ -246,7 +275,11 @@ static void __maxhp(std::vector<std::string> *args, int num)
 
 static void __xp(std::vector<std::string> *args, int num)
 {
-  player->weapons[player->curWeapon].xp = num;
+  Weapon *wep = player->FindWeapon(player->curWeapon);
+  if (wep == NULL) {
+    return;
+  }
+  wep->xp = num;
 }
 
 

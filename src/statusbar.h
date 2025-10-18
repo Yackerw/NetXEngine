@@ -2,6 +2,8 @@
 #ifndef _STATUSBAR_H
 #define _STATUSBAR_H
 
+class Weapon;
+
 struct PercentBar
 {
   int displayed_value;
@@ -23,9 +25,9 @@ void stat_NextWeapon(bool quiet = false);
 bool statusbar_init(void);
 void DrawStatusBar(void);
 void DrawAirLeft(int x, int y);
-void DrawWeaponAmmo(int x, int y, int wpn);
-void DrawWeaponLevel(int x, int y, int wpn);
-void weapon_slide(int dir, int newwpn);
+void DrawWeaponAmmo(int x, int y, Weapon* wpn);
+void DrawWeaponLevel(int x, int y, Weapon* wpn);
+void weapon_slide(int dir, Weapon* newwpn);
 void weapon_introslide();
 void InitPercentBar(PercentBar *bar, int starting_value);
 void RunPercentBar(PercentBar *bar, int current_value);

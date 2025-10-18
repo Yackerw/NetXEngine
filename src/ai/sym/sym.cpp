@@ -347,17 +347,20 @@ void ai_xp(Object *o)
   // let player get it!
   if (hitdetect(o, player))
   {
-    switch (o->sprite)
-    {
+    Weapon *wep = player->FindWeapon(player->curWeapon);
+    if (wep != NULL) {
+      switch (o->sprite)
+      {
       case SPR_XP_SMALL:
-        AddXP(XP_SMALL_AMT);
+        wep->addXP(XP_SMALL_AMT);
         break;
       case SPR_XP_MED:
-        AddXP(XP_MED_AMT);
+        wep->addXP(XP_MED_AMT);
         break;
       case SPR_XP_LARGE:
-        AddXP(XP_LARGE_AMT);
+        wep->addXP(XP_LARGE_AMT);
         break;
+      }
     }
 
     o->Delete();
@@ -439,7 +442,7 @@ void ai_powerup(Object *o)
       case OBJ_MISSILE3:
       {
         int amt = (o->type == OBJ_MISSILE3) ? 3 : 1;
-        int wpn = (player->weapons[WPN_SUPER_MISSILE].hasWeapon) ? WPN_SUPER_MISSILE : WPN_MISSILE;
+        int wpn = (player->FindWeapon(WPN_SUPER_MISSILE)) ? WPN_SUPER_MISSILE : WPN_MISSILE;
 
         NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_GET_MISSILE);
         AddAmmo(wpn, amt);

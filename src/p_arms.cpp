@@ -23,6 +23,8 @@
 #include "game.h"
 #include "console.h"
 
+IntRegistry weaponRegistry;
+
 NetBullet SyncBull;
 
 static int empty_timer = 0;
@@ -101,11 +103,11 @@ BulletInfo bullet_table[] = {
 // resets weapons on player re-init (Player::Init)
 void PResetWeapons()
 {
-  player->weapons[WPN_SPUR].resetSpur = true;
+  //player->weapons[WPN_SPUR].resetSpur = true;
   init_whimstar(&player->whimstar);
 }
 
-static bool can_fire_spur(void)
+bool Spur::canFire(void)
 {
   if (CountObjectsOfType(OBJ_SPUR_TRAIL) && Host == -1)
     return false;
@@ -114,10 +116,28 @@ static bool can_fire_spur(void)
 }
 
 // returns true if the current weapon has full xp at level 3 (is showing "Max")
-static bool IsWeaponMaxed(void)
+bool Weapon::isWeaponMaxed(void)
 {
-  Weapon *wpn = &player->weapons[player->curWeapon];
-  return (wpn->level == 2) && (wpn->xp == wpn->max_xp[2]);
+  return (level == getMaxLevel()) && (xp == getMaxXP(level));
+}
+
+void Weapon::initializeWeapons() {
+  weaponRegistry.clear();
+  // weapons need sorting properly
+  weaponRegistry.registerType(NULL);
+  weaponRegistry.registerType((registryValue)&Snake::create);
+  weaponRegistry.registerType((registryValue)&PolarStar::create);
+  weaponRegistry.registerType((registryValue)&Fireball::create);
+  weaponRegistry.registerType((registryValue)&MachineGun::create);
+  weaponRegistry.registerType((registryValue)&MissileLauncher::create);
+  weaponRegistry.registerType(NULL);
+  weaponRegistry.registerType((registryValue)&Bubbler::create);
+  weaponRegistry.registerType(NULL);
+  weaponRegistry.registerType((registryValue)&Blade::create);
+  weaponRegistry.registerType((registryValue)&SuperMissileLauncher::create);
+  weaponRegistry.registerType(NULL);
+  weaponRegistry.registerType((registryValue)&Nemesis::create);
+  weaponRegistry.registerType((registryValue)&Spur::create);
 }
 
 // fire a basic, single bullet
@@ -236,22 +256,19 @@ static Object *FireSimpleBulletOffset(int otype, int btype, int xoff, int yoff)
 }
 
 // fires and handles charged shots
-static void PHandleSpur(void)
+void Spur::updateWeapon(void)
 {
   static const int FLASH_TIME = 10;
-  Weapon *spur                = &player->weapons[WPN_SPUR];
-
-  if (player->curWeapon != WPN_SPUR)
-    return;
+  Weapon *spur = this;
 
   if (pinputs[FIREKEY])
   {
-    if (!IsWeaponMaxed())
+    if (!isWeaponMaxed())
     {
       int amt = (player->equipmask & EQUIP_TURBOCHARGE) ? 3 : 2;
-      AddXP(amt, true);
+      addXP(amt, true);
 
-      if (IsWeaponMaxed())
+      if (isWeaponMaxed())
       {
         NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_SPUR_MAXED);
       }
@@ -265,14 +282,14 @@ static void PHandleSpur(void)
     {
       // keep flashing even once at max
       int amt = (player->equipmask & EQUIP_TURBOCHARGE) ? 3 : 2;
-      AddXP(amt, true);
+      addXP(amt, true);
     }
   }
   else
   {
-    if (spur->level > 0 && can_fire_spur())
+    if (spur->level > 0 && canFire())
     {
-      int level = IsWeaponMaxed() ? 2 : (spur->level - 1);
+      int level = isWeaponMaxed() ? 2 : (spur->level - 1);
       FireSimpleBulletOffset(OBJ_SPUR_SHOT, B_SPUR_L1 + level, -4 * CSFI, 0);
     }
 
@@ -299,9 +316,15 @@ void PDoWeapons(void)
     stat_NextWeapon();
   int cwpn = player->curWeapon;
 
-  if (player->weapons[WPN_SPUR].hasWeapon)
+  Weapon *spur = NULL; // player->getWeapon(WPN_SPUR);
+
+  Weapon *currWep = player->FindWeapon(player->curWeapon);
+
+  // this kinda sucks and should just be changed to make the spur set its level and xp to 0 upon switch out (or switch on)
+  // according to below there's some intricacies to how this should work on the inventory screen, but like...what? that's so specific and not gameplay affecting
+  /*if (spur)
   {
-    bool &resetSpur = player->weapons[WPN_SPUR].resetSpur;
+    bool &resetSpur = spur->resetSpur;
 
     // 1. When changing weapons using the previous/next weapon keys ...
     // 2. Spur level should be reset when switching from it to another weapon
@@ -314,27 +337,29 @@ void PDoWeapons(void)
         //  (             4.             )    (                5.                )    (   6.  )
         || (player->inputs_locked_lasttime && wpn == WPN_SPUR && !pinputs[FIREKEY] && resetSpur))
     {
-      player->weapons[WPN_SPUR].level = 0;
-      player->weapons[WPN_SPUR].xp    = 0;
+      spur->level = 0;
+      spur->xp    = 0;
       resetSpur = false;
     }
     if (prev || next || wpn == WPN_SPUR)
       resetSpur = wpn != WPN_SPUR && cwpn != WPN_SPUR;
-  }
+  }*/
 
   // firing weapon
-  if (pinputs[FIREKEY])
-  {
-    FireWeapon();
-    RunWeapon(true);
-  }
-  else
-  {
-    player->auto_fire_limit = 6;
-    RunWeapon(false);
+  if (currWep != NULL) {
+    if (pinputs[FIREKEY])
+    {
+      currWep->handleFiring();
+      currWep->runWeapon(true);
+    }
+    else
+    {
+      player->auto_fire_limit = 6;
+      currWep->runWeapon(false);
+    }
   }
 
-  PHandleSpur();
+  //PHandleSpur();
 
   if (empty_timer)
     empty_timer--;
@@ -347,9 +372,11 @@ void c------------------------------() {}
 // fire the missile launcher.
 // level: 0 - 2: weapon level from 1 - 3
 // is_super: bool: true if the player is firing the Super Missile Launcher
-static void PFireMissile(int level, bool is_super)
+WeaponBullet* MissileLauncher::fire()
 {
   int xoff, yoff;
+
+  bool is_super = false;
 
   int object_type = (!is_super) ? OBJ_MISSILE_SHOT : OBJ_SUPERMISSILE_SHOT;
 
@@ -359,8 +386,8 @@ static void PFireMissile(int level, bool is_super)
   if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && Host == -1)
   {
     // give back the previously-decremented ammo so they don't lose it (hack)
-    player->weapons[player->curWeapon].ammo++;
-    return;
+    player->FindWeapon(player->curWeapon)->ammo++;
+    return NULL;
   }
 
   int bullet_type = (!is_super) ? B_MISSILE_L1 : B_SUPER_MISSILE_L1;
@@ -396,11 +423,63 @@ static void PFireMissile(int level, bool is_super)
   }
 }
 
+// this kinda sucks but i'll fix it l8r
+WeaponBullet *SuperMissileLauncher::fire()
+{
+  int xoff, yoff;
+
+  bool is_super = true;
+
+  int object_type = (!is_super) ? OBJ_MISSILE_SHOT : OBJ_SUPERMISSILE_SHOT;
+
+  // can only fire one missile at once on L1,
+  // two missiles on L2, and two sets of three missiles on L3.
+  static const uint8_t max_missiles_at_once[] = { 1, 2, 6 };
+  if (CountObjectsOfType(object_type) >= max_missiles_at_once[level] && Host == -1)
+  {
+    // give back the previously-decremented ammo so they don't lose it (hack)
+    player->FindWeapon(player->curWeapon)->ammo++;
+    return NULL;
+  }
+
+  int bullet_type = (!is_super) ? B_MISSILE_L1 : B_SUPER_MISSILE_L1;
+  bullet_type += level;
+
+  // level 1 & 2 fires just one missile
+  yoff = 1;
+  xoff = (player->dir == RIGHT) ? 1 : -1;
+  if (player->look)
+  {
+    yoff = (player->look == UP) ? -1 : 1;
+    FireMissileBullet(object_type, bullet_type, CSFI * xoff, 8 * CSFI * yoff, (is_super) ? 512 : 128, (level == 2));
+  }
+  else
+  {
+    FireMissileBullet(object_type, bullet_type, 6 * CSFI * xoff, (level == 2) ? CSFI : 0, (is_super) ? 512 : 128,
+      (level == 2));
+  }
+  // lv3 fires 3 missiles that wiggle
+  if (level == 2)
+  {
+    if (player->look)
+    {
+      yoff = (player->look == UP) ? -1 : 1;
+      FireMissileBullet(object_type, bullet_type, 3 * CSFI * xoff, 0, (is_super) ? 256 : 64, true);
+      FireMissileBullet(object_type, bullet_type, -3 * CSFI * xoff, 0, (is_super) ? 170 : 51, true);
+    }
+    else
+    {
+      FireMissileBullet(object_type, bullet_type, 0, -8 * CSFI, (is_super) ? 256 : 64, true);
+      FireMissileBullet(object_type, bullet_type, -4 * CSFI * xoff, -CSFI, (is_super) ? 170 : 51, true);
+    }
+  }
+}
+
 /*
 void c------------------------------() {}
 */
 
-static void PFireFireball(int level)
+WeaponBullet *Fireball::fire()
 {
   static const int object_types[] = {OBJ_FIREBALL1, OBJ_FIREBALL23, OBJ_FIREBALL23};
   static uint8_t max_fireballs[]  = {2, 3, 4};
@@ -408,7 +487,7 @@ static void PFireFireball(int level)
 
   count = (CountObjectsOfType(OBJ_FIREBALL1) + CountObjectsOfType(OBJ_FIREBALL23));
   if (count >= max_fireballs[level] && Host == -1)
-    return;
+    return NULL;
 
   // the 8px offset fires the shot just a tiny bit behind the player--
   // you can't see the difference but it makes the shot correctly bounce if
@@ -441,13 +520,14 @@ static void PFireFireball(int level)
       fb->yinertia = 0x5ff;
       break;
   }
+  return NULL;
 }
 
-static void PFireBlade(int level)
+WeaponBullet* Blade::fire()
 {
   int numblades = CountObjectsOfType(OBJ_BLADE12_SHOT) + CountObjectsOfType(OBJ_BLADE3_SHOT);
   if (numblades >= 1 && Host == -1)
-    return;
+    return NULL;
 
   int dir = (player->look) ? player->look : player->dir;
 
@@ -492,29 +572,29 @@ static void PFireBlade(int level)
 void c------------------------------() {}
 */
 
-static void PFireSnake(int level)
+WeaponBullet *Snake::fire()
 {
   if (level == 2)
   {
     int count = (CountObjectsOfType(OBJ_SNAKE1_SHOT) + CountObjectsOfType(OBJ_SNAKE23_SHOT));
 
     if (count >= 4 && Host == -1)
-      return;
+      return NULL;
   }
 
   int object_type = (level == 0) ? OBJ_SNAKE1_SHOT : OBJ_SNAKE23_SHOT;
   FireSimpleBulletOffset(object_type, B_SNAKE_L1 + level, -5 * CSFI, 0);
 }
 
-static void PFireNemesis(int level)
+WeaponBullet *Nemesis::fire()
 {
   if (CountObjectsOfType(OBJ_NEMESIS_SHOT) >= 2 && Host == -1)
-    return;
+    return NULL;
 
   FireSimpleBullet(OBJ_NEMESIS_SHOT, B_NEMESIS_L1 + level);
 }
 
-static void PFireBubbler(int level)
+WeaponBullet *Bubbler::fire()
 {
   static const int max_bubbles[] = {4, 16, 16};
 
@@ -523,8 +603,8 @@ static void PFireBubbler(int level)
   if (count >= max_bubbles[level] && Host == -1)
   {
     // give back the previously-decremented ammo so they don't lose it (hack)
-    player->weapons[player->curWeapon].ammo++;
-    return;
+    player->FindWeapon(player->curWeapon)->ammo++;
+    return NULL;
   }
 
   int objtype = (level != 2) ? OBJ_BUBBLER12_SHOT : OBJ_BUBBLER3_SHOT;
@@ -546,13 +626,15 @@ void c------------------------------() {}
 // and then weapon is switched to spur.
 
 // fires the regular Polar Star shot when you first push button
-static void PFireSpur(void)
+WeaponBullet *Spur::fire(void)
 {
-  if (can_fire_spur())
+  if (canFire())
     FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L3, -4 * CSFI, 0);
+  // TODO: return bullet
+  return NULL;
 }
 
-static void PFirePolarStar(int level)
+WeaponBullet *PolarStar::fire()
 {
   if (CountObjectsOfType(OBJ_POLAR_SHOT) < 2 || Host != -1)
   {
@@ -562,9 +644,11 @@ static void PFirePolarStar(int level)
     else
       xoff = -4 * CSFI;
 
+    // TODO: return bullet
     FireSimpleBulletOffset(OBJ_POLAR_SHOT, B_PSTAR_L1 + level, xoff, 0);
     rumble(0.2, 200);
   }
+  return NULL;
 }
 
 /*
@@ -572,7 +656,7 @@ void c------------------------------() {}
 */
 
 // handles firing the Machine Gun
-static void PFireMachineGun(int level)
+WeaponBullet *MachineGun::fire()
 {
   Object *shot;
   int x, y;
@@ -607,20 +691,20 @@ static void PFireMachineGun(int level)
     else if (player->look == UP)
       PMgunFly(false);
   }
+  return NULL;
+  // TODO: return a value
 }
 
 // called when player is trying to fire the current weapon
 // i.e. the fire button is down.
-void FireWeapon(void)
+void Weapon::handleFiring(void)
 {
 
-  Weapon *curweapon = &player->weapons[player->curWeapon];
-  int level         = curweapon->level;
-
   // check if we can fire
-  if (curweapon->firerate[level] != 0)
+  // TODO: use canFire()? please?
+  if (firerate[level] != 0)
   { // rapid/fully-auto fire
-    if (++player->auto_fire_limit > curweapon->firerate[level])
+    if (++player->auto_fire_limit > firerate[level])
     {
       player->auto_fire_limit = 0;
     }
@@ -641,7 +725,7 @@ void FireWeapon(void)
   player->fire_limit = 4;
 
   // check if we have enough ammo
-  if (curweapon->maxammo > 0 && curweapon->ammo <= 0)
+  if (maxammo > 0 && ammo <= 0)
   {
     NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_GUN_CLICK);
     if (empty_timer <= 0)
@@ -654,11 +738,11 @@ void FireWeapon(void)
   }
 
   // subtract ammo
-  if (curweapon->ammo)
-    curweapon->ammo--;
+  if (ammo)
+    ammo--;
 
   // fire!!
-  switch (player->curWeapon)
+  /*switch (player->curWeapon)
   {
     case WPN_NONE:
       break;
@@ -704,28 +788,27 @@ void FireWeapon(void)
       console.Print("FireWeapon: cannot fire unimplemented weapon %d", player->curWeapon);
       NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_BONK_HEAD);
       break;
-  }
+  }*/
+  fire();
 }
 
 // "run" the current weapon.
 // firing = 1 if fire key is currently down, and 0 if it is not.
-void RunWeapon(bool firing)
+void Weapon::runWeapon(bool firing)
 {
-  Weapon *curweapon = &player->weapons[player->curWeapon];
-  int level         = curweapon->level;
-
+  // TODO: move most of this code outside of this to weapon specific updateWeapon()s
   if (player->fire_limit) player->fire_limit--;
 
   // bubbler L1 has recharge but not rapid fire,
   // so it recharges even if the key is held down.
-  if (firing && !curweapon->firerate[level] && lastpinputs[FIREKEY])
+  if (firing && !firerate[level] && lastpinputs[FIREKEY])
     firing = false;
 
   // recharge machine gun when it's not firing or it's not selected
-  if ((curweapon->rechargerate[level]) && (curweapon->ammo < curweapon->maxammo) && !firing)
+  if ((rechargerate[level]) && (ammo < maxammo) && !firing)
   {
     // start recharging ammo
-    int rate = curweapon->rechargerate[level];
+    int rate = rechargerate[level];
     if ((player->equipmask & EQUIP_TURBOCHARGE) && player->curWeapon == WPN_MGUN)
     {
       rate = 2;
@@ -733,23 +816,25 @@ void RunWeapon(bool firing)
 
     // it's greater than OR EQUAL TO, so that we can have rate=0 be no recharge.
     // Otherwise there would be no value that recharges every frame.
-    if (++curweapon->rechargetimer >= rate)
+    if (++rechargetimer >= rate)
     {
-      curweapon->rechargetimer = 0;
-      curweapon->ammo++;
+      rechargetimer = 0;
+      ammo++;
     }
   }
 
-  for (int i = 0; i < WPN_COUNT; i++)
+  for (int i = 0; i < player->weapons.size(); i++)
   {
-    if (player->weapons[i].firetimer)
-      player->weapons[i].firetimer--;
+    if (player->weapons[i]->firetimer)
+      player->weapons[i]->firetimer--;
 
-    if ((i != player->curWeapon) || (player->weapons[i].ammo >= player->weapons[i].maxammo) || firing)
+    if ((i != player->FindWeaponSlot(player->curWeapon)) || (player->weapons[i]->ammo >= player->weapons[i]->maxammo) || firing)
     {
-      player->weapons[i].rechargetimer = 0;
+      player->weapons[i]->rechargetimer = 0;
     }
   }
+
+  updateWeapon();
 }
 
 /*
@@ -877,5 +962,150 @@ void PMgunFly(bool up)
   else
   {
     player->yinertia += 0x100;
+  }
+}
+
+void Weapon::addXP(int xp, bool quiet) {
+  bool leveled_up = false;
+  this->xp += xp;
+  // leveling up...
+  while (this->xp >= getMaxXP(level))
+  {
+    if (level < 2)
+    {
+      this->xp -= getMaxXP(level);
+      level++;
+      leveled_up = true;
+    }
+    else
+    {
+      this->xp = getMaxXP(level);
+      if (player->equipmask & EQUIP_WHIMSTAR)
+        add_whimstar(&player->whimstar);
+      break;
+    }
+  }
+
+  statusbar.xpflashcount = 30;
+
+  if (player->curWeapon == WPN_SPUR)
+    leveled_up = false;
+
+  if (!quiet)
+  {
+    if (!player->hide)
+    {
+      if (leveled_up)
+      {
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_LEVEL_UP);
+        effect(player->CenterX(), player->CenterY(), EFFECT_LEVELUP);
+      }
+      else
+      {
+        NXE::Sound::SoundManager::getInstance()->playSfx(NXE::Sound::SFX::SND_GET_XP);
+      }
+    }
+
+    player->XPText->AddQty(xp);
+  }
+}
+
+void Weapon::subXP(int xp, bool quiet) {
+  bool leveled_down = false;
+
+  this->xp -= xp;
+
+  // leveling down...
+  while (this->xp < 0)
+  {
+    if (level > 0)
+    {
+      level--;
+      this->xp += getMaxXP(level);
+      leveled_down = true;
+    }
+    else
+    {
+      this->xp = 0;
+      break;
+    }
+  }
+
+  if (player->curWeapon == WPN_SPUR)
+    leveled_down = false;
+
+  if (leveled_down && !quiet && !player->hide)
+  {
+    effect(player->CenterX(), player->CenterY(), EFFECT_LEVELDOWN);
+  }
+}
+
+// clamps level between 0 and 2, which is the valid for all vanilla weapons
+#define LEVELCLAMP level = level > 2 ? 2 : (level < 0 ? 0 : level)
+
+int PolarStar::getMaxXP(int level) {
+  const int XP[] = {10, 20, 10};
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int MachineGun::getMaxXP(int level) {
+  const int XP[] = { 30, 40, 10 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int MissileLauncher::getMaxXP(int level) {
+  const int XP[] = { 10, 20, 10 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Fireball::getMaxXP(int level) {
+  const int XP[] = { 10, 20, 20 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Blade::getMaxXP(int level) {
+  const int XP[] = { 15, 18, 0 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Bubbler::getMaxXP(int level) {
+  const int XP[] = { 10, 20, 5 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int SuperMissileLauncher::getMaxXP(int level) {
+  const int XP[] = { 30, 60, 10 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Snake::getMaxXP(int level) {
+  const int XP[] = { 30, 40, 16 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Spur::getMaxXP(int level) {
+  const int XP[] = { 40, 60, 200 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+int Nemesis::getMaxXP(int level) {
+  const int XP[] = { 1, 1, 1 };
+  LEVELCLAMP;
+  return XP[level];
+}
+
+void Weapon::addAmmo(int ammo) {
+  this->ammo += ammo;
+  if (this->ammo > getMaxAmmo()) {
+    this->ammo = getMaxAmmo();
   }
 }
