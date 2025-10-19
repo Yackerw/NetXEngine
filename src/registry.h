@@ -1,27 +1,49 @@
 #ifndef _REGISTRY
 #define _REGISTRY
 #include <vector>
-#include <map>
-#include <string>
+#include <stdexcept>
 
-typedef void *(*registryValue)(uintptr_t freeValue0, int freeValue1);
+#define registryValue(x) T (*x)(void* staticArg, void* callArg)
 
-class IntRegistry {
+template <typename T>
+class Registry {
 private:
-  std::vector<registryValue> values;
+  struct RegistryData {
+    registryValue(function);
+    void *staticArg;
+  };
+  std::vector<RegistryData> values;
 public:
-  int registerType(registryValue funcPtr);
-  void *getType(int key, uintptr_t input0, int input1);
+  int registerType(registryValue(funcPtr), void* staticArg);
+  T getType(int key, void* callArg);
   void clear();
 };
 
-class StringRegistry {
-private:
-  std::map<std::string, registryValue> values;
-public:
-  void registerType(std::string key, registryValue funcPtr);
-  void *getType(std::string key, uintptr_t input0, int input1);
-  void clear();
-};
+template <typename T>
+int Registry<T>::registerType(registryValue(funcPtr), void *staticArg) {
+  RegistryData data;
+  data.function = funcPtr;
+  data.staticArg = staticArg;
+  values.push_back(data);
+  return values.size() - 1;
+}
+
+template <typename T>
+T Registry<T>::getType(int key, void *callArg) {
+  if (key < 0 || key >= values.size()) {
+    throw std::invalid_argument("Given invalid key!");
+  }
+  if (values[key].function != NULL) {
+    return values[key].function(values[key].staticArg, callArg);
+  }
+  return NULL;
+}
+
+template <typename T>
+void Registry<T>::clear() {
+  values.clear();
+}
+
+#undef registryValue
 
 #endif

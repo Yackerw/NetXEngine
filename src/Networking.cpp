@@ -755,7 +755,7 @@ void Net_ParseBuffs() {
                 char wpnAmmo = curWepOffs[6];
                 char wpnMaxAmmo = curWepOffs[7];
                 if (wpnOffs[i] != 0) {
-                  Weapon *wep = (Weapon *)weaponRegistry.getType(wpnOffs[i*2], NULL, 0);
+                  Weapon *wep = (Weapon *)weaponRegistry.getType(wpnOffs[i*2], NULL);
                   if (wep != NULL) {
                     wep->level = wpnLvl;
                     wep->xp = wpnXp;

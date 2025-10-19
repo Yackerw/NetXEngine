@@ -34,8 +34,6 @@ enum
   WPN_COUNT = 14
 };
 
-extern IntRegistry weaponRegistry;
-
 // stored inside player structure
 class Weapon
 {
@@ -122,11 +120,13 @@ public:
 private:
 };
 
+extern Registry<Weapon *> weaponRegistry;
+
 class PolarStar : public Weapon {
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static PolarStar *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new PolarStar();
   }
   int getWeaponID() override {
@@ -142,7 +142,7 @@ private:
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static MissileLauncher *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new MissileLauncher();
   }
   int getWeaponID() override {
@@ -154,7 +154,7 @@ class Fireball : public Weapon {
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Fireball *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new Fireball();
   }
   int getWeaponID() override {
@@ -176,7 +176,7 @@ private:
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static MachineGun *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new MachineGun();
   }
   int getWeaponID() override {
@@ -198,7 +198,7 @@ private:
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Bubbler *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new Bubbler();
   }
   int getWeaponID() override {
@@ -210,7 +210,7 @@ class Blade : public Weapon {
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Blade *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new Blade();
   }
   int getWeaponID() override {
@@ -222,7 +222,7 @@ class Snake : public Weapon {
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Snake *create(uintptr_t unused, int id) {
+  static Weapon *create(void* staticArg, void* callArg) {
     return new Snake();
   }
   int getWeaponID() override {
@@ -238,7 +238,7 @@ private:
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static SuperMissileLauncher *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new SuperMissileLauncher();
   }
   int getWeaponID() override {
@@ -250,7 +250,7 @@ class Nemesis : public Weapon {
 public:
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Nemesis *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new Nemesis();
   }
   int getWeaponID() override {
@@ -264,7 +264,7 @@ public:
   void updateWeapon() override;
   WeaponBullet *fire() override;
   int getMaxXP(int lvl) override;
-  static Spur *create(uintptr_t unused, int id) {
+  static Weapon *create(void *staticArg, void *callArg) {
     return new Spur();
   }
   int getWeaponID() override {

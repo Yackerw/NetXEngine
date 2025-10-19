@@ -93,7 +93,7 @@ void GetWeapon(int wpn, int ammo, bool quiet)
   Weapon *weapon = player->FindWeapon(wpn);
   if (weapon == NULL)
   {
-    weapon = (Weapon*)weaponRegistry.getType(wpn, NULL, wpn);
+    weapon = (Weapon*)weaponRegistry.getType(wpn, NULL);
     weapon->ammo      = 0; // will be filled to full by AddAmmo below
     weapon->maxammo   = ammo;
     player->weapons.push_back(weapon);

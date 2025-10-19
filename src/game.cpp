@@ -720,7 +720,7 @@ bool game_load(Profile *p)
   player->weapons.clear();
   for (auto &idx : p->wpnOrder) {
     if (p->weapons[idx].hasWeapon) {
-      Weapon *weap = (Weapon *)weaponRegistry.getType(idx, NULL, 0);
+      Weapon *weap = weaponRegistry.getType(idx, NULL);
       weap->level = p->weapons[idx].level;
       weap->xp = p->weapons[idx].xp;
       weap->ammo = p->weapons[idx].ammo;

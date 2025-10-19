@@ -23,7 +23,7 @@
 #include "game.h"
 #include "console.h"
 
-IntRegistry weaponRegistry;
+Registry<Weapon*> weaponRegistry;
 
 NetBullet SyncBull;
 
@@ -124,20 +124,20 @@ bool Weapon::isWeaponMaxed(void)
 void Weapon::initializeWeapons() {
   weaponRegistry.clear();
   // weapons need sorting properly
-  weaponRegistry.registerType(NULL);
-  weaponRegistry.registerType((registryValue)&Snake::create);
-  weaponRegistry.registerType((registryValue)&PolarStar::create);
-  weaponRegistry.registerType((registryValue)&Fireball::create);
-  weaponRegistry.registerType((registryValue)&MachineGun::create);
-  weaponRegistry.registerType((registryValue)&MissileLauncher::create);
-  weaponRegistry.registerType(NULL);
-  weaponRegistry.registerType((registryValue)&Bubbler::create);
-  weaponRegistry.registerType(NULL);
-  weaponRegistry.registerType((registryValue)&Blade::create);
-  weaponRegistry.registerType((registryValue)&SuperMissileLauncher::create);
-  weaponRegistry.registerType(NULL);
-  weaponRegistry.registerType((registryValue)&Nemesis::create);
-  weaponRegistry.registerType((registryValue)&Spur::create);
+  weaponRegistry.registerType(NULL, NULL);
+  weaponRegistry.registerType(Snake::create, NULL);
+  weaponRegistry.registerType(PolarStar::create, NULL);
+  weaponRegistry.registerType(Fireball::create, NULL);
+  weaponRegistry.registerType(MachineGun::create, NULL);
+  weaponRegistry.registerType(MissileLauncher::create, NULL);
+  weaponRegistry.registerType(NULL, NULL);
+  weaponRegistry.registerType(Bubbler::create, NULL);
+  weaponRegistry.registerType(NULL, NULL);
+  weaponRegistry.registerType(Blade::create, NULL);
+  weaponRegistry.registerType(SuperMissileLauncher::create, NULL);
+  weaponRegistry.registerType(NULL, NULL);
+  weaponRegistry.registerType(Nemesis::create, NULL);
+  weaponRegistry.registerType(Spur::create, NULL);
 }
 
 // fire a basic, single bullet
